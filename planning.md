@@ -2,84 +2,133 @@
 
 ## Objective
 
-Build a hosted personal time tracking application that allows quick task entry, automatic summaries, weekly goal tracking, and analytics.
+Build a hosted personal time tracking application that enables quick task logging, automatic summaries, weekly goal tracking, and productivity analytics.
 
 ---
 
-# Phase 1 — Foundation
+# Phase 1 - Project Setup
 
 * Initialize Next.js project
-* Configure Tailwind
+* Configure Tailwind CSS
 * Configure Prisma
 * Connect Supabase PostgreSQL
-* Create database schema
-* Seed initial categories
+* Create initial database schema
+* Configure environment variables
 
 Deliverable:
-Application connected to the database.
+
+* Application successfully connected to Supabase database.
 
 ---
 
-# Phase 2 — Task CRUD
+# Phase 2 - Database
+
+Create tables:
+
+* categories
+* task_entries
+* daily_category_summaries
+* weekly_targets
+
+Seed initial categories.
+
+Deliverable:
+
+* Database schema finalized.
+
+---
+
+# Phase 3 - Task Management
 
 Implement:
 
 * Add task
 * Edit task
 * Delete task
-* List tasks
+* View tasks
 * Duration calculation
+* Category selection
 
 Deliverable:
-Users can fully manage task entries.
+
+* Complete CRUD for task entries.
 
 ---
 
-# Phase 3 — Daily Summary
+# Phase 4 - Category Management
 
 Implement:
 
-* Daily category summary table
-* Automatic recalculation after task changes
+* View categories
+* Add category
+* Prevent duplicate category names
+* Allow inactive categories in future if needed
 
 Deliverable:
-Daily summaries remain consistent.
+
+* Categories managed from the UI.
 
 ---
 
-# Phase 4 — Dashboard
+# Phase 5 - Daily Summary
+
+Automatically recalculate daily summaries whenever:
+
+* task added
+* task edited
+* task deleted
+
+Deliverable:
+
+* Daily category summaries remain accurate.
+
+---
+
+# Phase 6 - Dashboard
 
 Dashboard should display:
 
-* Today's task list
-* Today's category totals
-* Current week's totals
+* Today's tasks
+* Today's category summary
+* Current week's category totals
 * Weekly targets
 * Remaining time
 * Progress percentage
 
----
+Support date filters:
 
-# Phase 5 — Analytics
-
-Implement:
-
-* Weekly comparison
-* Monthly comparison
-* Category breakdown
-* Trend charts
-
-Compute weekly and monthly values from daily summaries.
+* Today
+* Yesterday
+* Current Week
+* Previous Week
+* Current Month
+* Custom Date Range
 
 ---
 
-# Phase 6 — Polish
+# Phase 7 - Analytics
 
-* Improve responsive layout
-* Improve loading states
-* Improve error handling
-* Verify calculations
-* Deploy to Vercel
+Implement charts for:
+
+* Weekly category comparison
+* Monthly category comparison
+* Time spent by category
+* Weekly productivity trend
+
+Weekly and monthly values should be computed from daily summaries.
+
+---
+
+# Phase 8 - Deployment
+
+Deploy application to Vercel.
+
+Verify:
+
+* Database connectivity
+* CRUD operations
+* Dashboard
+* Mobile responsiveness
 
 ---
 
@@ -88,20 +137,24 @@ Compute weekly and monthly values from daily summaries.
 The application is complete when:
 
 * Tasks can be added, edited, and deleted.
-* Categories are manageable.
-* Daily summaries are automatically maintained.
-* Weekly targets work correctly.
-* Weekly remaining time is shown.
-* Analytics are accurate.
+* Categories can be managed.
+* Daily summaries update automatically.
+* Weekly targets function correctly.
+* Remaining weekly time is displayed.
+* Charts are accurate.
 * Application is accessible from desktop and mobile.
-* Application is deployed successfully.
+* Deployment is successful.
 
 ---
 
 # Development Rules
 
-* Keep features incremental.
-* Complete one phase before starting the next.
-* Avoid introducing unnecessary complexity.
-* Prefer simple SQL and Prisma queries.
-* Build only what is required for the MVP.
+* Complete one phase before moving to the next.
+* Keep code simple and readable.
+* Avoid premature optimization.
+* Avoid unnecessary packages.
+* Use Prisma for database operations.
+* Use React components with JavaScript.
+* Keep API routes focused on a single responsibility.
+
+When requirements are unclear, choose the simplest implementation that satisfies the current MVP.
