@@ -2,100 +2,198 @@
 
 ## Objective
 
-Build a hosted personal time tracking application that enables quick task logging, automatic summaries, weekly goal tracking, and productivity analytics.
+Build a hosted personal time tracking application that enables quick activity logging, automatic summaries, weekly goal tracking, and productivity analytics.
+
+The database design is documented in `docs/database.md` and should be treated as the source of truth.
+
+The API contract is documented in `docs/api.md` and should be followed during backend implementation.
+
+The UI design is documented in `docs/ui.md` and should be followed during frontend implementation.
 
 ---
 
-# Phase 1 - Project Setup
+# Phase 1 - Project Setup ✅
 
 * Initialize Next.js project
 * Configure Tailwind CSS
 * Configure Prisma
 * Connect Supabase PostgreSQL
-* Create initial database schema
 * Configure environment variables
 
-Deliverable:
-
-* Application successfully connected to Supabase database.
+**Status:** Completed
 
 ---
 
-# Phase 2 - Database
+# Phase 2 - Database ✅
 
-Create tables:
+Implement the database schema defined in `docs/database.md`.
 
-* categories
-* task_entries
-* daily_category_summaries
-* weekly_targets
+Database design includes:
 
-Seed initial categories.
+* Main Categories
+* Sub Categories
+* Activities
+* Daily Sub Category Summaries (Main Category summaries are derived.)
+* Weekly Targets
 
-Deliverable:
-
-* Database schema finalized.
+**Status:** Completed
 
 ---
 
-# Phase 3 - Task Management
+# Phase 3 - Activity Management Backend ✅
 
 Implement:
 
-* Add task
-* Edit task
-* Delete task
-* View tasks
+* GET /api/activities
+* POST /api/activities
+* PATCH /api/activities/:id
+* DELETE /api/activities/:id
+
+Features:
+
+* Activity validation
 * Duration calculation
-* Category selection
+* Daily summary recalculation
+* Automatic main category derivation from selected sub category
 
-Deliverable:
-
-* Complete CRUD for task entries.
+**Status:** Completed
 
 ---
 
-# Phase 4 - Category Management
+# Phase 4 - Category Management Backend
 
 Implement:
 
-* View categories
-* Add category
-* Prevent duplicate category names
-* Allow inactive categories in future if needed
+## Main Category APIs
 
-Deliverable:
+* GET /api/main-categories
+* POST /api/main-categories
+* PATCH /api/main-categories/:id
 
-* Categories managed from the UI.
+## Sub Category APIs
+
+* GET /api/sub-categories
+* POST /api/sub-categories
+* PATCH /api/sub-categories/:id
+
+Features:
+
+* Main category management
+* Sub category management
+* Parent-child relationship validation
+* Duplicate prevention
+* Soft deactivation
+* Reactivation
+
+**Status:** Pending (Current APIs should be updated to support the new hierarchy.)
 
 ---
 
-# Phase 5 - Daily Summary
+# Phase 5 - Activity Management UI
 
-Automatically recalculate daily summaries whenever:
+Implement:
 
-* task added
-* task edited
-* task deleted
+* Activities page
+* Activities table
+* Add Activity modal
+* Edit Activity modal
+* Delete Activity
+* Connect to Activities API
+
+Activity form should support:
+
+* Activity Date
+* Title
+* Sub Category selection
+* Automatically display the corresponding Main Category
+* Start Time
+* End Time
+* Notes
 
 Deliverable:
 
-* Daily category summaries remain accurate.
+The application can be used to manage activities completely through the browser.
 
 ---
 
-# Phase 6 - Dashboard
+# Phase 6 - Category Management UI
 
-Dashboard should display:
+Implement:
 
-* Today's tasks
-* Today's category summary
-* Current week's category totals
-* Weekly targets
+## Main Category Management
+
+* View Main Categories
+* Add Main Category
+* Rename Main Category
+* Activate / Deactivate Main Category
+
+## Sub Category Management
+
+* View Sub Categories
+* Add Sub Category
+* Rename Sub Category
+* Activate / Deactivate Sub Category
+
+Future Enhancement:
+
+* Move a Sub Category to another Main Category
+
+Deliverable:
+
+Both Main Categories and Sub Categories can be managed through the UI.
+
+---
+
+# Phase 7 - Dashboard
+
+Implement:
+
+## Dashboard API
+
+* GET /api/dashboard
+
+The Dashboard API should return all data required to render the Dashboard in a single response.
+
+The backend is responsible for:
+
+* Fetching today's activities
+* Fetching Daily Sub Category Summaries
+* Deriving Main Category summaries
+* Fetching Weekly Targets
+* Calculating Remaining Time
+* Calculating Progress Percentage
+
+---
+
+## Dashboard UI
+
+### Quick Actions
+
+* Add Activity
+
+### Today's Summary
+
+* Summary by Main Category
+* Summary by Sub Category
+
+### Today's Timeline
+
+* Chronological list of today's activities
+* Edit activity
+* Delete activity
+
+### Current Week Progress
+
+Display:
+
+* Weekly target
+* Time spent
 * Remaining time
 * Progress percentage
 
-Support date filters:
+Progress should be calculated using Main Categories.
+
+Support filters:
 
 * Today
 * Yesterday
@@ -104,57 +202,97 @@ Support date filters:
 * Current Month
 * Custom Date Range
 
----
+Deliverable:
 
-# Phase 7 - Analytics
-
-Implement charts for:
-
-* Weekly category comparison
-* Monthly category comparison
-* Time spent by category
-* Weekly productivity trend
-
-Weekly and monthly values should be computed from daily summaries.
+Interactive dashboard powered by a dedicated Dashboard API.
 
 ---
 
-# Phase 8 - Deployment
+# Phase 8 - Analytics
 
-Deploy application to Vercel.
+Implement:
+
+## Analytics API
+
+* GET /api/analytics
+
+The Analytics API should return all data required to render the Analytics page in a single response.
+
+The backend is responsible for:
+
+* Deriving Main Category summaries from Daily Sub Category Summaries
+* Preparing comparison datasets
+* Preparing trend datasets
+
+---
+
+## Analytics UI
+
+Implement:
+
+* Weekly Main Category comparison
+* Weekly Sub Category comparison
+* Monthly Main Category comparison
+* Monthly Sub Category comparison
+* Productivity trends over time
+
+Analytics should use:
+
+* Daily Sub Category Summaries
+* Weekly Targets
+
+Main Category summaries should be derived from Daily Sub Category Summaries.
+
+Deliverable:
+
+Analytics page powered by a dedicated Analytics API.
+
+---
+
+# Phase 9 - Deployment & Polish
+
+Deploy to Vercel.
 
 Verify:
 
+* API functionality
 * Database connectivity
-* CRUD operations
-* Dashboard
-* Mobile responsiveness
+* Responsive UI
+* Error handling
+* Mobile usability
+* Cross-browser compatibility
+
+Deliverable:
+
+Production-ready MVP.
 
 ---
 
 # Success Criteria
 
-The application is complete when:
+The MVP is complete when:
 
-* Tasks can be added, edited, and deleted.
-* Categories can be managed.
-* Daily summaries update automatically.
-* Weekly targets function correctly.
-* Remaining weekly time is displayed.
-* Charts are accurate.
-* Application is accessible from desktop and mobile.
-* Deployment is successful.
+* Activities can be managed through the UI.
+* Main Categories can be managed through the UI.
+* Sub Categories can be managed through the UI.
+* Activities are logged using Sub Categories.
+* Main Categories are automatically derived from the selected Sub Category.
+* Daily summaries are available by both Main Category and Sub Category.
+* Weekly targets work correctly for Main Categories.
+* Dashboard displays accurate daily and weekly progress.
+* Analytics are accurate.
+* The application is deployed and usable on desktop and mobile.
 
 ---
 
 # Development Rules
 
+* Follow `docs/database.md` for all database implementation.
+* Follow `docs/api.md` for all backend implementation.
+* Follow `docs/ui.md` for all frontend implementation.
 * Complete one phase before moving to the next.
-* Keep code simple and readable.
-* Avoid premature optimization.
-* Avoid unnecessary packages.
-* Use Prisma for database operations.
-* Use React components with JavaScript.
-* Keep API routes focused on a single responsibility.
-
-When requirements are unclear, choose the simplest implementation that satisfies the current MVP.
+* Keep implementations simple and production-ready.
+* Avoid unnecessary packages and abstractions.
+* Test each completed phase before proceeding.
+* Prefer reusable components and utilities where appropriate.
+* Keep backend, frontend, and documentation aligned whenever changes are introduced.

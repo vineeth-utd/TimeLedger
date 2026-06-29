@@ -11,3 +11,87 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model MainCategory {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz @map("updated_at")
+
+  subCategories SubCategory[]
+  weeklyTargets WeeklyTarget[]
+
+  @@map("main_categories")
+}
+
+model SubCategory {
+  id             Int      @id @default(autoincrement())
+  mainCategoryId Int      @map("main_category_id")
+  name           String
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt      DateTime @updatedAt @db.Timestamptz @map("updated_at")
+
+  mainCategory              MainCategory               @relation(fields: [mainCategoryId], references: [id], onDelete: Restrict)
+  activities                Activity[]
+  dailySubCategorySummaries DailySubCategorySummary[]
+
+  @@unique([mainCategoryId, name])
+  @@index([mainCategoryId])
+  @@map("sub_categories")
+}
+
+model Activity {
+  id              Int      @id @default(autoincrement())
+  activityDate    DateTime @db.Date @map("activity_date")
+  title           String
+  subCategoryId   Int      @map("sub_category_id")
+  startTime       DateTime @db.Timestamptz @map("start_time")
+  endTime         DateTime @db.Timestamptz @map("end_time")
+  durationMinutes Int      @map("duration_minutes")
+  notes           String?
+  createdAt       DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt       DateTime @updatedAt @db.Timestamptz @map("updated_at")
+
+  subCategory SubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Restrict)
+
+  @@index([activityDate])
+  @@index([subCategoryId])
+  @@index([startTime])
+  @@index([endTime])
+  @@map("activities")
+}
+
+model DailySubCategorySummary {
+  id              Int      @id @default(autoincrement())
+  summaryDate     DateTime @db.Date @map("summary_date")
+  subCategoryId   Int      @map("sub_category_id")
+  totalMinutes    Int      @map("total_minutes")
+  totalActivities Int      @map("total_activities")
+  createdAt       DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt       DateTime @updatedAt @db.Timestamptz @map("updated_at")
+
+  subCategory SubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Restrict)
+
+  @@unique([summaryDate, subCategoryId])
+  @@index([summaryDate])
+  @@index([subCategoryId])
+  @@map("daily_sub_category_summaries")
+}
+
+model WeeklyTarget {
+  id             Int      @id @default(autoincrement())
+  weekStartDate  DateTime @db.Date @map("week_start_date")
+  mainCategoryId Int      @map("main_category_id")
+  targetMinutes  Int      @map("target_minutes")
+  createdAt      DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt      DateTime @updatedAt @db.Timestamptz @map("updated_at")
+
+  mainCategory MainCategory @relation(fields: [mainCategoryId], references: [id], onDelete: Restrict)
+
+  @@unique([weekStartDate, mainCategoryId])
+  @@index([weekStartDate])
+  @@index([mainCategoryId])
+  @@map("weekly_targets")
+}
