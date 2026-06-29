@@ -248,32 +248,6 @@ Server Responsibilities
 
 ---
 
-# Daily Main Category Summary API
-
-## GET /api/daily-main-category-summaries
-
-Query Parameters
-
-* startDate
-* endDate
-
-Read-only endpoint.
-
----
-
-# Daily Sub Category Summary API
-
-## GET /api/daily-sub-category-summaries
-
-Query Parameters
-
-* startDate
-* endDate
-
-Read-only endpoint.
-
----
-
 # Weekly Targets API
 
 ## GET /api/weekly-targets
@@ -312,25 +286,53 @@ Delete target.
 
 ## GET /api/dashboard/weekly
 
-Returns:
+### Purpose
 
-* Today's timeline
-* Daily Main Category Summary
-* Daily Sub Category Summary
-* Weekly Targets
-* Current Week Progress
+Return all data required to render the weekly dashboard.
 
-If a weekly target does not exist, use the previous week's actual value as the fallback target.
+### Query Parameters
+
+- weekStartDate
+
+### Response Includes
+
+- Today's timeline
+- Today's summary by Sub Category
+- Today's summary by Main Category (derived from Sub Category summaries)
+- Weekly target information
+- Current week progress
+- Remaining time
+- Progress percentage
+
+### Notes
+
+Main Category summaries are derived from Daily Sub Category Summaries.
+
+If a weekly target does not exist for a Main Category, use the previous week's actual value as the fallback target.
 
 ---
 
 ## GET /api/dashboard/monthly
 
-Returns:
+### Purpose
 
-* Monthly Main Category totals
-* Monthly Sub Category totals
-* Monthly comparisons
+Return all data required to render the monthly dashboard.
+
+### Query Parameters
+
+- year
+- month
+
+### Response Includes
+
+- Monthly Main Category Summary
+- Monthly Sub Category Summary
+- Monthly comparisons
+- Monthly trends
+
+### Notes
+
+Main Category summaries are derived from Daily Sub Category Summaries.
 
 ---
 

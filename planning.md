@@ -33,8 +33,7 @@ Database design includes:
 * Main Categories
 * Sub Categories
 * Activities
-* Daily Main Category Summaries
-* Daily Sub Category Summaries
+* Daily Sub Category Summaries (Main Category summaries are derived.)
 * Weekly Targets
 
 **Status:** Completed

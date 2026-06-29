@@ -161,26 +161,6 @@ Stores precomputed daily totals for every sub category.
 * created_at
 * updated_at
 
----
-
-## 5. daily_main_category_summaries
-
-### Purpose
-
-Stores precomputed daily totals for every main category.
-
-### Columns
-
-* id
-* summary_date
-* main_category_id
-* total_minutes
-* total_activities
-* created_at
-* updated_at
-
----
-
 ## 6. weekly_targets
 
 ### Purpose
