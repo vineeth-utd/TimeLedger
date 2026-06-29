@@ -33,25 +33,25 @@ Prioritize simplicity, maintainability, and correctness over unnecessary abstrac
 
 # Core Features
 
-## Task Management
+## Activity Management
 
-* Add task entry
-* Edit task entry
-* Delete task entry
+* Add activity
+* Edit activity
+* Delete activity
 * Automatically calculate duration from start and end timestamps
 * Store calculated duration in minutes
 
 ## Categories
 
 * Categories are maintained in a reference table.
-* Tasks must reference an existing category.
+* Every activity must belong to an existing category.
 * Users can add new categories directly from the UI.
 
 ## Daily Category Summary
 
 Maintain a daily category summary table.
 
-Whenever a task is:
+Whenever an activity is:
 
 * created
 * updated
@@ -65,9 +65,9 @@ Weekly and monthly summaries should be computed dynamically from daily summaries
 
 Maintain weekly targets per category.
 
-If a target does not exist for a selected week, automatically use the previous week's actual time as the default target.
+If a target does not exist for the selected week, automatically use the previous week's actual time as the default target.
 
-Dashboard should display:
+The dashboard should display:
 
 * Current week time spent
 * Weekly target
@@ -78,6 +78,9 @@ Dashboard should display:
 
 # Architecture Principles
 
+* `activities` is the source of truth.
+* `daily_category_summaries` stores precomputed daily totals.
+* Weekly and monthly summaries are derived from daily summaries.
 * Next.js handles both frontend and backend.
 * Keep business logic on the server whenever possible.
 * Keep React components focused on presentation.
@@ -92,8 +95,8 @@ Dashboard should display:
 * Use async/await.
 * Prefer functional React components.
 * Use meaningful variable and function names.
-* Keep functions focused and readable.
-* Write reusable utility functions where appropriate.
+* Keep functions small and readable.
+* Use Prisma for all database operations.
 * Keep SQL queries efficient.
 
 ---
@@ -127,16 +130,16 @@ Do not implement unless explicitly requested:
 
 # Claude Workflow
 
-For every feature:
+Before implementing any feature:
 
-1. Understand the requirement.
-2. Identify impacted files.
-3. Explain the implementation approach briefly.
+1. Read only the files required for the current task.
+2. Understand the requirement.
+3. Explain the proposed implementation.
 4. Wait for approval if the change is significant.
 5. Implement only the approved scope.
 
 Avoid unrelated refactoring.
 
-Prefer small, incremental commits over large implementations.
+Prefer small, incremental commits.
 
-Optimize for minimal Claude token usage while maintaining clean code.
+Optimize for minimal Claude token usage while maintaining clean, production-quality code.

@@ -2,7 +2,9 @@
 
 ## Objective
 
-Build a hosted personal time tracking application that enables quick task logging, automatic summaries, weekly goal tracking, and productivity analytics.
+Build a hosted personal time tracking application that enables quick activity logging, automatic summaries, weekly goal tracking, and productivity analytics.
+
+The database design is documented in `docs/database.md` and should be treated as the source of truth.
 
 ---
 
@@ -12,46 +14,48 @@ Build a hosted personal time tracking application that enables quick task loggin
 * Configure Tailwind CSS
 * Configure Prisma
 * Connect Supabase PostgreSQL
-* Create initial database schema
 * Configure environment variables
 
 Deliverable:
 
-* Application successfully connected to Supabase database.
+* Application successfully connected to Supabase PostgreSQL.
 
 ---
 
 # Phase 2 - Database
 
-Create tables:
+Implement the database schema defined in `docs/database.md`.
+
+Create the following tables:
 
 * categories
-* task_entries
+* activities
 * daily_category_summaries
 * weekly_targets
 
-Seed initial categories.
+Seed initial categories if required.
 
 Deliverable:
 
 * Database schema finalized.
+* Initial Prisma migration created.
 
 ---
 
-# Phase 3 - Task Management
+# Phase 3 - Activity Management
 
 Implement:
 
-* Add task
-* Edit task
-* Delete task
-* View tasks
-* Duration calculation
+* Add activity
+* Edit activity
+* Delete activity
+* View activities
+* Automatic duration calculation
 * Category selection
 
 Deliverable:
 
-* Complete CRUD for task entries.
+* Complete CRUD for activities.
 
 ---
 
@@ -62,7 +66,7 @@ Implement:
 * View categories
 * Add category
 * Prevent duplicate category names
-* Allow inactive categories in future if needed
+* Support inactive categories for future use
 
 Deliverable:
 
@@ -70,13 +74,13 @@ Deliverable:
 
 ---
 
-# Phase 5 - Daily Summary
+# Phase 5 - Daily Category Summary
 
-Automatically recalculate daily summaries whenever:
+Automatically recalculate daily summaries whenever an activity is:
 
-* task added
-* task edited
-* task deleted
+* added
+* edited
+* deleted
 
 Deliverable:
 
@@ -88,7 +92,7 @@ Deliverable:
 
 Dashboard should display:
 
-* Today's tasks
+* Today's activities
 * Today's category summary
 * Current week's category totals
 * Weekly targets
@@ -104,6 +108,10 @@ Support date filters:
 * Current Month
 * Custom Date Range
 
+Deliverable:
+
+* Dashboard displays accurate summaries and progress.
+
 ---
 
 # Phase 7 - Analytics
@@ -115,20 +123,29 @@ Implement charts for:
 * Time spent by category
 * Weekly productivity trend
 
-Weekly and monthly values should be computed from daily summaries.
+Weekly and monthly values should be computed from `daily_category_summaries`.
+
+Deliverable:
+
+* Analytics page completed.
 
 ---
 
 # Phase 8 - Deployment
 
-Deploy application to Vercel.
+Deploy the application to Vercel.
 
 Verify:
 
 * Database connectivity
-* CRUD operations
+* Activity CRUD operations
 * Dashboard
+* Analytics
 * Mobile responsiveness
+
+Deliverable:
+
+* Production deployment completed.
 
 ---
 
@@ -136,25 +153,27 @@ Verify:
 
 The application is complete when:
 
-* Tasks can be added, edited, and deleted.
+* Activities can be added, edited, and deleted.
 * Categories can be managed.
 * Daily summaries update automatically.
 * Weekly targets function correctly.
 * Remaining weekly time is displayed.
-* Charts are accurate.
+* Analytics are accurate.
 * Application is accessible from desktop and mobile.
-* Deployment is successful.
+* Application is successfully deployed.
 
 ---
 
 # Development Rules
 
+* Follow `docs/database.md` for all database-related implementation.
 * Complete one phase before moving to the next.
 * Keep code simple and readable.
 * Avoid premature optimization.
 * Avoid unnecessary packages.
-* Use Prisma for database operations.
+* Use Prisma for all database operations.
 * Use React components with JavaScript.
 * Keep API routes focused on a single responsibility.
+* Build the smallest working solution before adding enhancements.
 
-When requirements are unclear, choose the simplest implementation that satisfies the current MVP.
+When requirements are unclear, choose the simplest implementation that satisfies the MVP.
