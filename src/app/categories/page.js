@@ -7,6 +7,7 @@ import ErrorBanner from '@/components/ErrorBanner'
 import EmptyState from '@/components/EmptyState'
 import CategoryModal from '@/components/categories/CategoryModal'
 import MainCategorySection from '@/components/categories/MainCategorySection'
+import WeeklyTargetsSection from '@/components/categories/WeeklyTargetsSection'
 
 const STATUS_FILTERS = [
   { key: 'all', label: 'All' },
@@ -195,6 +196,8 @@ export default function CategoriesPage() {
           ))}
         </div>
       )}
+
+      <WeeklyTargetsSection />
 
       <CategoryModal
         isOpen={modalOpen}
