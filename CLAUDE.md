@@ -133,13 +133,28 @@ Do not implement unless explicitly requested:
 Before implementing any feature:
 
 1. Read only the files required for the current task.
-2. Understand the requirement.
-3. Explain the proposed implementation.
-4. Wait for approval if the change is significant.
-5. Implement only the approved scope.
+2. Use the project documentation (`docs/`) as the source of truth.
+3. Understand the feature requirements.
+4. Identify the files that will be created or modified.
+5. Call out any assumptions, ambiguities, risks, or suggested improvements before implementation.
+6. Produce a clear step-by-step implementation plan.
+7. Wait for my approval before writing or modifying any code.
+8. Implement only the approved scope.
 
-Avoid unrelated refactoring.
+## Implementation Rules
 
-Prefer small, incremental commits.
+* Keep changes focused on the current feature.
+* Do not read or modify unrelated files.
+* Avoid unnecessary refactoring.
+* Prefer simple, production-ready solutions.
+* Keep functions and components small and readable.
+* Reuse existing utilities whenever appropriate.
+* Follow the database design in `docs/database.md`.
+* Follow the API contracts in `docs/api.md`.
+* If implementation differs from the documentation, explain why before making the change.
 
-Optimize for minimal Claude token usage while maintaining clean, production-quality code.
+## Development Philosophy
+
+* Complete one feature at a time.
+* Prefer incremental commits after each completed milestone.
+* Minimize Claude token usage by reading only the necessary files and avoiding unnecessary analysis.
