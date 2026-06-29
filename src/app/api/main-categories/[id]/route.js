@@ -3,12 +3,12 @@ import prisma from '@/lib/prisma'
 export async function PATCH(request, ctx) {
   try {
     const { id } = await ctx.params
-    const categoryId = Number(id)
+    const mainCategoryId = Number(id)
 
-    const existing = await prisma.category.findUnique({ where: { id: categoryId } })
+    const existing = await prisma.mainCategory.findUnique({ where: { id: mainCategoryId } })
     if (!existing) {
       return Response.json(
-        { success: false, message: 'Category not found' },
+        { success: false, message: 'Main category not found' },
         { status: 404 }
       )
     }
@@ -24,12 +24,12 @@ export async function PATCH(request, ctx) {
         )
       }
       const trimmedName = body.name.trim()
-      const duplicate = await prisma.category.findFirst({
-        where: { name: trimmedName, id: { not: categoryId } },
+      const duplicate = await prisma.mainCategory.findFirst({
+        where: { name: trimmedName, id: { not: mainCategoryId } },
       })
       if (duplicate) {
         return Response.json(
-          { success: false, message: 'A category with that name already exists' },
+          { success: false, message: 'A main category with that name already exists' },
           { status: 409 }
         )
       }
@@ -40,14 +40,14 @@ export async function PATCH(request, ctx) {
       data.isActive = body.isActive
     }
 
-    const updated = await prisma.category.update({
-      where: { id: categoryId },
+    const updated = await prisma.mainCategory.update({
+      where: { id: mainCategoryId },
       data,
     })
 
     return Response.json({ success: true, data: updated })
   } catch (error) {
-    console.error('PATCH /api/categories/[id] error:', error)
+    console.error('PATCH /api/main-categories/[id] error:', error)
     return Response.json(
       { success: false, message: 'Internal server error' },
       { status: 500 }
