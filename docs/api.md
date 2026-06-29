@@ -91,7 +91,19 @@ src/
 
 ### Purpose
 
-Return all active categories ordered alphabetically.
+Return all categories based on the filters and ordered alphabetically.
+
+### Optional query parameter:
+
+- isActive
+
+### Behavior:
+- isActive=true → return only active categories
+- isActive=false → return only inactive categories
+- isActive not provided → return all categories
+
+### Default ordering:
+- name ascending
 
 ---
 
@@ -115,10 +127,12 @@ Create a new category.
 
 Update category information.
 
-Supported updates:
+### Supported updates:
+- name
+- isActive
 
-* name
-* isActive
+Use isActive=false to deactivate a category.
+Use isActive=true to reactivate a category.
 
 ---
 

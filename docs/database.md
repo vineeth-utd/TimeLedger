@@ -209,6 +209,14 @@ When an activity is created, edited, or deleted:
 
 ---
 
+## Inactive categories
+- should not appear in the activity category dropdown
+- should still be visible in category management
+- can be reactivated later
+- should not be deleted in the MVP
+
+---
+
 ## Daily Summary
 
 For every category on a given day:

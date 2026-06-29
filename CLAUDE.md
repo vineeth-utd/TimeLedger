@@ -151,6 +151,7 @@ Before implementing any feature:
 * Reuse existing utilities whenever appropriate.
 * Follow the database design in `docs/database.md`.
 * Follow the API contracts in `docs/api.md`.
+* Follow the category filtering rules in `docs/api.md` and `docs/ui.md`.
 * If implementation differs from the documentation, explain why before making the change.
 
 ## Development Philosophy
