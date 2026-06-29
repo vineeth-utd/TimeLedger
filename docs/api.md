@@ -284,55 +284,114 @@ Delete target.
 
 # Dashboard API
 
-## GET /api/dashboard/weekly
+## GET /api/dashboard
 
 ### Purpose
 
-Return all data required to render the weekly dashboard.
+Return all data required to render the Dashboard.
 
-### Query Parameters
+The frontend should make a single request to this endpoint.
 
-- weekStartDate
+The backend is responsible for aggregating data from:
 
-### Response Includes
-
-- Today's timeline
-- Today's summary by Sub Category
-- Today's summary by Main Category (derived from Sub Category summaries)
-- Weekly target information
-- Current week progress
-- Remaining time
-- Progress percentage
-
-### Notes
-
-Main Category summaries are derived from Daily Sub Category Summaries.
-
-If a weekly target does not exist for a Main Category, use the previous week's actual value as the fallback target.
+* activities
+* daily_sub_category_summaries
+* weekly_targets
+* main_categories
+* sub_categories
 
 ---
 
-## GET /api/dashboard/monthly
+## Query Parameters
 
-### Purpose
+### period
 
-Return all data required to render the monthly dashboard.
+Supported values:
 
-### Query Parameters
+* today
+* week
+* month
 
-- year
-- month
+Default:
 
-### Response Includes
+* today
 
-- Monthly Main Category Summary
-- Monthly Sub Category Summary
-- Monthly comparisons
-- Monthly trends
+---
 
-### Notes
+## Response Structure
 
-Main Category summaries are derived from Daily Sub Category Summaries.
+### Today's Timeline
+
+Chronological list of today's activities.
+
+Each activity includes:
+
+* id
+* activityDate
+* title
+* subCategory
+* mainCategory
+* startTime
+* endTime
+* durationMinutes
+
+---
+
+### Today's Summary
+
+#### Main Categories
+
+For each Main Category:
+
+* name
+* totalMinutes
+
+Main Category totals are derived from Daily Sub Category Summaries.
+
+---
+
+#### Sub Categories
+
+For each Sub Category:
+
+* name
+* totalMinutes
+
+---
+
+### Weekly Progress
+
+For each Main Category:
+
+* targetMinutes
+* actualMinutes
+* remainingMinutes
+* progressPercentage
+
+If a weekly target does not exist, use the previous week's actual value as the default target.
+
+---
+
+## Backend Responsibilities
+
+The Dashboard endpoint should:
+
+* fetch today's activities
+* fetch Daily Sub Category Summaries
+* derive Main Category totals
+* fetch Weekly Targets
+* calculate remaining time
+* calculate progress percentages
+
+The frontend should not perform these calculations.
+
+---
+
+## Notes
+
+The Dashboard API is a Backend-for-Frontend endpoint.
+
+It exists specifically to simplify the Dashboard UI by returning a fully prepared response.
 
 ---
 

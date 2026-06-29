@@ -148,18 +148,41 @@ Both Main Categories and Sub Categories can be managed through the UI.
 
 Implement:
 
-## Today's Summary
+## Dashboard API
+
+* GET /api/dashboard
+
+The Dashboard API should return all data required to render the Dashboard in a single response.
+
+The backend is responsible for:
+
+* Fetching today's activities
+* Fetching Daily Sub Category Summaries
+* Deriving Main Category summaries
+* Fetching Weekly Targets
+* Calculating Remaining Time
+* Calculating Progress Percentage
+
+---
+
+## Dashboard UI
+
+### Quick Actions
+
+* Add Activity
+
+### Today's Summary
 
 * Summary by Main Category
 * Summary by Sub Category
 
-## Today's Timeline
+### Today's Timeline
 
 * Chronological list of today's activities
 * Edit activity
 * Delete activity
 
-## Current Week Progress
+### Current Week Progress
 
 Display:
 
@@ -181,11 +204,29 @@ Support filters:
 
 Deliverable:
 
-Interactive dashboard with daily and weekly insights.
+Interactive dashboard powered by a dedicated Dashboard API.
 
 ---
 
 # Phase 8 - Analytics
+
+Implement:
+
+## Analytics API
+
+* GET /api/analytics
+
+The Analytics API should return all data required to render the Analytics page in a single response.
+
+The backend is responsible for:
+
+* Deriving Main Category summaries from Daily Sub Category Summaries
+* Preparing comparison datasets
+* Preparing trend datasets
+
+---
+
+## Analytics UI
 
 Implement:
 
@@ -197,12 +238,14 @@ Implement:
 
 Analytics should use:
 
-* Daily Main Category Summaries
 * Daily Sub Category Summaries
+* Weekly Targets
+
+Main Category summaries should be derived from Daily Sub Category Summaries.
 
 Deliverable:
 
-Analytics page completed.
+Analytics page powered by a dedicated Analytics API.
 
 ---
 

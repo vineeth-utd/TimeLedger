@@ -137,15 +137,24 @@ Used for:
 
 ### DateRangeFilter
 
-Used for filtering activity data and dashboard data.
+Used for filtering data across multiple pages.
 
-Should support:
-1. Today
-2. Yesterday
-3. Current Week
-4. Previous Week
-5. Current Month
-6. Custom Range
+This component should be reusable by:
+
+* Dashboard
+* Activities
+* Analytics
+
+Supported filter options:
+
+* Today
+* Yesterday
+* Current Week
+* Previous Week
+* Current Month
+* Custom Date Range
+
+The selected date range should be passed to the corresponding backend API as query parameters.
 
 ### ConfirmDialog
 
@@ -208,9 +217,13 @@ This page should be the most frequently used part of the application.
 2. Primary button: Add Activity
 
 #### Filter Row
-1. Date range selector
-2. Optional category filter
-3. Optional quick filters such as Today and This Week
+
+Use the shared DateRangeFilter component.
+
+Optional filters:
+
+- Main Category
+- Sub Category
 
 #### Activity Table
 
@@ -491,8 +504,9 @@ The dashboard should not perform calculations in the frontend when summary data 
 ### Page Layout
 
 #### Header
-1. Title: Dashboard
-2. Date range selector or week selector
+
+- Title: Dashboard
+- Shared DateRangeFilter
 
 #### Summary Cards
 
@@ -605,9 +619,8 @@ The Analytics page should use:
 
 #### Header
 
-1. Title: Analytics
-2. Time period selector
-3. Optional Main Category filter (future)
+- Title: Analytics
+- Shared DateRangeFilter
 
 ---
 
