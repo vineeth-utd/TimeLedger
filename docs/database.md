@@ -6,58 +6,113 @@ This document defines the database structure for TimeLedger.
 
 The database should support:
 
-- logging activities with start and end times
-- managing reusable categories
-- maintaining daily category summaries
-- storing weekly targets per category
-- computing weekly and monthly views from daily summary data
+* Logging activities with start and end times
+* Managing reusable main categories
+* Managing reusable sub categories
+* Maintaining daily summaries by both main category and sub category
+* Storing weekly targets for main categories
+* Computing weekly and monthly views from daily summary data
 
-The design should stay simple, normalized, and easy to maintain.
+The design should remain simple, normalized, and easy to maintain.
 
 ---
 
 # Design Principles
 
-- `activities` is the source of truth for all logged work sessions and personal time blocks.
-- `daily_category_summaries` stores only daily aggregated totals.
-- Weekly and monthly summaries are computed from daily summaries.
-- Categories are managed in a reference table and reused across activities.
-- Weekly targets are stored separately from actual logged time.
-- All important tables include timestamps.
+* `activities` is the source of truth.
+* Every activity belongs to exactly one sub category.
+* Every sub category belongs to exactly one main category.
+* Main categories are derived through sub categories and should never be manually selected while creating an activity.
+* Daily summaries are precomputed.
+* Weekly targets are maintained only for main categories.
+* All important tables include timestamps.
 
 ---
 
 # Tables
 
-## 1. categories
+## 1. main_categories
 
 ### Purpose
 
-Stores all available categories that can be assigned to activities.
+Stores the highest level activity grouping.
+
+Examples:
+
+* Career Growth
+* Admin / Life Maintenance
+* Health
+* Entertainment
 
 ### Columns
 
-- id
-- name
-- is_active
-- created_at
-- updated_at
+* id
+* name
+* is_active
+* created_at
+* updated_at
 
 ### Constraints
 
-- name must be unique
-- name must not be empty
-- is_active defaults to true
+* name must be unique
+* is_active defaults to true
 
 ### Relationships
 
-- One category has many activities.
-- One category has many daily category summaries.
-- One category has many weekly targets.
+One main category has many sub categories.
+
+One main category has many weekly targets.
+
+One main category has many daily main category summaries.
 
 ---
 
-## 2. activities
+## 2. sub_categories
+
+### Purpose
+
+Stores selectable activity categories.
+
+Examples:
+
+Career Growth
+
+* LeetCode
+* AI Concepts
+* LLM Course
+* Internship Applications
+
+Admin / Life Maintenance
+
+* Kitchen Chores
+* Cooking
+* Laundry
+
+### Columns
+
+* id
+* main_category_id
+* name
+* is_active
+* created_at
+* updated_at
+
+### Constraints
+
+* name must be unique within the same main category
+* is_active defaults to true
+
+### Relationships
+
+One sub category belongs to one main category.
+
+One sub category has many activities.
+
+One sub category has many daily sub category summaries.
+
+---
+
+## 3. activities
 
 ### Purpose
 
@@ -67,205 +122,161 @@ This is the source of truth for all analytics.
 
 ### Columns
 
-- id
-- activity_date
-- title
-- category_id
-- start_time
-- end_time
-- duration_minutes
-- notes
-- created_at
-- updated_at
+* id
+* activity_date
+* title
+* sub_category_id
+* start_time
+* end_time
+* duration_minutes
+* notes
+* created_at
+* updated_at
 
 ### Notes
 
-- `activity_date` represents the day the activity was performed.
-- `title` is free text and should not be normalized into a separate table for the MVP.
-- `duration_minutes` is calculated from `start_time` and `end_time`.
-- Whenever an activity is created or edited, the application recalculates `duration_minutes`.
-
-### Constraints
-
-- title must not be empty
-- category_id is required
-- start_time is required
-- end_time is required
-- end_time must be later than start_time
-- duration_minutes must be non negative
+* Main category is derived automatically from the selected sub category.
+* Users only select the sub category.
+* Duration is calculated from start and end time.
 
 ### Relationships
 
-- Many activities belong to one category.
-
-### Indexes
-
-- activity_date
-- category_id
-- start_time
-- end_time
+Many activities belong to one sub category.
 
 ---
 
-## 3. daily_category_summaries
+## 4. daily_sub_category_summaries
 
 ### Purpose
 
-Stores precomputed daily totals for each category.
-
-### Why this table exists
-
-This table improves dashboard performance by avoiding repeated aggregation of raw activities.
+Stores precomputed daily totals for every sub category.
 
 ### Columns
 
-- id
-- summary_date
-- category_id
-- total_minutes
-- total_entries
-- created_at
-- updated_at
-
-### Notes
-
-- One row represents one category for one day.
-- This table is recalculated whenever activities are added, edited, or deleted.
-- Weekly and monthly summaries are computed from this table.
-
-### Constraints
-
-- summary_date is required
-- category_id is required
-- one row per summary_date and category_id
-- total_minutes must be non negative
-- total_entries must be non negative
-
-### Relationships
-
-- Many daily category summaries belong to one category.
-
-### Indexes
-
-- unique(summary_date, category_id)
-- summary_date
-- category_id
+* id
+* summary_date
+* sub_category_id
+* total_minutes
+* total_activities
+* created_at
+* updated_at
 
 ---
 
-## 4. weekly_targets
+## 5. daily_main_category_summaries
 
 ### Purpose
 
-Stores weekly target time for each category.
+Stores precomputed daily totals for every main category.
 
 ### Columns
 
-- id
-- week_start_date
-- category_id
-- target_minutes
-- created_at
-- updated_at
+* id
+* summary_date
+* main_category_id
+* total_minutes
+* total_activities
+* created_at
+* updated_at
 
-### Notes
+---
 
-- One row represents one category for one week.
-- If no target exists for the selected week, the application should use the previous week's actual time as the default target.
-- The dashboard should display:
-  - target
-  - actual time spent
-  - remaining time
-  - progress percentage
+## 6. weekly_targets
 
-### Constraints
+### Purpose
 
-- week_start_date is required
-- category_id is required
-- one row per week_start_date and category_id
-- target_minutes must be non negative
+Stores weekly targets.
 
-### Relationships
+Targets exist only for main categories.
 
-- Many weekly targets belong to one category.
+### Columns
 
-### Indexes
-
-- unique(week_start_date, category_id)
-- week_start_date
-- category_id
+* id
+* week_start_date
+* main_category_id
+* target_minutes
+* created_at
+* updated_at
 
 ---
 
 # Application Rules
 
-## Activity Handling
+## Activity Creation
 
-When an activity is created, edited, or deleted:
+When an activity is created:
 
-1. Calculate or recalculate `duration_minutes`.
-2. Save the activity.
-3. Recalculate the affected day's category summaries.
+1. User selects a sub category.
+2. Main category is derived automatically.
+3. Duration is calculated.
+4. Activity is stored.
+5. Daily sub category summary is recalculated.
+6. Daily main category summary is recalculated.
 
----
-
-## Inactive categories
-- should not appear in the activity category dropdown
-- should still be visible in category management
-- can be reactivated later
-- should not be deleted in the MVP
+The same rules apply when activities are edited or deleted.
 
 ---
 
-## Daily Summary
+# Category Rules
 
-For every category on a given day:
+Main categories
 
-- Sum `duration_minutes`
-- Count total activities
+* used for weekly targets
+* used for weekly dashboard
+* used for analytics
 
-Store the result in `daily_category_summaries`.
+Sub categories
 
----
+* selected while creating activities
+* shown in activity tables
+* summarized daily
+* rolled up into their parent main category
 
-## Weekly Dashboard
+Inactive categories
 
-Weekly totals should be computed from `daily_category_summaries`.
-
-For each category, display:
-
-- time spent this week
-- weekly target
-- remaining time
-- progress percentage
-- previous week's time
-- difference from previous week
+* should not appear in activity forms
+* should remain visible in category management
+* can be reactivated
+* should never be deleted in the MVP
 
 ---
 
-## Monthly Dashboard
+# Dashboard Rules
 
-Monthly totals should also be computed from `daily_category_summaries`.
+Dashboard should display:
 
-Do not maintain separate monthly summary tables.
+Today's Summary
+
+* by main category
+* by sub category
+
+Current Week
+
+* grouped by main category
+* compared against weekly targets
+
+Today's Timeline
+
+* chronological activity list
 
 ---
 
 # Time Handling
 
-- Store timestamps using timezone aware types.
-- Store all durations in minutes.
-- Use a consistent definition of the week's start day throughout the application.
+* Store timestamps using timezone-aware types.
+* Store durations as integer minutes.
+* Use a consistent definition of week start.
 
 ---
 
 # MVP Scope
 
-The initial version supports:
+The MVP supports:
 
-- Categories
-- Activities
-- Daily category summaries
-- Weekly targets
+* Main categories
+* Sub categories
+* Activities
+* Daily summaries
+* Weekly targets
 
-No additional tables should be introduced unless a feature clearly requires them.
+No additional tables should be introduced unless clearly required.

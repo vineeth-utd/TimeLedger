@@ -12,13 +12,14 @@ All API routes should use Prisma for database access and follow the database des
 
 # API Design Principles
 
-* Next.js App Router Route Handlers should be used.
+* Use Next.js App Router Route Handlers.
 * Use Prisma for all database operations.
 * Keep one responsibility per endpoint.
 * Validate all request payloads.
 * Return consistent response structures.
-* Recalculate daily summaries whenever activities change.
+* Recalculate summaries whenever activities change.
 * Do not expose unnecessary database details.
+* Main Categories and Sub Categories are separate resources.
 
 ---
 
@@ -63,12 +64,20 @@ src/
         │   └── [id]/
         │       └── route.js
         │
-        ├── categories/
+        ├── main-categories/
         │   ├── route.js
         │   └── [id]/
         │       └── route.js
         │
-        ├── daily-category-summaries/
+        ├── sub-categories/
+        │   ├── route.js
+        │   └── [id]/
+        │       └── route.js
+        │
+        ├── daily-main-category-summaries/
+        │   └── route.js
+        │
+        ├── daily-sub-category-summaries/
         │   └── route.js
         │
         ├── weekly-targets/
@@ -85,54 +94,94 @@ src/
 
 ---
 
-# Categories API
+# Main Categories API
 
-## GET /api/categories
+## GET /api/main-categories
 
-### Purpose
+Optional query parameter:
 
-Return all categories based on the filters and ordered alphabetically.
+* isActive
 
-### Optional query parameter:
+Behavior:
 
-- isActive
+* isActive=true → active only
+* isActive=false → inactive only
+* omitted → all
 
-### Behavior:
-- isActive=true → return only active categories
-- isActive=false → return only inactive categories
-- isActive not provided → return all categories
+Default ordering:
 
-### Default ordering:
-- name ascending
+* name ascending
 
 ---
 
-## POST /api/categories
+## POST /api/main-categories
 
-### Purpose
+Create a Main Category.
 
-Create a new category.
+Validation:
 
-### Validation
-
-* name is required
-* name cannot be empty
-* name must be unique
+* name required
+* name unique
+* name not empty
 
 ---
 
-## PATCH /api/categories/:id
+## PATCH /api/main-categories/:id
 
-### Purpose
+Supported updates:
 
-Update category information.
+* name
+* isActive
 
-### Supported updates:
-- name
-- isActive
+---
 
-Use isActive=false to deactivate a category.
-Use isActive=true to reactivate a category.
+# Sub Categories API
+
+## GET /api/sub-categories
+
+Optional query parameters:
+
+* mainCategoryId
+* isActive
+
+Behavior:
+
+mainCategoryId filters sub categories belonging to a particular main category.
+
+isActive behaves like Main Categories.
+
+Default ordering:
+
+* name ascending
+
+---
+
+## POST /api/sub-categories
+
+Required fields:
+
+* mainCategoryId
+* name
+
+Validation:
+
+* parent Main Category must exist
+* name required
+* name unique within the selected Main Category
+
+---
+
+## PATCH /api/sub-categories/:id
+
+Supported updates:
+
+* name
+* mainCategoryId
+* isActive
+
+Future support:
+
+Moving a Sub Category to another Main Category.
 
 ---
 
@@ -140,19 +189,14 @@ Use isActive=true to reactivate a category.
 
 ## GET /api/activities
 
-### Purpose
-
-Return activities within a date range.
-
-### Query Parameters
+Query Parameters
 
 * startDate
 * endDate
-* categoryId (optional)
+* mainCategoryId (optional)
+* subCategoryId (optional)
 
-### Sorting
-
-Default:
+Sorting
 
 * activityDate DESC
 * startTime DESC
@@ -161,25 +205,23 @@ Default:
 
 ## POST /api/activities
 
-### Purpose
-
-Create a new activity.
-
-### Required Fields
+Required fields
 
 * activityDate
 * title
-* categoryId
+* subCategoryId
 * startTime
 * endTime
 
-### Optional Fields
+Optional
 
 * notes
 
-### Server Responsibilities
+Server Responsibilities
 
 * Validate request
+* Verify Sub Category exists
+* Derive Main Category automatically
 * Calculate durationMinutes
 * Save activity
 * Recalculate daily summaries
@@ -188,11 +230,7 @@ Create a new activity.
 
 ## PATCH /api/activities/:id
 
-### Purpose
-
-Update an activity.
-
-### Server Responsibilities
+Server Responsibilities
 
 * Validate updates
 * Recalculate durationMinutes
@@ -203,35 +241,36 @@ Update an activity.
 
 ## DELETE /api/activities/:id
 
-### Purpose
-
-Delete an activity.
-
-### Server Responsibilities
+Server Responsibilities
 
 * Delete activity
 * Recalculate daily summaries
 
 ---
 
-# Daily Category Summary API
+# Daily Main Category Summary API
 
-## GET /api/daily-category-summaries
+## GET /api/daily-main-category-summaries
 
-### Purpose
-
-Return daily summaries for a date range.
-
-### Query Parameters
+Query Parameters
 
 * startDate
 * endDate
 
-### Notes
-
 Read-only endpoint.
 
-Daily summaries are maintained automatically by the application.
+---
+
+# Daily Sub Category Summary API
+
+## GET /api/daily-sub-category-summaries
+
+Query Parameters
+
+* startDate
+* endDate
+
+Read-only endpoint.
 
 ---
 
@@ -239,11 +278,7 @@ Daily summaries are maintained automatically by the application.
 
 ## GET /api/weekly-targets
 
-### Purpose
-
-Return weekly targets.
-
-### Query Parameters
+Query Parameters
 
 * weekStartDate
 
@@ -251,35 +286,25 @@ Return weekly targets.
 
 ## POST /api/weekly-targets
 
-### Purpose
-
-Create or update a weekly target.
-
-### Required Fields
+Required fields
 
 * weekStartDate
-* categoryId
+* mainCategoryId
 * targetMinutes
 
-### Behavior
-
-If a target already exists for the same category and week, update it instead of creating a duplicate.
+Targets are maintained only for Main Categories.
 
 ---
 
 ## PATCH /api/weekly-targets/:id
 
-### Purpose
-
-Update an existing weekly target.
+Update target.
 
 ---
 
 ## DELETE /api/weekly-targets/:id
 
-### Purpose
-
-Delete a weekly target.
+Delete target.
 
 ---
 
@@ -287,42 +312,25 @@ Delete a weekly target.
 
 ## GET /api/dashboard/weekly
 
-### Purpose
+Returns:
 
-Return all data required for the weekly dashboard.
+* Today's timeline
+* Daily Main Category Summary
+* Daily Sub Category Summary
+* Weekly Targets
+* Current Week Progress
 
-### Query Parameters
-
-* weekStartDate
-
-### Response Includes
-
-* Activities
-* Daily summaries
-* Weekly targets
-* Time spent
-* Remaining time
-* Progress percentage
-
-If a target is missing for a category, use the previous week's actual time as the fallback target.
+If a weekly target does not exist, use the previous week's actual value as the fallback target.
 
 ---
 
 ## GET /api/dashboard/monthly
 
-### Purpose
+Returns:
 
-Return all data required for the monthly dashboard.
-
-### Query Parameters
-
-* year
-* month
-
-### Response Includes
-
-* Monthly category totals
-* Monthly comparison data
+* Monthly Main Category totals
+* Monthly Sub Category totals
+* Monthly comparisons
 
 ---
 
@@ -331,22 +339,24 @@ Return all data required for the monthly dashboard.
 ## Activities
 
 * title cannot be empty
-* categoryId must exist
-* endTime must be greater than startTime
+* subCategoryId must exist
+* endTime must be later than startTime
 * durationMinutes is always calculated by the server
 
----
+## Main Categories
 
-## Categories
+* name required
+* name unique
 
-* name cannot be empty
-* name must be unique
+## Sub Categories
 
----
+* name required
+* Main Category must exist
+* name unique within the same Main Category
 
 ## Weekly Targets
 
-* categoryId must exist
+* mainCategoryId must exist
 * targetMinutes must be zero or greater
 
 ---
@@ -362,12 +372,21 @@ Whenever an activity is:
 the application must:
 
 1. Calculate durationMinutes.
-2. Update the activities table.
-3. Recalculate affected daily category summaries.
+2. Save the activity.
+3. Update Daily Sub Category Summary.
+4. Update Daily Main Category Summary.
 
-Weekly and monthly values are always computed from `daily_category_summaries`.
+Weekly Dashboard
 
-No weekly or monthly summary tables should be created.
+* uses Main Categories only
+
+Activities
+
+* are always logged using Sub Categories
+
+Main Categories
+
+* are derived automatically
 
 ---
 
@@ -386,12 +405,13 @@ No weekly or monthly summary tables should be created.
 
 # MVP Scope
 
-Implement only:
+Implement:
 
-* Category Management
+* Main Category Management
+* Sub Category Management
 * Activity CRUD
-* Daily Summary API
+* Daily Summary APIs
 * Weekly Target API
 * Dashboard API
 
-Authentication, authorization, pagination, search, sorting, caching, and background jobs are outside the MVP scope.
+Authentication, authorization, pagination, caching, background jobs, and advanced analytics are outside the MVP scope.

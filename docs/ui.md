@@ -121,9 +121,19 @@ Should support:
 
 Used for both Add Activity and Edit Activity.
 
-### CategoryModal
+### MainCategoryModal
 
-Used for adding and renaming categories.
+Used for:
+
+- Add Main Category
+- Rename Main Category
+
+### SubCategoryModal
+
+Used for:
+
+- Add Sub Category
+- Rename Sub Category
 
 ### DateRangeFilter
 
@@ -182,7 +192,7 @@ This page should be the most frequently used part of the application.
 2. POST /api/activities
 3. PATCH /api/activities/:id
 4. DELETE /api/activities/:id
-5. GET /api/categories?isActive=true for the category dropdown
+5. GET /api/sub-categories?isActive=true for the category dropdown
 
 ### Page Layout
 
@@ -208,7 +218,7 @@ Recommended columns:
 
 1. Activity Date
 2. Title
-3. Category
+3. Sub Category
 4. Start Time
 5. End Time
 6. Duration
@@ -227,10 +237,15 @@ The Add Activity and Edit Activity modal should be reusable from both the Dashbo
 #### Fields
 1. Activity Date
 2. Title
-3. Category
-4. Start Time
-5. End Time
-6. Notes
+3. Sub Category
+4. Main Category (auto populated, read only)
+5. Start Time
+6. End Time
+7. Notes
+
+Selecting a Sub Category should automatically populate the corresponding Main Category.
+
+The Main Category is read-only and cannot be changed directly.
 
 #### Behavior
 1. Add opens an empty form
@@ -260,7 +275,19 @@ If no activities exist for the selected filter:
 
 ### Purpose
 
-The Categories page should show all categories by default.
+The Categories page manages both Main Categories and Sub Categories.
+
+Users should be able to:
+
+- Create Main Categories
+- Rename Main Categories
+- Activate / Deactivate Main Categories
+
+- Create Sub Categories
+- Rename Sub Categories
+- Activate / Deactivate Sub Categories
+
+Each Sub Category belongs to exactly one Main Category.
 
 The page should support filtering by:
 - All
@@ -268,10 +295,12 @@ The page should support filtering by:
 - Inactive
 
 ### Data Source
-
-1. GET /api/categories
-2. POST /api/categories
-3. PATCH /api/categories/:id
+1. GET /api/main-categories
+2. POST /api/main-categories
+3. PATCH /api/main-categories/:id
+4. GET /api/sub-categories
+5. POST /api/sub-categories
+6. PATCH /api/sub-categories/:id
 
 ### Important Note
 
@@ -286,8 +315,9 @@ The UI should use that capability as follows:
 ### Page Layout
 
 #### Header
+
 1. Title: Categories
-2. Primary button: Add Category
+2. Primary button: Add Main Category
 
 #### Filter Row
 
@@ -297,64 +327,132 @@ The Categories page should include a status filter:
 2. Active
 3. Inactive
 
-#### Category List
+#### Category Hierarchy
 
-Recommended columns:
+Display Main Categories as expandable sections.
 
-1. Name
-2. Status
-3. Actions
+Each Main Category should display its associated Sub Categories.
 
-#### Row Actions
+Example layout:
+
+```text
+▼ Career Growth
+
+    LeetCode Problems
+    AI Concepts
+    LLM Course
+
+    + Add Sub Category
+
+----------------------------------------------------
+
+▼ Admin / Life Maintenance
+
+    Kitchen Chores
+    Cooking
+    Laundry
+
+    + Add Sub Category
+```
+
+#### Main Category Actions
+
+For each Main Category:
 
 1. Rename
 2. Deactivate if active
 3. Reactivate if inactive
 
-Inactive categories should be visually distinguishable from active categories.
+#### Sub Category Actions
+
+For each Sub Category:
+
+1. Rename
+2. Deactivate if active
+3. Reactivate if inactive
+
+Inactive Main Categories and Sub Categories should be visually distinguishable.
 
 Examples:
-- muted text
-- "Inactive" badge
-- disabled color palette
+
+* Muted text
+* "Inactive" badge
+* Disabled color palette
+
+---
 
 ### Category Modal
 
-#### Fields
-1. Category Name
+The same modal should support both Main Categories and Sub Categories.
 
-#### Behavior
-1. Add opens a blank form
-2. Rename opens the form prefilled with the current name
-3. Save closes the modal after success
+#### Mode 1: Add / Edit Main Category
+
+Fields:
+
+1. Main Category Name
+
+---
+
+#### Mode 2: Add / Edit Sub Category
+
+Fields:
+
+1. Main Category
+2. Sub Category Name
+
+When adding a Sub Category from within a Main Category section, the Main Category should already be selected.
+
+If opened independently in the future, the user should be able to choose the Main Category.
+
+---
 
 ### Validation Feedback
 
-1. Show a clear message if the name is empty
-2. Show a clear message if the name already exists
-3. Show a clear message if the category cannot be saved
+1. Category name must not be empty.
+2. Main Category names must be unique.
+3. Sub Category names must be unique within the selected Main Category.
+4. Display clear validation messages for duplicate names and invalid input.
+
+---
 
 ### User Flow
 
-1. User opens Categories page.
-2. User clicks Add Category.
-3. Modal opens.
-4. User enters a name and saves.
-5. App calls POST /api/categories.
-6. List refreshes.
+#### Add Main Category
+
+1. User clicks "Add Main Category".
+2. Modal opens in Main Category mode.
+3. User enters the Main Category name.
+4. App calls POST /api/main-categories.
+5. Category hierarchy refreshes.
+
+#### Add Sub Category
+
+1. User clicks "+ Add Sub Category" under a Main Category.
+2. Modal opens in Sub Category mode.
+3. The selected Main Category is pre-filled.
+4. User enters the Sub Category name.
+5. App calls POST /api/sub-categories.
+6. Category hierarchy refreshes.
+
+---
 
 ### Empty State
 
-If there are no categories for the selected status filter:
-1. Show an empty state
-2. Prompt the user to add the first category
+If there are no Main Categories for the selected filter:
+
+1. Show an empty state.
+2. Prompt the user to create the first Main Category.
+
+---
 
 ### Category Status Behavior
 
-1. Active categories should be selectable in activity forms.
-2. Inactive categories should not appear in the activity dropdown.
-3. Inactive categories should remain visible in category management.
-4. Inactive categories should be able to be reactivated from the Categories page.
+1. Only active Sub Categories should be selectable while creating or editing an Activity.
+2. Inactive Sub Categories should not appear in the Activity form.
+3. Main Categories are derived automatically from the selected Sub Category in the Activity form.
+4. Both active and inactive categories should remain visible in Category Management based on the selected filter.
+5. Both Main Categories and Sub Categories can be reactivated from the Categories page.
+
 
 ---
 
@@ -379,8 +477,6 @@ This page should answer:
 4. Show remaining time per category
 5. Show progress percentage
 6. Support date range filters
-
-### Data Source
 
 ### Data Source
 
@@ -422,7 +518,7 @@ Show all of today's activities in chronological order.
 Each row should show:
 - Time
 - Title
-- Category
+- Sub Category
 - Duration
 - Actions
 
@@ -436,11 +532,20 @@ Actions:
 
 #### Today's Summary
 
-Show category-wise totals for the current day.
+Display two summary sections:
+1. Main Category Summary
+2. Sub Category Summary
 
 #### Current Week Progress
 
-Show spent time, target time, remaining time, and progress percentage per category.
+Display progress only by Main Category.
+
+Each Main Category should display:
+
+- Weekly Target
+- Time Spent
+- Remaining Time
+- Progress Percentage
 
 ### User Flow
 
@@ -461,53 +566,138 @@ If there is no data for the selected range:
 
 ### Purpose
 
-The Analytics page shows broader trends and comparisons over time.
+The Analytics page provides insights into how time is being spent across Main Categories and Sub Categories.
+
+It helps answer questions such as:
+
+* Where is most of my time going?
+* Which Main Categories receive the most attention?
+* Which Sub Categories consume the most time?
+* How are my weekly and monthly trends changing?
+* Am I consistently meeting my weekly targets?
+
+---
 
 ### Main Features
 
-1. Weekly comparison chart
-2. Monthly comparison chart
-3. Time spent by category
-4. Trend over time
+1. Weekly Main Category comparison
+2. Weekly Sub Category comparison
+3. Monthly Main Category comparison
+4. Monthly Sub Category comparison
+5. Time spent trend over time
+6. Weekly target progress history
+7. Distribution of time across Main Categories and Sub Categories
+
+---
 
 ### Data Source
 
-1. Daily category summaries
-2. Weekly targets
-3. Activity data where needed
+The Analytics page should use:
+
+1. Daily Main Category Summaries
+2. Daily Sub Category Summaries
+3. Weekly Targets
+4. Activities where additional detail is required
+
+---
 
 ### Page Layout
 
 #### Header
+
 1. Title: Analytics
 2. Time period selector
+3. Optional Main Category filter (future)
+
+---
 
 #### Chart Sections
 
 Recommended charts:
 
-1. Weekly category comparison
-2. Monthly category comparison
-3. Category breakdown chart
-4. Trend chart for time spent over time
+### Main Category Comparison
 
-Charts should support:
+Compare total time spent across Main Categories.
 
-- Hover tooltips
-- Date range selection
-- Category filtering (future)
+Examples:
+
+* Current Week
+* Previous Week
+* Current Month
+
+---
+
+### Sub Category Comparison
+
+Compare time spent across Sub Categories.
+
+Users should be able to identify where most of their effort is going.
+
+---
+
+### Weekly Target Progress
+
+Show progress against weekly targets for each Main Category.
+
+Display:
+
+* Target
+* Actual
+* Remaining
+* Progress percentage
+
+---
+
+### Trend Analysis
+
+Show historical trends such as:
+
+* Daily time spent
+* Weekly time spent
+* Monthly time spent
+
+---
+
+### Time Distribution
+
+Visualize how total time is distributed across:
+
+* Main Categories
+* Sub Categories
+
+---
+
+### Chart Features
+
+All charts should support:
+
+* Hover tooltips
+* Date range selection
+* Responsive resizing
+* Export support (future)
+
+Future enhancements:
+
+* Filter by Main Category
+* Filter by Sub Category
+
+---
 
 ### User Flow
 
 1. User opens Analytics.
-2. User selects a period.
-3. Charts update based on the selected range.
+2. User selects a date range.
+3. Charts update automatically.
+4. User compares trends and identifies areas for improvement.
+
+---
 
 ### Empty State
 
-If there is not enough data:
-1. Show a clear empty state
-2. Suggest using the app for a few days to see trends
+If there is insufficient data:
+
+1. Display a clear empty state.
+2. Suggest using the application for several days before meaningful analytics become available.
 
 ---
 
@@ -587,3 +777,6 @@ Possible future additions:
 6. Category reactivation history
 7. Bulk activity editing
 8. Import existing activity data from CSV or Google Sheets
+9. Move Sub Category to another Main Category.
+10. Merge Main Categories.
+11. Merge Sub Categories.
