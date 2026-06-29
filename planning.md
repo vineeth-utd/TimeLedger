@@ -6,9 +6,11 @@ Build a hosted personal time tracking application that enables quick activity lo
 
 The database design is documented in `docs/database.md` and should be treated as the source of truth.
 
+The API contract is documented in `docs/api.md` and should be followed during backend implementation.
+
 ---
 
-# Phase 1 - Project Setup
+# Phase 1 - Project Setup ✅
 
 * Initialize Next.js project
 * Configure Tailwind CSS
@@ -16,81 +18,99 @@ The database design is documented in `docs/database.md` and should be treated as
 * Connect Supabase PostgreSQL
 * Configure environment variables
 
-Deliverable:
-
-* Application successfully connected to Supabase PostgreSQL.
+Status: Completed
 
 ---
 
-# Phase 2 - Database
+# Phase 2 - Database ✅
 
 Implement the database schema defined in `docs/database.md`.
 
-Create the following tables:
+Tables:
 
 * categories
 * activities
 * daily_category_summaries
 * weekly_targets
 
-Seed initial categories if required.
-
-Deliverable:
-
-* Database schema finalized.
-* Initial Prisma migration created.
+Status: Completed
 
 ---
 
-# Phase 3 - Activity Management
+# Phase 3 - Activity Management Backend ✅
 
 Implement:
 
-* Add activity
-* Edit activity
-* Delete activity
-* View activities
-* Automatic duration calculation
-* Category selection
+* GET /api/activities
+* POST /api/activities
+* PATCH /api/activities/:id
+* DELETE /api/activities/:id
 
-Deliverable:
+Features:
 
-* Complete CRUD for activities.
+* Duration calculation
+* Daily summary recalculation
+* Validation
+
+Status: Completed
 
 ---
 
-# Phase 4 - Category Management
+# Phase 4 - Category Management Backend ✅
 
 Implement:
 
+* GET /api/categories
+* POST /api/categories
+* PATCH /api/categories/:id
+
+Features:
+
+* Category validation
+* Duplicate prevention
+* Soft deactivation
+
+Status: Completed
+
+---
+
+# Phase 5 - Activity Management UI
+
+Implement:
+
+* Activities page
+* Activities table
+* Add Activity dialog
+* Edit Activity dialog
+* Delete Activity
+* Connect to Activities API
+* Category dropdown using Categories API
+
+Deliverable:
+
+The application can be used to manage activities from the browser.
+
+---
+
+# Phase 6 - Category Management UI
+
+Implement:
+
+* Categories page
 * View categories
 * Add category
-* Prevent duplicate category names
-* Support inactive categories for future use
+* Rename category
+* Activate / deactivate category
 
 Deliverable:
 
-* Categories managed from the UI.
+Categories can be managed completely through the UI.
 
 ---
 
-# Phase 5 - Daily Category Summary
+# Phase 7 - Dashboard
 
-Automatically recalculate daily summaries whenever an activity is:
-
-* added
-* edited
-* deleted
-
-Deliverable:
-
-* Daily category summaries remain accurate.
-
----
-
-# Phase 6 - Dashboard
-
-Dashboard should display:
+Implement:
 
 * Today's activities
 * Today's category summary
@@ -99,7 +119,7 @@ Dashboard should display:
 * Remaining time
 * Progress percentage
 
-Support date filters:
+Support filters:
 
 * Today
 * Yesterday
@@ -110,70 +130,67 @@ Support date filters:
 
 Deliverable:
 
-* Dashboard displays accurate summaries and progress.
+Interactive dashboard with daily and weekly insights.
 
 ---
 
-# Phase 7 - Analytics
+# Phase 8 - Analytics
 
-Implement charts for:
+Implement:
 
-* Weekly category comparison
-* Monthly category comparison
-* Time spent by category
-* Weekly productivity trend
+* Weekly comparison chart
+* Monthly comparison chart
+* Category breakdown
+* Productivity trends
 
-Weekly and monthly values should be computed from `daily_category_summaries`.
+Analytics should use `daily_category_summaries` as the data source.
 
 Deliverable:
 
-* Analytics page completed.
+Analytics page completed.
 
 ---
 
-# Phase 8 - Deployment
+# Phase 9 - Deployment & Polish
 
-Deploy the application to Vercel.
+Deploy to Vercel.
 
 Verify:
 
+* API functionality
 * Database connectivity
-* Activity CRUD operations
-* Dashboard
-* Analytics
-* Mobile responsiveness
+* Responsive UI
+* Error handling
+* Mobile usability
 
 Deliverable:
 
-* Production deployment completed.
+Production-ready MVP.
 
 ---
 
 # Success Criteria
 
-The application is complete when:
+The MVP is complete when:
 
-* Activities can be added, edited, and deleted.
-* Categories can be managed.
+* Activities can be managed through the UI.
+* Categories can be managed through the UI.
 * Daily summaries update automatically.
-* Weekly targets function correctly.
-* Remaining weekly time is displayed.
+* Weekly targets work correctly.
+* Dashboard displays accurate progress.
 * Analytics are accurate.
-* Application is accessible from desktop and mobile.
-* Application is successfully deployed.
+* The application is deployed and usable on desktop and mobile.
 
 ---
 
 # Development Rules
 
-* Follow `docs/database.md` for all database-related implementation.
+* Follow `docs/database.md` for database implementation.
+* Follow `docs/api.md` for backend implementation.
 * Complete one phase before moving to the next.
-* Keep code simple and readable.
-* Avoid premature optimization.
-* Avoid unnecessary packages.
-* Use Prisma for all database operations.
-* Use React components with JavaScript.
-* Keep API routes focused on a single responsibility.
-* Build the smallest working solution before adding enhancements.
+* Keep implementations simple and production-ready.
+* Avoid unnecessary packages and abstractions.
+* Test each phase before proceeding.
 
-When requirements are unclear, choose the simplest implementation that satisfies the MVP.
+```
+```
