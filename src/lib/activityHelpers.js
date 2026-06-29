@@ -2,9 +2,9 @@ export function calculateDurationMinutes(startTime, endTime) {
   return Math.round((new Date(endTime) - new Date(startTime)) / 60000)
 }
 
-export async function recalculateDailySummary(prisma, activityDate, categoryId) {
+export async function recalculateDailySummary(prisma, activityDate, subCategoryId) {
   const result = await prisma.activity.aggregate({
-    where: { activityDate, categoryId },
+    where: { activityDate, subCategoryId },
     _sum: { durationMinutes: true },
     _count: { id: true },
   })
@@ -13,14 +13,14 @@ export async function recalculateDailySummary(prisma, activityDate, categoryId) 
   const totalActivities = result._count.id
 
   if (totalActivities === 0) {
-    await prisma.dailyCategorySummary.deleteMany({
-      where: { summaryDate: activityDate, categoryId },
+    await prisma.dailySubCategorySummary.deleteMany({
+      where: { summaryDate: activityDate, subCategoryId },
     })
   } else {
-    await prisma.dailyCategorySummary.upsert({
-      where: { summaryDate_categoryId: { summaryDate: activityDate, categoryId } },
+    await prisma.dailySubCategorySummary.upsert({
+      where: { summaryDate_subCategoryId: { summaryDate: activityDate, subCategoryId } },
       update: { totalMinutes, totalActivities },
-      create: { summaryDate: activityDate, categoryId, totalMinutes, totalActivities },
+      create: { summaryDate: activityDate, subCategoryId, totalMinutes, totalActivities },
     })
   }
 }

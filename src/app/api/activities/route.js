@@ -6,7 +6,8 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
-    const categoryId = searchParams.get('categoryId')
+    const subCategoryId = searchParams.get('subCategoryId')
+    const mainCategoryId = searchParams.get('mainCategoryId')
 
     if (!startDate || !endDate) {
       return Response.json(
@@ -29,13 +30,17 @@ export async function GET(request) {
       activityDate: { gte: start, lte: end },
     }
 
-    if (categoryId) {
-      where.categoryId = Number(categoryId)
+    if (subCategoryId) {
+      where.subCategoryId = Number(subCategoryId)
+    }
+
+    if (mainCategoryId) {
+      where.subCategory = { mainCategoryId: Number(mainCategoryId) }
     }
 
     const activities = await prisma.activity.findMany({
       where,
-      include: { category: true },
+      include: { subCategory: { include: { mainCategory: true } } },
       orderBy: [{ activityDate: 'desc' }, { startTime: 'desc' }],
     })
 
@@ -52,7 +57,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json()
-    const { activityDate, title, categoryId, startTime, endTime, notes } = body
+    const { activityDate, title, subCategoryId, startTime, endTime, notes } = body
 
     if (!title || !title.trim()) {
       return Response.json(
@@ -61,9 +66,9 @@ export async function POST(request) {
       )
     }
 
-    if (!activityDate || !categoryId || !startTime || !endTime) {
+    if (!activityDate || !subCategoryId || !startTime || !endTime) {
       return Response.json(
-        { success: false, message: 'activityDate, categoryId, startTime, and endTime are required' },
+        { success: false, message: 'activityDate, subCategoryId, startTime, and endTime are required' },
         { status: 400 }
       )
     }
@@ -75,10 +80,10 @@ export async function POST(request) {
       )
     }
 
-    const category = await prisma.category.findUnique({ where: { id: Number(categoryId) } })
-    if (!category) {
+    const subCategory = await prisma.subCategory.findUnique({ where: { id: Number(subCategoryId) } })
+    if (!subCategory) {
       return Response.json(
-        { success: false, message: 'Category not found' },
+        { success: false, message: 'Sub category not found' },
         { status: 400 }
       )
     }
@@ -90,16 +95,16 @@ export async function POST(request) {
       data: {
         activityDate: parsedActivityDate,
         title: title.trim(),
-        categoryId: Number(categoryId),
+        subCategoryId: Number(subCategoryId),
         startTime: new Date(startTime),
         endTime: new Date(endTime),
         durationMinutes,
         notes: notes ?? null,
       },
-      include: { category: true },
+      include: { subCategory: { include: { mainCategory: true } } },
     })
 
-    await recalculateDailySummary(prisma, parsedActivityDate, Number(categoryId))
+    await recalculateDailySummary(prisma, parsedActivityDate, Number(subCategoryId))
 
     return Response.json({ success: true, data: activity }, { status: 201 })
   } catch (error) {

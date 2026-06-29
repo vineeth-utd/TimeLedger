@@ -18,7 +18,7 @@ export async function PATCH(request, ctx) {
 
     const mergedTitle = 'title' in body ? body.title : existing.title
     const mergedActivityDate = 'activityDate' in body ? new Date(body.activityDate) : existing.activityDate
-    const mergedCategoryId = 'categoryId' in body ? Number(body.categoryId) : existing.categoryId
+    const mergedSubCategoryId = 'subCategoryId' in body ? Number(body.subCategoryId) : existing.subCategoryId
     const mergedStartTime = 'startTime' in body ? new Date(body.startTime) : existing.startTime
     const mergedEndTime = 'endTime' in body ? new Date(body.endTime) : existing.endTime
     const mergedNotes = 'notes' in body ? body.notes : existing.notes
@@ -37,11 +37,11 @@ export async function PATCH(request, ctx) {
       )
     }
 
-    if ('categoryId' in body) {
-      const category = await prisma.category.findUnique({ where: { id: mergedCategoryId } })
-      if (!category) {
+    if ('subCategoryId' in body) {
+      const subCategory = await prisma.subCategory.findUnique({ where: { id: mergedSubCategoryId } })
+      if (!subCategory) {
         return Response.json(
-          { success: false, message: 'Category not found' },
+          { success: false, message: 'Sub category not found' },
           { status: 400 }
         )
       }
@@ -54,22 +54,22 @@ export async function PATCH(request, ctx) {
       data: {
         activityDate: mergedActivityDate,
         title: mergedTitle.trim(),
-        categoryId: mergedCategoryId,
+        subCategoryId: mergedSubCategoryId,
         startTime: mergedStartTime,
         endTime: mergedEndTime,
         durationMinutes,
         notes: mergedNotes,
       },
-      include: { category: true },
+      include: { subCategory: { include: { mainCategory: true } } },
     })
 
-    await recalculateDailySummary(prisma, mergedActivityDate, mergedCategoryId)
+    await recalculateDailySummary(prisma, mergedActivityDate, mergedSubCategoryId)
 
     const dateChanged = existing.activityDate.getTime() !== mergedActivityDate.getTime()
-    const categoryChanged = existing.categoryId !== mergedCategoryId
+    const subCategoryChanged = existing.subCategoryId !== mergedSubCategoryId
 
-    if (dateChanged || categoryChanged) {
-      await recalculateDailySummary(prisma, existing.activityDate, existing.categoryId)
+    if (dateChanged || subCategoryChanged) {
+      await recalculateDailySummary(prisma, existing.activityDate, existing.subCategoryId)
     }
 
     return Response.json({ success: true, data: updated })
@@ -82,7 +82,7 @@ export async function PATCH(request, ctx) {
   }
 }
 
-export async function DELETE(request, ctx) {
+export async function DELETE(_request, ctx) {
   try {
     const { id } = await ctx.params
     const activityId = Number(id)
@@ -95,10 +95,10 @@ export async function DELETE(request, ctx) {
       )
     }
 
-    const { activityDate, categoryId } = existing
+    const { activityDate, subCategoryId } = existing
 
     await prisma.activity.delete({ where: { id: activityId } })
-    await recalculateDailySummary(prisma, activityDate, categoryId)
+    await recalculateDailySummary(prisma, activityDate, subCategoryId)
 
     return Response.json({ success: true, data: { id: activityId } })
   } catch (error) {
