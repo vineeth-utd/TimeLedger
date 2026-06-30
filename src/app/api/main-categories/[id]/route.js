@@ -1,12 +1,19 @@
 import prisma from '@/lib/prisma'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 export async function PATCH(request, ctx) {
   try {
+    const user = await getAuthenticatedUser()
+    if (!user) {
+      return Response.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = user.id
+
     const { id } = await ctx.params
     const mainCategoryId = Number(id)
 
     const existing = await prisma.mainCategory.findUnique({ where: { id: mainCategoryId } })
-    if (!existing) {
+    if (!existing || existing.userId !== userId) {
       return Response.json(
         { success: false, message: 'Main category not found' },
         { status: 404 }
@@ -25,7 +32,7 @@ export async function PATCH(request, ctx) {
       }
       const trimmedName = body.name.trim()
       const duplicate = await prisma.mainCategory.findFirst({
-        where: { name: trimmedName, id: { not: mainCategoryId } },
+        where: { userId, name: trimmedName, id: { not: mainCategoryId } },
       })
       if (duplicate) {
         return Response.json(

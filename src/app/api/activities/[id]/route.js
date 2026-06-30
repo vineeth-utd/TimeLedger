@@ -1,13 +1,20 @@
 import prisma from '@/lib/prisma'
 import { calculateDurationMinutes, recalculateDailySummary } from '@/lib/activityHelpers'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 export async function PATCH(request, ctx) {
   try {
+    const user = await getAuthenticatedUser()
+    if (!user) {
+      return Response.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = user.id
+
     const { id } = await ctx.params
     const activityId = Number(id)
 
     const existing = await prisma.activity.findUnique({ where: { id: activityId } })
-    if (!existing) {
+    if (!existing || existing.userId !== userId) {
       return Response.json(
         { success: false, message: 'Activity not found' },
         { status: 404 }
@@ -39,7 +46,7 @@ export async function PATCH(request, ctx) {
 
     if ('subCategoryId' in body) {
       const subCategory = await prisma.subCategory.findUnique({ where: { id: mergedSubCategoryId } })
-      if (!subCategory) {
+      if (!subCategory || subCategory.userId !== userId) {
         return Response.json(
           { success: false, message: 'Sub category not found' },
           { status: 400 }
@@ -63,13 +70,13 @@ export async function PATCH(request, ctx) {
       include: { subCategory: { include: { mainCategory: true } } },
     })
 
-    await recalculateDailySummary(prisma, mergedActivityDate, mergedSubCategoryId)
+    await recalculateDailySummary(prisma, mergedActivityDate, mergedSubCategoryId, userId)
 
     const dateChanged = existing.activityDate.getTime() !== mergedActivityDate.getTime()
     const subCategoryChanged = existing.subCategoryId !== mergedSubCategoryId
 
     if (dateChanged || subCategoryChanged) {
-      await recalculateDailySummary(prisma, existing.activityDate, existing.subCategoryId)
+      await recalculateDailySummary(prisma, existing.activityDate, existing.subCategoryId, userId)
     }
 
     return Response.json({ success: true, data: updated })
@@ -84,11 +91,17 @@ export async function PATCH(request, ctx) {
 
 export async function DELETE(_request, ctx) {
   try {
+    const user = await getAuthenticatedUser()
+    if (!user) {
+      return Response.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = user.id
+
     const { id } = await ctx.params
     const activityId = Number(id)
 
     const existing = await prisma.activity.findUnique({ where: { id: activityId } })
-    if (!existing) {
+    if (!existing || existing.userId !== userId) {
       return Response.json(
         { success: false, message: 'Activity not found' },
         { status: 404 }
@@ -98,7 +111,7 @@ export async function DELETE(_request, ctx) {
     const { activityDate, subCategoryId } = existing
 
     await prisma.activity.delete({ where: { id: activityId } })
-    await recalculateDailySummary(prisma, activityDate, subCategoryId)
+    await recalculateDailySummary(prisma, activityDate, subCategoryId, userId)
 
     return Response.json({ success: true, data: { id: activityId } })
   } catch (error) {

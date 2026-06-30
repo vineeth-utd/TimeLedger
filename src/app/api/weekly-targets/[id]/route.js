@@ -1,12 +1,19 @@
 import prisma from '@/lib/prisma'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 export async function PATCH(request, ctx) {
   try {
+    const user = await getAuthenticatedUser()
+    if (!user) {
+      return Response.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = user.id
+
     const { id } = await ctx.params
     const targetId = Number(id)
 
     const existing = await prisma.weeklyTarget.findUnique({ where: { id: targetId } })
-    if (!existing) {
+    if (!existing || existing.userId !== userId) {
       return Response.json(
         { success: false, message: 'Weekly target not found' },
         { status: 404 }
@@ -39,13 +46,19 @@ export async function PATCH(request, ctx) {
   }
 }
 
-export async function DELETE(request, ctx) {
+export async function DELETE(_request, ctx) {
   try {
+    const user = await getAuthenticatedUser()
+    if (!user) {
+      return Response.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = user.id
+
     const { id } = await ctx.params
     const targetId = Number(id)
 
     const existing = await prisma.weeklyTarget.findUnique({ where: { id: targetId } })
-    if (!existing) {
+    if (!existing || existing.userId !== userId) {
       return Response.json(
         { success: false, message: 'Weekly target not found' },
         { status: 404 }

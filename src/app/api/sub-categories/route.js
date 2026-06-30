@@ -1,12 +1,19 @@
 import prisma from '@/lib/prisma'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 export async function GET(request) {
   try {
+    const user = await getAuthenticatedUser()
+    if (!user) {
+      return Response.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = user.id
+
     const { searchParams } = new URL(request.url)
     const mainCategoryIdParam = searchParams.get('mainCategoryId')
     const isActiveParam = searchParams.get('isActive')
 
-    const where = {}
+    const where = { userId }
     if (mainCategoryIdParam !== null) where.mainCategoryId = Number(mainCategoryIdParam)
     if (isActiveParam === 'true') where.isActive = true
     else if (isActiveParam === 'false') where.isActive = false
@@ -29,6 +36,12 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const user = await getAuthenticatedUser()
+    if (!user) {
+      return Response.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = user.id
+
     const body = await request.json()
     const { mainCategoryId, name } = body
 
@@ -49,7 +62,7 @@ export async function POST(request) {
     const trimmedName = name.trim()
 
     const parentExists = await prisma.mainCategory.findUnique({ where: { id: mainCategoryId } })
-    if (!parentExists) {
+    if (!parentExists || parentExists.userId !== userId) {
       return Response.json(
         { success: false, message: 'Main category not found' },
         { status: 404 }
@@ -67,7 +80,7 @@ export async function POST(request) {
     }
 
     const subCategory = await prisma.subCategory.create({
-      data: { mainCategoryId, name: trimmedName },
+      data: { userId, mainCategoryId, name: trimmedName },
       include: { mainCategory: true },
     })
 

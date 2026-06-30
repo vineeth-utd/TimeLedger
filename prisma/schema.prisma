@@ -14,7 +14,8 @@ datasource db {
 
 model MainCategory {
   id        Int      @id @default(autoincrement())
-  name      String   @unique
+  userId    String   @db.Uuid @map("user_id")
+  name      String
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
   updatedAt DateTime @updatedAt @db.Timestamptz @map("updated_at")
@@ -22,11 +23,14 @@ model MainCategory {
   subCategories SubCategory[]
   weeklyTargets WeeklyTarget[]
 
+  @@unique([userId, name])
+  @@index([userId])
   @@map("main_categories")
 }
 
 model SubCategory {
   id             Int      @id @default(autoincrement())
+  userId         String   @db.Uuid @map("user_id")
   mainCategoryId Int      @map("main_category_id")
   name           String
   isActive       Boolean  @default(true) @map("is_active")
@@ -38,12 +42,14 @@ model SubCategory {
   dailySubCategorySummaries DailySubCategorySummary[]
 
   @@unique([mainCategoryId, name])
+  @@index([userId])
   @@index([mainCategoryId])
   @@map("sub_categories")
 }
 
 model Activity {
   id              Int      @id @default(autoincrement())
+  userId          String   @db.Uuid @map("user_id")
   activityDate    DateTime @db.Date @map("activity_date")
   title           String
   subCategoryId   Int      @map("sub_category_id")
@@ -56,6 +62,7 @@ model Activity {
 
   subCategory SubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Restrict)
 
+  @@index([userId])
   @@index([activityDate])
   @@index([subCategoryId])
   @@index([startTime])
@@ -65,6 +72,7 @@ model Activity {
 
 model DailySubCategorySummary {
   id              Int      @id @default(autoincrement())
+  userId          String   @db.Uuid @map("user_id")
   summaryDate     DateTime @db.Date @map("summary_date")
   subCategoryId   Int      @map("sub_category_id")
   totalMinutes    Int      @map("total_minutes")
@@ -74,7 +82,8 @@ model DailySubCategorySummary {
 
   subCategory SubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Restrict)
 
-  @@unique([summaryDate, subCategoryId])
+  @@unique([userId, summaryDate, subCategoryId])
+  @@index([userId])
   @@index([summaryDate])
   @@index([subCategoryId])
   @@map("daily_sub_category_summaries")
@@ -82,6 +91,7 @@ model DailySubCategorySummary {
 
 model WeeklyTarget {
   id             Int      @id @default(autoincrement())
+  userId         String   @db.Uuid @map("user_id")
   weekStartDate  DateTime @db.Date @map("week_start_date")
   mainCategoryId Int      @map("main_category_id")
   targetMinutes  Int      @map("target_minutes")
@@ -90,7 +100,8 @@ model WeeklyTarget {
 
   mainCategory MainCategory @relation(fields: [mainCategoryId], references: [id], onDelete: Restrict)
 
-  @@unique([weekStartDate, mainCategoryId])
+  @@unique([userId, weekStartDate, mainCategoryId])
+  @@index([userId])
   @@index([weekStartDate])
   @@index([mainCategoryId])
   @@map("weekly_targets")

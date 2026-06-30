@@ -1,7 +1,14 @@
 import prisma from '@/lib/prisma'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 export async function GET(request) {
   try {
+    const user = await getAuthenticatedUser()
+    if (!user) {
+      return Response.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = user.id
+
     const { searchParams } = new URL(request.url)
     const weekStartDateParam = searchParams.get('weekStartDate')
 
@@ -21,7 +28,7 @@ export async function GET(request) {
     }
 
     const targets = await prisma.weeklyTarget.findMany({
-      where: { weekStartDate: weekStart },
+      where: { userId, weekStartDate: weekStart },
       include: { mainCategory: true },
       orderBy: { mainCategory: { name: 'asc' } },
     })
@@ -38,6 +45,12 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const user = await getAuthenticatedUser()
+    if (!user) {
+      return Response.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = user.id
+
     const body = await request.json()
     const { weekStartDate, mainCategoryId, targetMinutes } = body
 
@@ -75,7 +88,7 @@ export async function POST(request) {
     const mins = Number(targetMinutes)
 
     const parentExists = await prisma.mainCategory.findUnique({ where: { id: mcId } })
-    if (!parentExists) {
+    if (!parentExists || parentExists.userId !== userId) {
       return Response.json(
         { success: false, message: 'Main category not found' },
         { status: 404 }
@@ -83,7 +96,7 @@ export async function POST(request) {
     }
 
     const existing = await prisma.weeklyTarget.findUnique({
-      where: { weekStartDate_mainCategoryId: { weekStartDate: weekStart, mainCategoryId: mcId } },
+      where: { userId_weekStartDate_mainCategoryId: { userId, weekStartDate: weekStart, mainCategoryId: mcId } },
     })
     if (existing) {
       return Response.json(
@@ -93,7 +106,7 @@ export async function POST(request) {
     }
 
     const target = await prisma.weeklyTarget.create({
-      data: { weekStartDate: weekStart, mainCategoryId: mcId, targetMinutes: mins },
+      data: { userId, weekStartDate: weekStart, mainCategoryId: mcId, targetMinutes: mins },
       include: { mainCategory: true },
     })
 
