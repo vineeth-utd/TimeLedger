@@ -77,6 +77,8 @@ Every user owned record in TimeLedger must belong to one signed in user only.
 
 The signed in Supabase `user.id` should be used to scope all app data.
 
+Never trust a user identifier sent from the client. Always derive the authenticated user from the Supabase session on the server before accessing or modifying data.
+
 ---
 
 ## Phase 1: Database Ownership
