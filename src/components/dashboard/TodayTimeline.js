@@ -19,21 +19,21 @@ export default function TodayTimeline({ activities, onEdit, onDelete }) {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr className="text-left text-xs text-gray-400 uppercase tracking-wide">
-                <th scope="col" className="px-6 py-3 font-medium">Time</th>
-                <th scope="col" className="px-4 py-3 font-medium">Title</th>
+                <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 font-medium">Time</th>
+                <th scope="col" className="px-2 py-2 sm:px-4 sm:py-3 font-medium">Title</th>
                 <th scope="col" className="px-4 py-3 font-medium hidden sm:table-cell">Sub Category</th>
                 <th scope="col" className="px-4 py-3 font-medium hidden md:table-cell">Main Category</th>
-                <th scope="col" className="px-4 py-3 font-medium text-right">Duration</th>
-                <th scope="col" className="px-6 py-3 font-medium text-right">Actions</th>
+                <th scope="col" className="px-2 py-2 sm:px-4 sm:py-3 font-medium text-right">Duration</th>
+                <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {activities.map((activity) => (
                 <tr key={activity.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-3 text-gray-500 whitespace-nowrap tabular-nums">
+                  <td className="px-3 py-2 sm:px-6 sm:py-3 text-gray-500 whitespace-nowrap tabular-nums">
                     {formatTime(activity.startTime)} – {formatTime(activity.endTime)}
                   </td>
-                  <td className="px-4 py-3 text-gray-800 font-medium max-w-[200px] truncate">
+                  <td className="px-2 py-2 sm:px-4 sm:py-3 text-gray-800 font-medium max-w-[100px] sm:max-w-[200px] truncate">
                     {activity.title}
                   </td>
                   <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">
@@ -42,10 +42,10 @@ export default function TodayTimeline({ activities, onEdit, onDelete }) {
                   <td className="px-4 py-3 text-gray-400 hidden md:table-cell">
                     {activity.subCategory?.mainCategory?.name}
                   </td>
-                  <td className="px-4 py-3 text-gray-700 text-right whitespace-nowrap tabular-nums">
+                  <td className="px-2 py-2 sm:px-4 sm:py-3 text-gray-700 text-right whitespace-nowrap tabular-nums">
                     {formatMinutes(activity.durationMinutes)}
                   </td>
-                  <td className="px-6 py-3 text-right whitespace-nowrap">
+                  <td className="px-3 py-2 sm:px-6 sm:py-3 text-right whitespace-nowrap">
                     <button
                       onClick={() => onEdit(activity)}
                       aria-label="Edit activity"
