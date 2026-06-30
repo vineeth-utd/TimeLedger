@@ -107,12 +107,12 @@ export default function ActivitiesPage() {
 
       <DateRangeFilter onChange={handleDateRangeChange} />
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
         <span className="text-xs font-medium text-zinc-500 uppercase tracking-wide shrink-0">Category</span>
         <select
           value={mainCategoryId}
           onChange={handleMainCategoryChange}
-          className="border border-zinc-300 rounded px-3 py-1.5 text-sm text-zinc-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full sm:w-auto border border-zinc-300 rounded px-3 py-1.5 text-sm text-zinc-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">All Main Categories</option>
           {mainCategories.map((mc) => (
@@ -123,7 +123,7 @@ export default function ActivitiesPage() {
         <select
           value={subCategoryId}
           onChange={(e) => setSubCategoryId(e.target.value)}
-          className="border border-zinc-300 rounded px-3 py-1.5 text-sm text-zinc-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full sm:w-auto border border-zinc-300 rounded px-3 py-1.5 text-sm text-zinc-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">All Sub Categories</option>
           {filteredSubCategories.map((sc) => (
