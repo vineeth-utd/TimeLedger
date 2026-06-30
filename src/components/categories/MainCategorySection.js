@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ChevronDown, Eye, EyeOff, Pencil, Plus } from 'lucide-react'
 
 export default function MainCategorySection({
   mainCategory,
@@ -27,9 +28,9 @@ export default function MainCategorySection({
           onClick={() => setOpen((o) => !o)}
           className="flex items-center gap-2 text-left min-w-0"
         >
-          <span className={`text-xs text-zinc-400 inline-block transition-transform duration-150 ${open ? '' : '-rotate-90'}`}>
-            ▼
-          </span>
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform duration-150 ${open ? '' : '-rotate-90'}`}
+          />
           <span className={`text-sm font-semibold truncate ${mainCategory.isActive ? 'text-zinc-900' : 'text-zinc-400'}`}>
             {mainCategory.name}
           </span>
@@ -40,18 +41,24 @@ export default function MainCategorySection({
           )}
         </button>
 
-        <div className="flex items-center gap-3 shrink-0 ml-4">
+        <div className="flex items-center gap-1 shrink-0 ml-4">
           <button
             onClick={() => onRenameMain(mainCategory)}
-            className="text-xs text-blue-600 hover:underline font-medium"
+            title="Rename"
+            className="p-1.5 rounded text-zinc-400 hover:text-blue-600 hover:bg-zinc-100 transition-colors"
           >
-            Rename
+            <Pencil className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => onToggleMain(mainCategory)}
-            className="text-xs text-zinc-500 hover:underline font-medium"
+            title={mainCategory.isActive ? 'Deactivate' : 'Reactivate'}
+            className={`p-1.5 rounded transition-colors ${
+              mainCategory.isActive
+                ? 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100'
+                : 'text-zinc-400 hover:text-green-600 hover:bg-zinc-100'
+            }`}
           >
-            {mainCategory.isActive ? 'Deactivate' : 'Reactivate'}
+            {mainCategory.isActive ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>
@@ -59,7 +66,7 @@ export default function MainCategorySection({
       {open && (
         <div className="border-t border-zinc-100">
           {filteredSubs.length === 0 ? (
-            <p className="text-xs text-zinc-400 px-5 py-3">
+            <p className="text-xs text-zinc-400 px-5 py-3 pl-10">
               {statusFilter === 'inactive'
                 ? 'No inactive sub categories.'
                 : statusFilter === 'active'
@@ -70,9 +77,9 @@ export default function MainCategorySection({
             filteredSubs.map((sc) => (
               <div
                 key={sc.id}
-                className="flex items-center justify-between px-5 py-2.5 border-b border-zinc-50 last:border-0"
+                className={`flex items-center justify-between px-5 py-2.5 border-b border-zinc-50 last:border-0 ${!sc.isActive ? 'bg-zinc-50/60' : ''}`}
               >
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0 pl-6">
                   <span className={`text-sm truncate ${sc.isActive ? 'text-zinc-700' : 'text-zinc-400'}`}>
                     {sc.name}
                   </span>
@@ -82,18 +89,24 @@ export default function MainCategorySection({
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-3 shrink-0 ml-4">
+                <div className="flex items-center gap-1 shrink-0 ml-4">
                   <button
                     onClick={() => onRenameSub(mainCategory, sc)}
-                    className="text-xs text-blue-600 hover:underline font-medium"
+                    title="Rename"
+                    className="p-1.5 rounded text-zinc-400 hover:text-blue-600 hover:bg-zinc-100 transition-colors"
                   >
-                    Rename
+                    <Pencil className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => onToggleSub(sc)}
-                    className="text-xs text-zinc-500 hover:underline font-medium"
+                    title={sc.isActive ? 'Deactivate' : 'Reactivate'}
+                    className={`p-1.5 rounded transition-colors ${
+                      sc.isActive
+                        ? 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100'
+                        : 'text-zinc-400 hover:text-green-600 hover:bg-zinc-100'
+                    }`}
                   >
-                    {sc.isActive ? 'Deactivate' : 'Reactivate'}
+                    {sc.isActive ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>
@@ -101,12 +114,13 @@ export default function MainCategorySection({
           )}
 
           {statusFilter !== 'inactive' && (
-            <div className="px-5 py-2.5">
+            <div className="px-5 py-3 pl-11">
               <button
                 onClick={() => onAddSub(mainCategory)}
-                className="text-xs text-blue-600 hover:underline font-medium"
+                className="inline-flex items-center gap-1.5 text-xs text-blue-600 border border-dashed border-blue-300 rounded-full px-3 py-1 hover:bg-blue-50 hover:border-blue-400 transition-colors"
               >
-                + Add Sub Category
+                <Plus className="w-3 h-3" />
+                Add Sub Category
               </button>
             </div>
           )}

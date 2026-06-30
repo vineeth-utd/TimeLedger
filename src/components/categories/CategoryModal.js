@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { X } from 'lucide-react'
 
 const TITLES = {
   'add-main': 'Add Main Category',
@@ -79,8 +80,8 @@ export default function CategoryModal({ isOpen, mode, mainCategory, subCategory,
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
           <h2 className="text-base font-semibold text-zinc-900">{TITLES[mode]}</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 text-lg leading-none">
-            ✕
+          <button onClick={onClose} className="p-1 rounded text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors">
+            <X className="w-4 h-4" />
           </button>
         </div>
 
