@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Clock, Activity, Calendar } from 'lucide-react'
+import { Clock, Activity, Calendar, TrendingUp, Timer, Zap } from 'lucide-react'
 import {
   ResponsiveContainer,
   BarChart,
@@ -97,10 +97,45 @@ function buildComparisonData(currentData, prevData) {
     .sort((a, b) => b.current + b.previous - (a.current + a.previous))
 }
 
+function computeLongestActivity(activities) {
+  return activities.reduce((max, a) => (a.durationMinutes > max.durationMinutes ? a : max), activities[0])
+}
+
+function computeWeekHighlights(comparisonData) {
+  if (comparisonData.length === 0) return null
+  const sorted = [...comparisonData].sort(
+    (a, b) => (b.current - b.previous) - (a.current - a.previous)
+  )
+  return {
+    biggestGain: sorted[0],
+    biggestDrop: sorted[sorted.length - 1],
+  }
+}
+
+function computeTargetRows(weeklyTargets, mainCategoryData) {
+  return weeklyTargets
+    .filter((t) => t.targetMinutes > 0)
+    .map((t) => {
+      const actual = mainCategoryData.find((mc) => mc.id === t.mainCategoryId)
+      const spentMinutes = actual?.totalMinutes ?? 0
+      const pct = Math.round((spentMinutes / t.targetMinutes) * 100)
+      return { name: t.mainCategory.name, targetMinutes: t.targetMinutes, spentMinutes, pct }
+    })
+    .sort((a, b) => b.pct - a.pct)
+}
+
+function getStatusBadge(pct) {
+  if (pct > 100) return { label: 'Exceeded', cls: 'bg-violet-50 text-violet-700 border border-violet-200' }
+  if (pct === 100) return { label: 'Target Achieved', cls: 'bg-green-50 text-green-700 border border-green-200' }
+  if (pct >= 75) return { label: 'Near Target', cls: 'bg-amber-50 text-amber-700 border border-amber-200' }
+  return { label: 'On Track', cls: 'bg-blue-50 text-blue-700 border border-blue-200' }
+}
+
 export default function AnalyticsPage() {
   const [dateRange, setDateRange] = useState(null)
   const [activities, setActivities] = useState([])
   const [prevActivities, setPrevActivities] = useState([])
+  const [weeklyTargets, setWeeklyTargets] = useState([])
   const [loading, setLoading] = useState(false)
   const [prevLoading, setPrevLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -125,12 +160,16 @@ export default function AnalyticsPage() {
       const prevFetch = fetch(
         `/api/activities?startDate=${prev.startDate}&endDate=${prev.endDate}`
       ).then((r) => r.json())
+      const targetsFetch = fetch(
+        `/api/weekly-targets?weekStartDate=${dateRange.startDate}`
+      ).then((r) => r.json())
 
-      Promise.all([primaryFetch, prevFetch])
-        .then(([json, prevJson]) => {
+      Promise.all([primaryFetch, prevFetch, targetsFetch])
+        .then(([json, prevJson, targetsJson]) => {
           if (json.success) setActivities(json.data)
           else setError(json.message ?? 'Failed to load analytics data')
           setPrevActivities(prevJson.success ? prevJson.data : [])
+          setWeeklyTargets(targetsJson.success ? targetsJson.data : [])
         })
         .catch(() => setError('Network error. Please try again.'))
         .finally(() => {
@@ -139,6 +178,7 @@ export default function AnalyticsPage() {
         })
     } else {
       setPrevActivities([])
+      setWeeklyTargets([])
       primaryFetch
         .then((json) => {
           if (json.success) setActivities(json.data)
@@ -164,11 +204,20 @@ export default function AnalyticsPage() {
   const subCategoryData = hasData ? aggregateBySubCategory(activities) : []
   const dailyData = hasData ? aggregateByDate(activities) : []
 
+  const longestActivity = hasData ? computeLongestActivity(activities) : null
+  const avgSessionMinutes = hasData ? Math.round(summary.totalMinutes / summary.totalActivities) : 0
+
   const prevMainCategoryData = prevActivities.length > 0 ? aggregateByMainCategory(prevActivities) : []
   const comparisonData = isWeekRange ? buildComparisonData(mainCategoryData, prevMainCategoryData) : []
   const currentTotal = mainCategoryData.reduce((s, d) => s + d.totalMinutes, 0)
   const prevTotal = prevMainCategoryData.reduce((s, d) => s + d.totalMinutes, 0)
   const totalDelta = currentTotal - prevTotal
+
+  const weekHighlights = isWeekRange && prevActivities.length > 0
+    ? computeWeekHighlights(comparisonData)
+    : null
+
+  const targetRows = isWeekRange ? computeTargetRows(weeklyTargets, mainCategoryData) : []
 
   const tooltipStyle = { fontSize: 12, border: '1px solid #e4e4e7', borderRadius: 6 }
 
@@ -189,6 +238,7 @@ export default function AnalyticsPage() {
         <EmptyState message="No activities found for the selected period. Log activities for a few days to see analytics." />
       ) : (
         <div className="space-y-5">
+          {/* Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <SummaryCard
               label="Total Time"
@@ -217,6 +267,29 @@ export default function AnalyticsPage() {
             />
           </div>
 
+          {/* Insights Strip */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <SummaryCard
+              label="Most Active"
+              value={mainCategoryData[0].name}
+              icon={TrendingUp}
+              sublabel={`${formatMinutes(mainCategoryData[0].totalMinutes)} · ${Math.round((mainCategoryData[0].totalMinutes / summary.totalMinutes) * 100)}% of total`}
+            />
+            <SummaryCard
+              label="Avg Session"
+              value={formatMinutes(avgSessionMinutes)}
+              icon={Timer}
+              sublabel="per activity"
+            />
+            <SummaryCard
+              label="Longest Session"
+              value={formatMinutes(longestActivity.durationMinutes)}
+              icon={Zap}
+              sublabel={longestActivity.title}
+            />
+          </div>
+
+          {/* Week-over-Week Comparison */}
           {isWeekRange && (
             <div className="bg-white border border-zinc-200 rounded-lg p-5">
               <div className="flex items-start justify-between mb-1">
@@ -233,7 +306,7 @@ export default function AnalyticsPage() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-4 text-sm text-zinc-600">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3 text-sm text-zinc-600">
                 <span>
                   This period:{' '}
                   <span className="font-medium text-zinc-800">{formatMinutes(currentTotal)}</span>
@@ -255,6 +328,30 @@ export default function AnalyticsPage() {
                   </span>
                 )}
               </div>
+
+              {/* Week-over-Week Highlights */}
+              {weekHighlights && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {weekHighlights.biggestGain.current - weekHighlights.biggestGain.previous > 0 && (
+                    <span className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
+                      <span>▲</span>
+                      <span>Biggest gain: <strong>{weekHighlights.biggestGain.name}</strong></span>
+                      <span className="text-emerald-500">
+                        +{formatMinutes(weekHighlights.biggestGain.current - weekHighlights.biggestGain.previous)}
+                      </span>
+                    </span>
+                  )}
+                  {weekHighlights.biggestDrop.current - weekHighlights.biggestDrop.previous < 0 && (
+                    <span className="flex items-center gap-1.5 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-full px-3 py-1">
+                      <span>▼</span>
+                      <span>Biggest drop: <strong>{weekHighlights.biggestDrop.name}</strong></span>
+                      <span className="text-rose-500">
+                        -{formatMinutes(weekHighlights.biggestDrop.previous - weekHighlights.biggestDrop.current)}
+                      </span>
+                    </span>
+                  )}
+                </div>
+              )}
 
               {prevLoading ? (
                 <LoadingState />
@@ -289,6 +386,67 @@ export default function AnalyticsPage() {
             </div>
           )}
 
+          {/* Target vs Actual */}
+          {isWeekRange && (
+            <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+              <div className="px-5 py-4 border-b border-zinc-100">
+                <h2 className="text-sm font-semibold text-zinc-900">Target vs Actual</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">Weekly target progress by main category</p>
+              </div>
+              {targetRows.length === 0 ? (
+                <p className="text-sm text-zinc-400 px-5 py-8 text-center">
+                  No weekly targets set for this period.
+                </p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-zinc-50 border-b border-zinc-100">
+                    <tr className="text-left text-xs text-zinc-500 uppercase tracking-wide">
+                      <th className="px-5 py-3 font-medium">Category</th>
+                      <th className="px-5 py-3 font-medium hidden sm:table-cell">Target</th>
+                      <th className="px-5 py-3 font-medium">Actual</th>
+                      <th className="px-5 py-3 font-medium hidden md:table-cell">Progress</th>
+                      <th className="px-5 py-3 font-medium text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {targetRows.map((row) => {
+                      const status = getStatusBadge(row.pct)
+                      const barWidth = Math.min(row.pct, 100)
+                      return (
+                        <tr key={row.name} className="border-b border-zinc-50 last:border-0">
+                          <td className="px-5 py-3.5 text-zinc-800 font-medium">{row.name}</td>
+                          <td className="px-5 py-3.5 text-zinc-500 hidden sm:table-cell">
+                            {formatMinutes(row.targetMinutes)}
+                          </td>
+                          <td className="px-5 py-3.5 text-zinc-800 font-semibold">
+                            {formatMinutes(row.spentMinutes)}
+                          </td>
+                          <td className="px-5 py-3.5 hidden md:table-cell">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 bg-zinc-100 rounded-full h-1.5 max-w-[120px]">
+                                <div
+                                  className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
+                                  style={{ width: `${barWidth}%` }}
+                                />
+                              </div>
+                              <span className="text-xs text-zinc-500 w-9 shrink-0">{row.pct}%</span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3.5 text-right">
+                            <span className={`text-xs rounded px-1.5 py-0.5 ${status.cls}`}>
+                              {status.label}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+
+          {/* Time by Main Category */}
           <div className="bg-white border border-zinc-200 rounded-lg p-5">
             <h2 className="text-sm font-semibold text-zinc-900 mb-4">Time by Main Category</h2>
             {mainCategoryData.length === 0 ? (
@@ -316,7 +474,10 @@ export default function AnalyticsPage() {
                     tick={{ fontSize: 11 }}
                   />
                   <Tooltip
-                    formatter={(v) => [formatMinutes(v), 'Time Spent']}
+                    formatter={(v) => [
+                      `${formatMinutes(v)} (${Math.round((v / summary.totalMinutes) * 100)}%)`,
+                      'Time Spent',
+                    ]}
                     contentStyle={tooltipStyle}
                   />
                   <Bar dataKey="totalMinutes" fill="#2563eb" radius={[0, 3, 3, 0]} />
@@ -325,6 +486,7 @@ export default function AnalyticsPage() {
             )}
           </div>
 
+          {/* Daily Trend */}
           {dailyData.length >= 2 && (
             <div className="bg-white border border-zinc-200 rounded-lg p-5">
               <h2 className="text-sm font-semibold text-zinc-900 mb-4">Daily Trend</h2>
@@ -360,6 +522,7 @@ export default function AnalyticsPage() {
             </div>
           )}
 
+          {/* Top Sub Categories */}
           <div className="bg-white border border-zinc-200 rounded-lg p-5">
             <h2 className="text-sm font-semibold text-zinc-900 mb-4">Top Sub Categories</h2>
             {subCategoryData.length === 0 ? (
