@@ -9,9 +9,11 @@ export function formatMinutes(mins) {
 
 export function formatTime(isoString) {
   const d = new Date(isoString)
-  const h = d.getUTCHours().toString().padStart(2, '0')
+  const utcH = d.getUTCHours()
   const m = d.getUTCMinutes().toString().padStart(2, '0')
-  return `${h}:${m}`
+  const ampm = utcH >= 12 ? 'PM' : 'AM'
+  const h = utcH % 12 || 12
+  return `${h}:${m} ${ampm}`
 }
 
 export function getWeekStartMonday(date = new Date()) {
