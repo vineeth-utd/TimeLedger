@@ -77,48 +77,60 @@ export default function Nav() {
           <span className="font-semibold text-sm tracking-tight">TimeLedger</span>
         </Link>
 
-        {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-0.5">
-          {links.map(({ href, label }) => {
-            const active = pathname === href
-            return (
-              <Link
-                key={href}
-                href={href}
-                aria-current={active ? 'page' : undefined}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  active
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
-                }`}
+        {isAuthenticated ? (
+          <>
+            {/* Desktop nav */}
+            <div className="hidden md:flex items-center gap-0.5">
+              {links.map(({ href, label }) => {
+                const active = pathname === href
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    aria-current={active ? 'page' : undefined}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      active
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    {label}
+                  </Link>
+                )
+              })}
+              <button
+                type="button"
+                onClick={handleAuthAction}
+                className="ml-2 px-3 py-1.5 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
               >
-                {label}
-              </Link>
-            )
-          })}
+                {authActionLabel}
+              </button>
+            </div>
+
+            {/* Mobile hamburger */}
+            <button
+              className="md:hidden p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={open}
+              aria-controls="mobile-nav"
+              onClick={() => setOpen((v) => !v)}
+            >
+              {open ? <X className="w-5 h-5" strokeWidth={2} /> : <Menu className="w-5 h-5" strokeWidth={2} />}
+            </button>
+          </>
+        ) : (
           <button
             type="button"
             onClick={handleAuthAction}
-            className="ml-2 px-3 py-1.5 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+            className="px-3 py-1.5 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
           >
             {authActionLabel}
           </button>
-        </div>
-
-        {/* Mobile hamburger */}
-        <button
-          className="md:hidden p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-          aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
-          aria-expanded={open}
-          aria-controls="mobile-nav"
-          onClick={() => setOpen((v) => !v)}
-        >
-          {open ? <X className="w-5 h-5" strokeWidth={2} /> : <Menu className="w-5 h-5" strokeWidth={2} />}
-        </button>
+        )}
       </div>
 
       {/* Mobile menu */}
-      {open && (
+      {isAuthenticated && open && (
         <div id="mobile-nav" className="md:hidden border-t border-gray-100 bg-white px-4 py-2">
           {links.map(({ href, label }) => {
             const active = pathname === href
