@@ -7,6 +7,14 @@ import LoadingState from '@/components/LoadingState'
 import ErrorBanner from '@/components/ErrorBanner'
 import { getWeekStartMonday, formatMinutes } from '@/lib/formatters'
 
+function minutesToHM(totalMinutes) {
+  return { h: String(Math.floor(totalMinutes / 60)), m: String(totalMinutes % 60) }
+}
+
+function hmToMinutes(val) {
+  return (parseInt(val.h) || 0) * 60 + (parseInt(val.m) || 0)
+}
+
 export default function WeeklyTargetsSection() {
   const [weekStartDate, setWeekStartDate] = useState(() => getWeekStartMonday())
   const [mainCategories, setMainCategories] = useState([])
@@ -38,7 +46,7 @@ export default function WeeklyTargetsSection() {
           setTargets(json.data)
           const next = {}
           for (const t of json.data) {
-            next[t.mainCategoryId] = String(t.targetMinutes)
+            next[t.mainCategoryId] = minutesToHM(t.targetMinutes)
           }
           setInputs(next)
         } else {
@@ -69,8 +77,8 @@ export default function WeeklyTargetsSection() {
     setWeekStartDate(getWeekStartMonday())
   }
 
-  function handleInput(mcId, value) {
-    setInputs((prev) => ({ ...prev, [mcId]: value }))
+  function handleInput(mcId, field, value) {
+    setInputs((prev) => ({ ...prev, [mcId]: { ...(prev[mcId] ?? { h: '', m: '' }), [field]: value } }))
     setSaved(false)
   }
 
@@ -81,9 +89,10 @@ export default function WeeklyTargetsSection() {
   function isDirty() {
     return mainCategories.some((mc) => {
       const existing = getTargetForCategory(mc.id)
-      const inputVal = inputs[mc.id] ?? ''
-      const existingStr = existing ? String(existing.targetMinutes) : ''
-      return inputVal !== existingStr
+      const val = inputs[mc.id] ?? { h: '', m: '' }
+      const numVal = hmToMinutes(val)
+      const existingVal = existing ? existing.targetMinutes : 0
+      return numVal !== existingVal
     })
   }
 
@@ -96,8 +105,8 @@ export default function WeeklyTargetsSection() {
 
     for (const mc of mainCategories) {
       const existing = getTargetForCategory(mc.id)
-      const rawVal = inputs[mc.id] ?? ''
-      const numVal = rawVal === '' ? 0 : Number(rawVal)
+      const val = inputs[mc.id] ?? { h: '', m: '' }
+      const numVal = hmToMinutes(val)
       const existingVal = existing ? existing.targetMinutes : null
 
       if (numVal === existingVal) continue
@@ -118,7 +127,7 @@ export default function WeeklyTargetsSection() {
             body: JSON.stringify({ weekStartDate, mainCategoryId: mc.id, targetMinutes: numVal }),
           }).then((r) => r.json())
         )
-      } else if ((numVal === 0 || rawVal === '') && existing) {
+      } else if (numVal === 0 && existing) {
         ops.push(
           fetch(`/api/weekly-targets/${existing.id}`, { method: 'DELETE' }).then((r) => r.json())
         )
@@ -139,7 +148,7 @@ export default function WeeklyTargetsSection() {
           setTargets(json.data)
           const next = {}
           for (const t of json.data) {
-            next[t.mainCategoryId] = String(t.targetMinutes)
+            next[t.mainCategoryId] = minutesToHM(t.targetMinutes)
           }
           setInputs(next)
         }
@@ -178,34 +187,45 @@ export default function WeeklyTargetsSection() {
             <thead className="bg-zinc-50 border-b border-zinc-100">
               <tr className="text-left text-xs text-zinc-500 uppercase tracking-wide">
                 <th scope="col" className="px-5 py-3 font-medium">Category</th>
-                <th scope="col" className="px-5 py-3 font-medium">Target (minutes)</th>
+                <th scope="col" className="px-5 py-3 font-medium">Target</th>
                 <th scope="col" className="px-5 py-3 font-medium hidden sm:table-cell text-zinc-400">Formatted</th>
               </tr>
             </thead>
             <tbody>
               {mainCategories.map((mc) => {
-                const val = inputs[mc.id] ?? ''
-                const numVal = val === '' ? 0 : Number(val)
+                const val = inputs[mc.id] ?? { h: '', m: '' }
+                const numVal = hmToMinutes(val)
                 const existing = getTargetForCategory(mc.id)
-                const existingStr = existing ? String(existing.targetMinutes) : ''
-                const isChanged = val !== existingStr
+                const existingTotal = existing ? existing.targetMinutes : 0
+                const isChanged = numVal !== existingTotal
+                const inputClass = (isChanged
+                  ? 'border-blue-400 ring-1 ring-blue-200 bg-white'
+                  : 'border-zinc-300')
                 return (
                   <tr key={mc.id} className={`border-b border-zinc-50 last:border-0 transition-colors ${isChanged ? 'bg-blue-50/40' : ''}`}>
                     <td className="px-5 py-3 text-zinc-800 font-medium">{mc.name}</td>
                     <td className="px-5 py-3">
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={val}
-                        onChange={(e) => handleInput(mc.id, e.target.value)}
-                        placeholder="0"
-                        className={`w-28 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isChanged
-                            ? 'border-blue-400 ring-1 ring-blue-200 bg-white'
-                            : 'border-zinc-300'
-                        }`}
-                      />
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="0"
+                          value={val.h}
+                          onChange={(e) => handleInput(mc.id, 'h', e.target.value)}
+                          placeholder="0"
+                          className={`w-14 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputClass}`}
+                        />
+                        <span className="text-xs text-zinc-400">h</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="59"
+                          value={val.m}
+                          onChange={(e) => handleInput(mc.id, 'm', e.target.value)}
+                          placeholder="0"
+                          className={`w-14 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputClass}`}
+                        />
+                        <span className="text-xs text-zinc-400">m</span>
+                      </div>
                     </td>
                     <td className="px-5 py-3 text-zinc-400 hidden sm:table-cell text-xs">
                       {numVal > 0 ? formatMinutes(numVal) : '—'}
