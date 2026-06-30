@@ -17,16 +17,54 @@ export default function Nav() {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  async function handleSignOut() {
-    await supabase.auth.signOut()
+  async function handleAuthAction() {
     setOpen(false)
+
+    if (!isAuthenticated) {
+      router.push('/login')
+      return
+    }
+
+    await supabase.auth.signOut()
     router.replace('/login')
   }
 
   useEffect(() => {
+    let ignore = false
+
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!ignore) {
+          setIsAuthenticated(Boolean(session?.user))
+        }
+      })
+      .catch(() => {
+        if (!ignore) {
+          setIsAuthenticated(false)
+        }
+      })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!ignore) {
+        setIsAuthenticated(Boolean(session?.user))
+      }
+    })
+
+    return () => {
+      ignore = true
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
     setOpen(false)
   }, [pathname])
+
+  const authActionLabel = isAuthenticated ? 'Sign Out' : 'Sign In'
 
   return (
     <nav aria-label="Main navigation" className="bg-white border-b border-gray-200 sticky top-0 z-30">
@@ -60,10 +98,10 @@ export default function Nav() {
           })}
           <button
             type="button"
-            onClick={handleSignOut}
+            onClick={handleAuthAction}
             className="ml-2 px-3 py-1.5 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
           >
-            Sign Out
+            {authActionLabel}
           </button>
         </div>
 
@@ -102,10 +140,10 @@ export default function Nav() {
           })}
           <button
             type="button"
-            onClick={handleSignOut}
+            onClick={handleAuthAction}
             className="mt-2 block w-full text-left px-3 py-2.5 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
           >
-            Sign Out
+            {authActionLabel}
           </button>
         </div>
       )}
