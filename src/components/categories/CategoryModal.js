@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { X } from 'lucide-react'
 
 const TITLES = {
   'add-main': 'Add Main Category',
@@ -23,6 +24,15 @@ export default function CategoryModal({ isOpen, mode, mainCategory, subCategory,
     else if (mode === 'edit-sub') setName(subCategory?.name ?? '')
     else setName('')
   }, [isOpen, mode, mainCategory, subCategory])
+
+  useEffect(() => {
+    if (!isOpen) return
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -76,11 +86,16 @@ export default function CategoryModal({ isOpen, mode, mainCategory, subCategory,
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="category-modal-title"
+        className="bg-white rounded-lg shadow-xl w-full max-w-md"
+      >
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h2 className="text-base font-semibold text-zinc-900">{TITLES[mode]}</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 text-lg leading-none">
-            ✕
+          <h2 id="category-modal-title" className="text-base font-semibold text-zinc-900">{TITLES[mode]}</h2>
+          <button onClick={onClose} aria-label="Close" className="p-1 rounded text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors">
+            <X className="w-4 h-4" />
           </button>
         </div>
 

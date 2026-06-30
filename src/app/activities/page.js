@@ -107,7 +107,8 @@ export default function ActivitiesPage() {
 
       <DateRangeFilter onChange={handleDateRangeChange} />
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-xs font-medium text-zinc-500 uppercase tracking-wide shrink-0">Category</span>
         <select
           value={mainCategoryId}
           onChange={handleMainCategoryChange}

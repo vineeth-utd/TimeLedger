@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Check } from 'lucide-react'
 import WeekNavigator from '@/components/dashboard/WeekNavigator'
 import LoadingState from '@/components/LoadingState'
 import ErrorBanner from '@/components/ErrorBanner'
@@ -172,20 +173,24 @@ export default function WeeklyTargetsSection() {
         <p className="text-sm text-zinc-500">No active categories. Add main categories first.</p>
       ) : (
         <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 border-b border-zinc-100">
               <tr className="text-left text-xs text-zinc-500 uppercase tracking-wide">
-                <th className="px-5 py-3 font-medium">Category</th>
-                <th className="px-5 py-3 font-medium">Target (minutes)</th>
-                <th className="px-5 py-3 font-medium hidden sm:table-cell text-zinc-400">Formatted</th>
+                <th scope="col" className="px-5 py-3 font-medium">Category</th>
+                <th scope="col" className="px-5 py-3 font-medium">Target (minutes)</th>
+                <th scope="col" className="px-5 py-3 font-medium hidden sm:table-cell text-zinc-400">Formatted</th>
               </tr>
             </thead>
             <tbody>
               {mainCategories.map((mc) => {
                 const val = inputs[mc.id] ?? ''
                 const numVal = val === '' ? 0 : Number(val)
+                const existing = getTargetForCategory(mc.id)
+                const existingStr = existing ? String(existing.targetMinutes) : ''
+                const isChanged = val !== existingStr
                 return (
-                  <tr key={mc.id} className="border-b border-zinc-50 last:border-0">
+                  <tr key={mc.id} className={`border-b border-zinc-50 last:border-0 transition-colors ${isChanged ? 'bg-blue-50/40' : ''}`}>
                     <td className="px-5 py-3 text-zinc-800 font-medium">{mc.name}</td>
                     <td className="px-5 py-3">
                       <input
@@ -195,7 +200,11 @@ export default function WeeklyTargetsSection() {
                         value={val}
                         onChange={(e) => handleInput(mc.id, e.target.value)}
                         placeholder="0"
-                        className="w-24 border border-zinc-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={`w-28 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isChanged
+                            ? 'border-blue-400 ring-1 ring-blue-200 bg-white'
+                            : 'border-zinc-300'
+                        }`}
                       />
                     </td>
                     <td className="px-5 py-3 text-zinc-400 hidden sm:table-cell text-xs">
@@ -206,17 +215,21 @@ export default function WeeklyTargetsSection() {
               })}
             </tbody>
           </table>
+          </div>
 
           <div className="px-5 py-3 border-t border-zinc-100 flex items-center gap-3">
             <button
               onClick={handleSave}
               disabled={saving || !dirty}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? 'Saving…' : 'Save Changes'}
             </button>
             {saved && !dirty && (
-              <span className="text-sm text-green-600 font-medium">Saved</span>
+              <span className="flex items-center gap-1 text-sm text-green-600 font-medium">
+                <Check className="w-3.5 h-3.5" />
+                Saved
+              </span>
             )}
           </div>
         </div>

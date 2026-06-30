@@ -23,43 +23,48 @@ export async function GET(request) {
     const weekEnd = new Date(weekStart)
     weekEnd.setUTCDate(weekEnd.getUTCDate() + 6)
 
-    const todayStr = new Date().toISOString().split('T')[0]
-    const today = new Date(todayStr)
+    // Use the client-supplied today (local date) if provided, otherwise fall back to UTC
+    const todayParam = searchParams.get('today')
+    const todayStr = todayParam ?? new Date().toISOString().split('T')[0]
+    const today = new Date(todayStr + 'T00:00:00.000Z')
 
     const prevWeekStart = new Date(weekStart)
     prevWeekStart.setUTCDate(prevWeekStart.getUTCDate() - 7)
     const prevWeekEnd = new Date(weekStart)
     prevWeekEnd.setUTCDate(prevWeekEnd.getUTCDate() - 1)
 
-    const [todayActivities, weekSummaries, weekTargets, prevWeekSummaries] = await Promise.all([
-      prisma.activity.findMany({
-        where: { activityDate: today },
-        include: { subCategory: { include: { mainCategory: true } } },
-        orderBy: { startTime: 'asc' },
-      }),
+    const [todayActivities, weekSummaries, todaySummaries, weekTargets, prevWeekSummaries] =
+      await Promise.all([
+        prisma.activity.findMany({
+          where: { activityDate: today },
+          include: { subCategory: { include: { mainCategory: true } } },
+          orderBy: { startTime: 'asc' },
+        }),
 
-      prisma.dailySubCategorySummary.findMany({
-        where: { summaryDate: { gte: weekStart, lte: weekEnd } },
-        include: { subCategory: { include: { mainCategory: true } } },
-      }),
+        prisma.dailySubCategorySummary.findMany({
+          where: { summaryDate: { gte: weekStart, lte: weekEnd } },
+          include: { subCategory: { include: { mainCategory: true } } },
+        }),
 
-      prisma.weeklyTarget.findMany({
-        where: { weekStartDate: weekStart },
-        include: { mainCategory: true },
-      }),
+        // Fetch today's summaries independently so they are always correct,
+        // regardless of which week the user is viewing.
+        prisma.dailySubCategorySummary.findMany({
+          where: { summaryDate: today },
+          include: { subCategory: { include: { mainCategory: true } } },
+        }),
 
-      prisma.dailySubCategorySummary.findMany({
-        where: { summaryDate: { gte: prevWeekStart, lte: prevWeekEnd } },
-        include: { subCategory: { select: { mainCategoryId: true } } },
-      }),
-    ])
+        prisma.weeklyTarget.findMany({
+          where: { weekStartDate: weekStart },
+          include: { mainCategory: true },
+        }),
 
-    // Today's sub category summary — filter this week's summaries to today's date
-    const todaySubSummaries = weekSummaries.filter(
-      (s) => s.summaryDate.toISOString().split('T')[0] === todayStr
-    )
+        prisma.dailySubCategorySummary.findMany({
+          where: { summaryDate: { gte: prevWeekStart, lte: prevWeekEnd } },
+          include: { subCategory: { select: { mainCategoryId: true } } },
+        }),
+      ])
 
-    const bySubCategory = todaySubSummaries.map((s) => ({
+    const bySubCategory = todaySummaries.map((s) => ({
       subCategoryId: s.subCategoryId,
       subCategoryName: s.subCategory.name,
       mainCategoryId: s.subCategory.mainCategoryId,
@@ -70,7 +75,7 @@ export async function GET(request) {
 
     // Today's main category summary — group sub summaries by mainCategoryId
     const todayMainMap = new Map()
-    for (const s of todaySubSummaries) {
+    for (const s of todaySummaries) {
       const mcId = s.subCategory.mainCategoryId
       const mcName = s.subCategory.mainCategory.name
       if (!todayMainMap.has(mcId)) {
@@ -139,10 +144,9 @@ export async function GET(request) {
 
       const spentMinutes = spent?.spentMinutes ?? 0
       const remainingMinutes = Math.max(0, targetMinutes - spentMinutes)
+      // Return the actual percentage — not capped — so UI can show values above 100%
       const progressPercentage =
-        targetMinutes > 0
-          ? Math.min(100, Math.round((spentMinutes / targetMinutes) * 100))
-          : null
+        targetMinutes > 0 ? Math.round((spentMinutes / targetMinutes) * 100) : null
 
       return {
         mainCategoryId: mcId,
