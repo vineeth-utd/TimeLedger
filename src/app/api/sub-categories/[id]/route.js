@@ -1,12 +1,19 @@
 import prisma from '@/lib/prisma'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 export async function PATCH(request, ctx) {
   try {
+    const user = await getAuthenticatedUser()
+    if (!user) {
+      return Response.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = user.id
+
     const { id } = await ctx.params
     const subCategoryId = Number(id)
 
     const existing = await prisma.subCategory.findUnique({ where: { id: subCategoryId } })
-    if (!existing) {
+    if (!existing || existing.userId !== userId) {
       return Response.json(
         { success: false, message: 'Sub category not found' },
         { status: 404 }

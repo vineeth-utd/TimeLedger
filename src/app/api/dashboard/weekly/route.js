@@ -1,7 +1,14 @@
 import prisma from '@/lib/prisma'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 export async function GET(request) {
   try {
+    const user = await getAuthenticatedUser()
+    if (!user) {
+      return Response.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = user.id
+
     const { searchParams } = new URL(request.url)
     const weekStartDateParam = searchParams.get('weekStartDate')
 
@@ -36,30 +43,30 @@ export async function GET(request) {
     const [todayActivities, weekSummaries, todaySummaries, weekTargets, prevWeekSummaries] =
       await Promise.all([
         prisma.activity.findMany({
-          where: { activityDate: today },
+          where: { userId, activityDate: today },
           include: { subCategory: { include: { mainCategory: true } } },
           orderBy: { startTime: 'asc' },
         }),
 
         prisma.dailySubCategorySummary.findMany({
-          where: { summaryDate: { gte: weekStart, lte: weekEnd } },
+          where: { userId, summaryDate: { gte: weekStart, lte: weekEnd } },
           include: { subCategory: { include: { mainCategory: true } } },
         }),
 
         // Fetch today's summaries independently so they are always correct,
         // regardless of which week the user is viewing.
         prisma.dailySubCategorySummary.findMany({
-          where: { summaryDate: today },
+          where: { userId, summaryDate: today },
           include: { subCategory: { include: { mainCategory: true } } },
         }),
 
         prisma.weeklyTarget.findMany({
-          where: { weekStartDate: weekStart },
+          where: { userId, weekStartDate: weekStart },
           include: { mainCategory: true },
         }),
 
         prisma.dailySubCategorySummary.findMany({
-          where: { summaryDate: { gte: prevWeekStart, lte: prevWeekEnd } },
+          where: { userId, summaryDate: { gte: prevWeekStart, lte: prevWeekEnd } },
           include: { subCategory: { select: { mainCategoryId: true } } },
         }),
       ])

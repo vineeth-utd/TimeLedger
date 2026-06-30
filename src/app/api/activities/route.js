@@ -1,8 +1,15 @@
 import prisma from '@/lib/prisma'
 import { calculateDurationMinutes, recalculateDailySummary } from '@/lib/activityHelpers'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 export async function GET(request) {
   try {
+    const user = await getAuthenticatedUser()
+    if (!user) {
+      return Response.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = user.id
+
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
@@ -27,6 +34,7 @@ export async function GET(request) {
     }
 
     const where = {
+      userId,
       activityDate: { gte: start, lte: end },
     }
 
@@ -56,6 +64,12 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const user = await getAuthenticatedUser()
+    if (!user) {
+      return Response.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = user.id
+
     const body = await request.json()
     const { activityDate, title, subCategoryId, startTime, endTime, notes } = body
 
@@ -81,7 +95,7 @@ export async function POST(request) {
     }
 
     const subCategory = await prisma.subCategory.findUnique({ where: { id: Number(subCategoryId) } })
-    if (!subCategory) {
+    if (!subCategory || subCategory.userId !== userId) {
       return Response.json(
         { success: false, message: 'Sub category not found' },
         { status: 400 }
@@ -93,6 +107,7 @@ export async function POST(request) {
 
     const activity = await prisma.activity.create({
       data: {
+        userId,
         activityDate: parsedActivityDate,
         title: title.trim(),
         subCategoryId: Number(subCategoryId),
@@ -104,7 +119,7 @@ export async function POST(request) {
       include: { subCategory: { include: { mainCategory: true } } },
     })
 
-    await recalculateDailySummary(prisma, parsedActivityDate, Number(subCategoryId))
+    await recalculateDailySummary(prisma, parsedActivityDate, Number(subCategoryId), userId)
 
     return Response.json({ success: true, data: activity }, { status: 201 })
   } catch (error) {
