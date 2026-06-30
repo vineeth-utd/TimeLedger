@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { X } from 'lucide-react'
 
 const EMPTY_FORM = {
   activityDate: '',
@@ -132,13 +133,13 @@ export default function ActivityModal({ isOpen, activity, onClose, onSuccess }) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h2 className="text-base font-semibold text-zinc-900">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <h2 className="text-base font-semibold text-gray-900">
             {activity ? 'Edit Activity' : 'Add Activity'}
           </h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 text-lg leading-none">
-            ✕
+          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600">
+            <X className="w-4 h-4" strokeWidth={2} />
           </button>
         </div>
 
@@ -150,37 +151,37 @@ export default function ActivityModal({ isOpen, activity, onClose, onSuccess }) 
           )}
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Activity Date</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Activity Date</label>
             <input
               type="date"
               name="activityDate"
               value={form.activityDate}
               onChange={handleChange}
-              className="w-full border border-zinc-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.activityDate && <p className="text-red-600 text-xs mt-1">{errors.activityDate}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Title</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
             <input
               type="text"
               name="title"
               value={form.title}
               onChange={handleChange}
               placeholder="What did you work on?"
-              className="w-full border border-zinc-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.title && <p className="text-red-600 text-xs mt-1">{errors.title}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Sub Category</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category</label>
             <select
               name="subCategoryId"
               value={form.subCategoryId}
               onChange={handleChange}
-              className="w-full border border-zinc-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none"
             >
               <option value="">Select a sub category</option>
               {Object.entries(grouped).map(([mcName, scs]) => (
@@ -197,40 +198,40 @@ export default function ActivityModal({ isOpen, activity, onClose, onSuccess }) 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Main Category</label>
-            <div className="w-full border border-zinc-200 rounded px-3 py-2 text-sm bg-zinc-50 text-zinc-500 min-h-[38px]">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Main Category</label>
+            <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm bg-gray-50 text-gray-500 min-h-[38px]">
               {mainCategoryName || '—'}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">Start Time</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
               <input
                 type="time"
                 name="startTime"
                 value={form.startTime}
                 onChange={handleChange}
-                className="w-full border border-zinc-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               {errors.startTime && <p className="text-red-600 text-xs mt-1">{errors.startTime}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">End Time</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
               <input
                 type="time"
                 name="endTime"
                 value={form.endTime}
                 onChange={handleChange}
-                className="w-full border border-zinc-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               {errors.endTime && <p className="text-red-600 text-xs mt-1">{errors.endTime}</p>}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">
-              Notes <span className="text-zinc-400 font-normal">(optional)</span>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes <span className="text-gray-400 font-normal">(optional)</span>
             </label>
             <textarea
               name="notes"
@@ -238,7 +239,7 @@ export default function ActivityModal({ isOpen, activity, onClose, onSuccess }) 
               onChange={handleChange}
               rows={2}
               placeholder="Optional notes..."
-              className="w-full border border-zinc-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none placeholder:text-gray-400"
             />
           </div>
 
@@ -246,14 +247,14 @@ export default function ActivityModal({ isOpen, activity, onClose, onSuccess }) 
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded hover:bg-zinc-50"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 active:bg-gray-100"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50"
             >
               {submitting ? 'Saving…' : activity ? 'Save Changes' : 'Add Activity'}
             </button>
