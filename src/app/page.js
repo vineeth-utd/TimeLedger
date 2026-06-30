@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Clock, Target, Timer, TrendingUp } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import SummaryCard from '@/components/SummaryCard'
 import LoadingState from '@/components/LoadingState'
@@ -12,6 +13,15 @@ import TodaySummary from '@/components/dashboard/TodaySummary'
 import WeeklyProgress from '@/components/dashboard/WeeklyProgress'
 import TodayTimeline from '@/components/dashboard/TodayTimeline'
 import { getWeekStartMonday, formatMinutes } from '@/lib/formatters'
+
+// Returns YYYY-MM-DD in the browser's local timezone
+function getLocalToday() {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 
 export default function DashboardPage() {
   const [weekStartDate, setWeekStartDate] = useState(() => getWeekStartMonday())
@@ -28,7 +38,8 @@ export default function DashboardPage() {
   useEffect(() => {
     setLoading(true)
     setError(null)
-    fetch(`/api/dashboard/weekly?weekStartDate=${weekStartDate}`)
+    const today = getLocalToday()
+    fetch(`/api/dashboard/weekly?weekStartDate=${weekStartDate}&today=${today}`)
       .then((r) => r.json())
       .then((json) => {
         if (json.success) setData(json.data)
@@ -63,6 +74,10 @@ export default function DashboardPage() {
     setRefreshKey((k) => k + 1)
   }
 
+  function handleGoTo(weekStart) {
+    setWeekStartDate(weekStart)
+  }
+
   async function handleConfirmDelete() {
     if (!deletingActivity) return
     setDeleteError('')
@@ -92,7 +107,7 @@ export default function DashboardPage() {
         <PageHeader title="Dashboard" subtitle="Your daily and weekly overview" />
         <button
           onClick={() => { setEditingActivity(null); setModalOpen(true) }}
-          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700"
+          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 active:bg-blue-800"
         >
           + Add Activity
         </button>
@@ -103,6 +118,7 @@ export default function DashboardPage() {
         onPrev={handlePrevWeek}
         onNext={handleNextWeek}
         onToday={handleToday}
+        onGoTo={handleGoTo}
       />
 
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
@@ -112,18 +128,21 @@ export default function DashboardPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <SummaryCard label="Week Spent" value={formatMinutes(weekSpent)} />
+            <SummaryCard label="Week Spent" value={formatMinutes(weekSpent)} icon={Clock} />
             <SummaryCard
               label="Week Target"
               value={weekTarget > 0 ? formatMinutes(weekTarget) : '—'}
+              icon={Target}
             />
             <SummaryCard
               label="Remaining"
               value={weekTarget > 0 ? formatMinutes(weekRemaining) : '—'}
+              icon={Timer}
             />
             <SummaryCard
               label="Progress"
-              value={weekProgress !== null ? `${Math.min(100, weekProgress)}%` : '—'}
+              value={weekProgress !== null ? `${weekProgress}%` : '—'}
+              icon={TrendingUp}
             />
           </div>
 
