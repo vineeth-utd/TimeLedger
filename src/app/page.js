@@ -102,7 +102,7 @@ export default function DashboardPage() {
   const weekProgress = weekTarget > 0 ? Math.round((weekSpent / weekTarget) * 100) : null
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-6xl mx-auto px-4 py-6 space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <PageHeader title="Dashboard" subtitle="Your daily and weekly overview" />
         <button
@@ -128,21 +128,24 @@ export default function DashboardPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <SummaryCard label="Week Spent" value={formatMinutes(weekSpent)} icon={Clock} />
+            <SummaryCard label="Week Spent" value={formatMinutes(weekSpent)} icon={Clock} large />
             <SummaryCard
               label="Week Target"
               value={weekTarget > 0 ? formatMinutes(weekTarget) : '—'}
               icon={Target}
+              large
             />
             <SummaryCard
               label="Remaining"
               value={weekTarget > 0 ? formatMinutes(weekRemaining) : '—'}
               icon={Timer}
+              large
             />
             <SummaryCard
               label="Progress"
               value={weekProgress !== null ? `${weekProgress}%` : '—'}
               icon={TrendingUp}
+              large
             />
           </div>
 

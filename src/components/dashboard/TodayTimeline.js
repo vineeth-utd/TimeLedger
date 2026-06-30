@@ -49,14 +49,14 @@ export default function TodayTimeline({ activities, onEdit, onDelete }) {
                     <button
                       onClick={() => onEdit(activity)}
                       aria-label="Edit activity"
-                      className="p-1 text-gray-400 hover:text-blue-600 rounded transition-colors"
+                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                     >
                       <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
                     </button>
                     <button
                       onClick={() => onDelete(activity)}
                       aria-label="Delete activity"
-                      className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors ml-1"
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors ml-0.5"
                     >
                       <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
                     </button>

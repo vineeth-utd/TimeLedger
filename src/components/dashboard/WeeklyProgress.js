@@ -12,9 +12,10 @@ const ACCENTS = [
 
 function getStatus(pct) {
   if (pct === null) return null
-  if (pct >= 100) return { label: 'Exceeded', cls: 'bg-violet-50 text-violet-700 border border-violet-200' }
-  if (pct >= 75)  return { label: 'Near Target', cls: 'bg-amber-50 text-amber-700 border border-amber-200' }
-  return { label: 'On Track', cls: 'bg-blue-50 text-blue-700 border border-blue-200' }
+  if (pct > 100)   return { label: 'Exceeded',        cls: 'bg-violet-50 text-violet-700 border border-violet-200' }
+  if (pct === 100) return { label: 'Target Achieved',  cls: 'bg-green-50 text-green-700 border border-green-200' }
+  if (pct >= 75)   return { label: 'Near Target',      cls: 'bg-amber-50 text-amber-700 border border-amber-200' }
+  return             { label: 'On Track',              cls: 'bg-blue-50 text-blue-700 border border-blue-200' }
 }
 
 export default function WeeklyProgress({ weeklyProgress }) {
@@ -40,7 +41,7 @@ export default function WeeklyProgress({ weeklyProgress }) {
                 key={row.mainCategoryId}
                 className={`bg-white border border-gray-100 border-l-4 ${accent.border} rounded-xl p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 cursor-default`}
               >
-                {/* Header row */}
+                {/* Header */}
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <span className="text-sm font-semibold text-gray-800 leading-snug">
                     {row.mainCategoryName}
@@ -62,32 +63,34 @@ export default function WeeklyProgress({ weeklyProgress }) {
                 {row.targetMinutes > 0 ? (
                   <>
                     {/* Percentage */}
-                    <div className="flex items-baseline gap-1 mb-2">
+                    <div className="mb-2">
                       <span className="text-2xl font-bold text-gray-900">
                         {pct ?? 0}%
                       </span>
-                      {pct !== null && pct >= 100 && (
-                        <span className="text-sm text-violet-600 font-medium">✓</span>
-                      )}
                     </div>
 
                     {/* Progress bar */}
-                    <div className="w-full bg-gray-100 rounded-full h-1.5 mb-3">
+                    <div className="w-full bg-gray-100 rounded-full h-1.5 mb-1">
                       <div
                         className={`${accent.bar} h-1.5 rounded-full transition-all duration-500`}
                         style={{ width: `${barWidth}%` }}
                       />
                     </div>
 
-                    {/* Stats */}
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>
-                        <span className="font-medium text-gray-800">{formatMinutes(row.spentMinutes)}</span> spent
-                      </span>
-                      <span>{formatMinutes(row.targetMinutes)} target</span>
-                    </div>
-                    <div className="flex justify-between text-xs text-gray-400 mt-1">
-                      <span>{formatMinutes(row.remainingMinutes)} remaining</span>
+                    {/* 3-column stats */}
+                    <div className="grid grid-cols-3 gap-1 mt-3 pt-3 border-t border-gray-100">
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wide">Spent</p>
+                        <p className="text-sm font-semibold text-gray-800 mt-0.5">{formatMinutes(row.spentMinutes)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wide">Target</p>
+                        <p className="text-sm font-medium text-gray-600 mt-0.5">{formatMinutes(row.targetMinutes)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wide">Remaining</p>
+                        <p className="text-sm font-medium text-gray-500 mt-0.5">{formatMinutes(row.remainingMinutes)}</p>
+                      </div>
                     </div>
                   </>
                 ) : (
