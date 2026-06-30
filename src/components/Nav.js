@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Clock, Menu, X } from 'lucide-react'
+import { supabase } from '@/lib/supabase/client'
 
 const links = [
   { href: '/', label: 'Dashboard' },
@@ -14,7 +15,14 @@ const links = [
 
 export default function Nav() {
   const pathname = usePathname()
+  const router = useRouter()
   const [open, setOpen] = useState(false)
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    setOpen(false)
+    router.replace('/login')
+  }
 
   useEffect(() => {
     setOpen(false)
@@ -50,6 +58,13 @@ export default function Nav() {
               </Link>
             )
           })}
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="ml-2 px-3 py-1.5 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+          >
+            Sign Out
+          </button>
         </div>
 
         {/* Mobile hamburger */}
@@ -85,6 +100,13 @@ export default function Nav() {
               </Link>
             )
           })}
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="mt-2 block w-full text-left px-3 py-2.5 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+          >
+            Sign Out
+          </button>
         </div>
       )}
     </nav>
