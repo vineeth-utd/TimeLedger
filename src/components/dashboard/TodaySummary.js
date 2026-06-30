@@ -38,12 +38,13 @@ export default function TodaySummary({ byMainCategory, bySubCategory, today }) {
             {byMainCategory.length === 0 ? (
               <p className="text-sm text-gray-400">No data</p>
             ) : (
+              <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="text-left text-xs text-gray-400">
-                    <th className="pb-2 font-medium">Category</th>
-                    <th className="pb-2 font-medium text-right">Time</th>
-                    <th className="pb-2 font-medium text-right">Activities</th>
+                    <th scope="col" className="pb-2 font-medium">Category</th>
+                    <th scope="col" className="pb-2 font-medium text-right">Time</th>
+                    <th scope="col" className="pb-2 font-medium text-right">Activities</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -71,6 +72,7 @@ export default function TodaySummary({ byMainCategory, bySubCategory, today }) {
                   )}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
 
@@ -82,12 +84,13 @@ export default function TodaySummary({ byMainCategory, bySubCategory, today }) {
             {bySubCategory.length === 0 ? (
               <p className="text-sm text-gray-400">No data</p>
             ) : (
+              <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="text-left text-xs text-gray-400">
-                    <th className="pb-2 font-medium">Sub Category</th>
-                    <th className="pb-2 font-medium">Main</th>
-                    <th className="pb-2 font-medium text-right">Time</th>
+                    <th scope="col" className="pb-2 font-medium">Sub Category</th>
+                    <th scope="col" className="pb-2 font-medium">Main</th>
+                    <th scope="col" className="pb-2 font-medium text-right">Time</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -102,6 +105,7 @@ export default function TodaySummary({ byMainCategory, bySubCategory, today }) {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         </div>

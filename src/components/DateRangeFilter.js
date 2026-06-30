@@ -79,6 +79,7 @@ export default function DateRangeFilter({ onChange }) {
           <button
             key={p.key}
             onClick={() => setPreset(p.key)}
+            aria-pressed={preset === p.key}
             className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
               preset === p.key
                 ? 'bg-blue-600 text-white border-blue-600'
@@ -96,13 +97,15 @@ export default function DateRangeFilter({ onChange }) {
             type="date"
             value={customStart}
             onChange={(e) => setCustomStart(e.target.value)}
+            aria-label="Start date"
             className="border border-zinc-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <span className="text-xs text-zinc-400">to</span>
+          <span className="text-xs text-zinc-400" aria-hidden="true">to</span>
           <input
             type="date"
             value={customEnd}
             onChange={(e) => setCustomEnd(e.target.value)}
+            aria-label="End date"
             className="border border-zinc-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>

@@ -324,7 +324,7 @@ export default function AnalyticsPage() {
                         : 'text-rose-600 bg-rose-50 border-rose-200'
                     }`}
                   >
-                    {totalDelta > 0 ? '▲' : '▼'} {formatMinutes(Math.abs(totalDelta))}
+                    <span aria-label={totalDelta > 0 ? 'increased' : 'decreased'}>{totalDelta > 0 ? '▲' : '▼'}</span> {formatMinutes(Math.abs(totalDelta))}
                   </span>
                 )}
               </div>
@@ -334,7 +334,7 @@ export default function AnalyticsPage() {
                 <div className="flex flex-wrap gap-2 mb-4">
                   {weekHighlights.biggestGain.current - weekHighlights.biggestGain.previous > 0 && (
                     <span className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
-                      <span>▲</span>
+                      <span aria-label="increased">▲</span>
                       <span>Biggest gain: <strong>{weekHighlights.biggestGain.name}</strong></span>
                       <span className="text-emerald-500">
                         +{formatMinutes(weekHighlights.biggestGain.current - weekHighlights.biggestGain.previous)}
@@ -343,7 +343,7 @@ export default function AnalyticsPage() {
                   )}
                   {weekHighlights.biggestDrop.current - weekHighlights.biggestDrop.previous < 0 && (
                     <span className="flex items-center gap-1.5 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-full px-3 py-1">
-                      <span>▼</span>
+                      <span aria-label="decreased">▼</span>
                       <span>Biggest drop: <strong>{weekHighlights.biggestDrop.name}</strong></span>
                       <span className="text-rose-500">
                         -{formatMinutes(weekHighlights.biggestDrop.previous - weekHighlights.biggestDrop.current)}
@@ -368,7 +368,7 @@ export default function AnalyticsPage() {
                     margin={{ left: 8, right: 24, top: 4, bottom: 4 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" />
-                    <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 12 }} />
+                    <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
                     <XAxis
                       type="number"
                       tickFormatter={(v) => formatMinutes(v)}
@@ -401,11 +401,11 @@ export default function AnalyticsPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-zinc-50 border-b border-zinc-100">
                     <tr className="text-left text-xs text-zinc-500 uppercase tracking-wide">
-                      <th className="px-5 py-3 font-medium">Category</th>
-                      <th className="px-5 py-3 font-medium hidden sm:table-cell">Target</th>
-                      <th className="px-5 py-3 font-medium">Actual</th>
-                      <th className="px-5 py-3 font-medium hidden md:table-cell">Progress</th>
-                      <th className="px-5 py-3 font-medium text-right">Status</th>
+                      <th scope="col" className="px-5 py-3 font-medium">Category</th>
+                      <th scope="col" className="px-5 py-3 font-medium hidden sm:table-cell">Target</th>
+                      <th scope="col" className="px-5 py-3 font-medium">Actual</th>
+                      <th scope="col" className="px-5 py-3 font-medium hidden md:table-cell">Progress</th>
+                      <th scope="col" className="px-5 py-3 font-medium text-right">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -423,7 +423,14 @@ export default function AnalyticsPage() {
                           </td>
                           <td className="px-5 py-3.5 hidden md:table-cell">
                             <div className="flex items-center gap-2">
-                              <div className="flex-1 bg-zinc-100 rounded-full h-1.5 max-w-[120px]">
+                              <div
+                                role="progressbar"
+                                aria-valuenow={barWidth}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                                aria-label={`${row.name} progress`}
+                                className="flex-1 bg-zinc-100 rounded-full h-1.5 max-w-[120px]"
+                              >
                                 <div
                                   className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
                                   style={{ width: `${barWidth}%` }}
@@ -465,7 +472,7 @@ export default function AnalyticsPage() {
                   <YAxis
                     type="category"
                     dataKey="name"
-                    width={130}
+                    width={100}
                     tick={{ fontSize: 12 }}
                   />
                   <XAxis
@@ -541,7 +548,7 @@ export default function AnalyticsPage() {
                   <YAxis
                     type="category"
                     dataKey="name"
-                    width={160}
+                    width={120}
                     tick={{ fontSize: 12 }}
                   />
                   <XAxis

@@ -26,6 +26,7 @@ export default function MainCategorySection({
       <div className={`flex items-center justify-between px-5 py-3 ${!mainCategory.isActive ? 'bg-zinc-50' : ''}`}>
         <button
           onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
           className="flex items-center gap-2 text-left min-w-0"
         >
           <ChevronDown
@@ -44,21 +45,21 @@ export default function MainCategorySection({
         <div className="flex items-center gap-1 shrink-0 ml-4">
           <button
             onClick={() => onRenameMain(mainCategory)}
-            title="Rename"
+            aria-label={`Rename ${mainCategory.name}`}
             className="p-1.5 rounded text-zinc-400 hover:text-blue-600 hover:bg-zinc-100 transition-colors"
           >
-            <Pencil className="w-3.5 h-3.5" />
+            <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
           <button
             onClick={() => onToggleMain(mainCategory)}
-            title={mainCategory.isActive ? 'Deactivate' : 'Reactivate'}
+            aria-label={mainCategory.isActive ? `Deactivate ${mainCategory.name}` : `Reactivate ${mainCategory.name}`}
             className={`p-1.5 rounded transition-colors ${
               mainCategory.isActive
                 ? 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100'
                 : 'text-zinc-400 hover:text-green-600 hover:bg-zinc-100'
             }`}
           >
-            {mainCategory.isActive ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            {mainCategory.isActive ? <EyeOff className="w-3.5 h-3.5" aria-hidden="true" /> : <Eye className="w-3.5 h-3.5" aria-hidden="true" />}
           </button>
         </div>
       </div>
@@ -92,21 +93,21 @@ export default function MainCategorySection({
                 <div className="flex items-center gap-1 shrink-0 ml-4">
                   <button
                     onClick={() => onRenameSub(mainCategory, sc)}
-                    title="Rename"
+                    aria-label={`Rename ${sc.name}`}
                     className="p-1.5 rounded text-zinc-400 hover:text-blue-600 hover:bg-zinc-100 transition-colors"
                   >
-                    <Pencil className="w-3.5 h-3.5" />
+                    <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                   <button
                     onClick={() => onToggleSub(sc)}
-                    title={sc.isActive ? 'Deactivate' : 'Reactivate'}
+                    aria-label={sc.isActive ? `Deactivate ${sc.name}` : `Reactivate ${sc.name}`}
                     className={`p-1.5 rounded transition-colors ${
                       sc.isActive
                         ? 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100'
                         : 'text-zinc-400 hover:text-green-600 hover:bg-zinc-100'
                     }`}
                   >
-                    {sc.isActive ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    {sc.isActive ? <EyeOff className="w-3.5 h-3.5" aria-hidden="true" /> : <Eye className="w-3.5 h-3.5" aria-hidden="true" />}
                   </button>
                 </div>
               </div>

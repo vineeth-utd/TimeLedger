@@ -173,12 +173,13 @@ export default function WeeklyTargetsSection() {
         <p className="text-sm text-zinc-500">No active categories. Add main categories first.</p>
       ) : (
         <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 border-b border-zinc-100">
               <tr className="text-left text-xs text-zinc-500 uppercase tracking-wide">
-                <th className="px-5 py-3 font-medium">Category</th>
-                <th className="px-5 py-3 font-medium">Target (minutes)</th>
-                <th className="px-5 py-3 font-medium hidden sm:table-cell text-zinc-400">Formatted</th>
+                <th scope="col" className="px-5 py-3 font-medium">Category</th>
+                <th scope="col" className="px-5 py-3 font-medium">Target (minutes)</th>
+                <th scope="col" className="px-5 py-3 font-medium hidden sm:table-cell text-zinc-400">Formatted</th>
               </tr>
             </thead>
             <tbody>
@@ -214,6 +215,7 @@ export default function WeeklyTargetsSection() {
               })}
             </tbody>
           </table>
+          </div>
 
           <div className="px-5 py-3 border-t border-zinc-100 flex items-center gap-3">
             <button

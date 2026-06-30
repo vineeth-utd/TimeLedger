@@ -26,13 +26,13 @@ export default function ActivitiesTable({ activities, onEdit, onDelete }) {
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 border-b border-zinc-100">
             <tr className="text-left text-xs text-zinc-500 uppercase tracking-wide">
-              <th className="px-5 py-3 font-medium">Date</th>
-              <th className="px-5 py-3 font-medium">Title</th>
-              <th className="px-5 py-3 font-medium hidden sm:table-cell">Category</th>
-              <th className="px-5 py-3 font-medium hidden sm:table-cell">Time</th>
-              <th className="px-5 py-3 font-medium">Duration</th>
-              <th className="px-5 py-3 font-medium hidden lg:table-cell">Notes</th>
-              <th className="px-5 py-3 font-medium text-right">Actions</th>
+              <th scope="col" className="px-5 py-3 font-medium">Date</th>
+              <th scope="col" className="px-5 py-3 font-medium">Title</th>
+              <th scope="col" className="px-5 py-3 font-medium hidden sm:table-cell">Category</th>
+              <th scope="col" className="px-5 py-3 font-medium hidden sm:table-cell">Time</th>
+              <th scope="col" className="px-5 py-3 font-medium">Duration</th>
+              <th scope="col" className="px-5 py-3 font-medium hidden lg:table-cell">Notes</th>
+              <th scope="col" className="px-5 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -64,17 +64,17 @@ export default function ActivitiesTable({ activities, onEdit, onDelete }) {
                   <div className="inline-flex items-center gap-1">
                     <button
                       onClick={() => onEdit(activity)}
-                      title="Edit"
+                      aria-label="Edit activity"
                       className="p-1.5 rounded text-zinc-400 hover:text-blue-600 hover:bg-zinc-100 transition-colors"
                     >
-                      <Pencil className="w-3.5 h-3.5" />
+                      <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
                     <button
                       onClick={() => onDelete(activity)}
-                      title="Delete"
+                      aria-label="Delete activity"
                       className="p-1.5 rounded text-zinc-400 hover:text-red-500 hover:bg-zinc-100 transition-colors"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
                   </div>
                 </td>

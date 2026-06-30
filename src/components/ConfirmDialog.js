@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { X } from 'lucide-react'
 
 export default function ConfirmDialog({
@@ -12,6 +13,15 @@ export default function ConfirmDialog({
   confirmLabel = 'Delete',
   confirmVariant = 'danger',
 }) {
+  useEffect(() => {
+    if (!isOpen) return
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') onCancel()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onCancel])
+
   if (!isOpen) return null
 
   const confirmClass =
@@ -21,9 +31,14 @@ export default function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="confirm-dialog-title"
+        className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6"
+      >
         <div className="flex items-start justify-between mb-1">
-          <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+          <h2 id="confirm-dialog-title" className="text-base font-semibold text-gray-900">{title}</h2>
           <button
             onClick={onCancel}
             aria-label="Close"

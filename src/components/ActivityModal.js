@@ -67,6 +67,15 @@ export default function ActivityModal({ isOpen, activity, onClose, onSuccess }) 
     setMainCategoryName(found?.mainCategory?.name ?? '')
   }, [form.subCategoryId, subCategories])
 
+  useEffect(() => {
+    if (!isOpen) return
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
   function handleChange(e) {
     const { name, value } = e.target
     setForm((prev) => ({ ...prev, [name]: value }))
@@ -133,9 +142,14 @@ export default function ActivityModal({ isOpen, activity, onClose, onSuccess }) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="activity-modal-title"
+        className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col"
+      >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-base font-semibold text-gray-900">
+          <h2 id="activity-modal-title" className="text-base font-semibold text-gray-900">
             {activity ? 'Edit Activity' : 'Add Activity'}
           </h2>
           <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600">
@@ -169,6 +183,7 @@ export default function ActivityModal({ isOpen, activity, onClose, onSuccess }) 
               name="title"
               value={form.title}
               onChange={handleChange}
+              autoFocus
               placeholder="What did you work on?"
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -204,7 +219,7 @@ export default function ActivityModal({ isOpen, activity, onClose, onSuccess }) 
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
               <input

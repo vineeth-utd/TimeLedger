@@ -19,12 +19,12 @@ export default function TodayTimeline({ activities, onEdit, onDelete }) {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr className="text-left text-xs text-gray-400 uppercase tracking-wide">
-                <th className="px-6 py-3 font-medium">Time</th>
-                <th className="px-4 py-3 font-medium">Title</th>
-                <th className="px-4 py-3 font-medium hidden sm:table-cell">Sub Category</th>
-                <th className="px-4 py-3 font-medium hidden md:table-cell">Main Category</th>
-                <th className="px-4 py-3 font-medium text-right">Duration</th>
-                <th className="px-6 py-3 font-medium text-right">Actions</th>
+                <th scope="col" className="px-6 py-3 font-medium">Time</th>
+                <th scope="col" className="px-4 py-3 font-medium">Title</th>
+                <th scope="col" className="px-4 py-3 font-medium hidden sm:table-cell">Sub Category</th>
+                <th scope="col" className="px-4 py-3 font-medium hidden md:table-cell">Main Category</th>
+                <th scope="col" className="px-4 py-3 font-medium text-right">Duration</th>
+                <th scope="col" className="px-6 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>

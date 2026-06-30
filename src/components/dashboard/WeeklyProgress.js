@@ -70,7 +70,14 @@ export default function WeeklyProgress({ weeklyProgress }) {
                     </div>
 
                     {/* Progress bar */}
-                    <div className="w-full bg-gray-100 rounded-full h-1.5 mb-1">
+                    <div
+                      role="progressbar"
+                      aria-valuenow={barWidth}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`${row.mainCategoryName} progress`}
+                      className="w-full bg-gray-100 rounded-full h-1.5 mb-1"
+                    >
                       <div
                         className={`${accent.bar} h-1.5 rounded-full transition-all duration-500`}
                         style={{ width: `${barWidth}%` }}
