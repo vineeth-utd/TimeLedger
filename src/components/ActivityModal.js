@@ -2,6 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
+import {
+  combineLocalDateAndTimeToISOString,
+  formatTimeForInput,
+  getLocalToday,
+  toDateOnly,
+} from '@/lib/formatters'
 
 const EMPTY_FORM = {
   activityDate: '',
@@ -39,9 +45,9 @@ export default function ActivityModal({ isOpen, activity, onClose, onSuccess }) 
       .catch(() => {})
 
     if (activity) {
-      const date = new Date(activity.activityDate).toISOString().substring(0, 10)
-      const start = new Date(activity.startTime).toISOString().substring(11, 16)
-      const end = new Date(activity.endTime).toISOString().substring(11, 16)
+      const date = toDateOnly(activity.activityDate)
+      const start = formatTimeForInput(activity.startTime)
+      const end = formatTimeForInput(activity.endTime)
       setForm({
         activityDate: date,
         title: activity.title,
@@ -52,8 +58,7 @@ export default function ActivityModal({ isOpen, activity, onClose, onSuccess }) 
       })
       setMainCategoryName(activity.subCategory?.mainCategory?.name ?? '')
     } else {
-      const today = new Date().toISOString().substring(0, 10)
-      setForm({ ...EMPTY_FORM, activityDate: today })
+      setForm({ ...EMPTY_FORM, activityDate: getLocalToday() })
       setMainCategoryName('')
     }
 
@@ -110,8 +115,8 @@ export default function ActivityModal({ isOpen, activity, onClose, onSuccess }) 
       activityDate: form.activityDate,
       title: form.title.trim(),
       subCategoryId: Number(form.subCategoryId),
-      startTime: `${form.activityDate}T${form.startTime}:00.000Z`,
-      endTime: `${form.activityDate}T${form.endTime}:00.000Z`,
+      startTime: combineLocalDateAndTimeToISOString(form.activityDate, form.startTime),
+      endTime: combineLocalDateAndTimeToISOString(form.activityDate, form.endTime),
       notes: form.notes || null,
     }
 

@@ -1,15 +1,13 @@
 import EmptyState from '@/components/EmptyState'
-import { formatMinutes } from '@/lib/formatters'
+import { formatDateOnly, formatMinutes } from '@/lib/formatters'
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
-  const d = new Date(dateStr + 'T00:00:00.000Z')
-  return d.toLocaleDateString('en-US', {
+  return formatDateOnly(dateStr, {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    timeZone: 'UTC',
   })
 }
 

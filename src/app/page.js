@@ -12,16 +12,7 @@ import WeekNavigator from '@/components/dashboard/WeekNavigator'
 import TodaySummary from '@/components/dashboard/TodaySummary'
 import WeeklyProgress from '@/components/dashboard/WeeklyProgress'
 import TodayTimeline from '@/components/dashboard/TodayTimeline'
-import { getWeekStartMonday, formatMinutes } from '@/lib/formatters'
-
-// Returns YYYY-MM-DD in the browser's local timezone
-function getLocalToday() {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
+import { addDays, getLocalToday, getWeekStartMonday, formatMinutes } from '@/lib/formatters'
 
 export default function DashboardPage() {
   const [weekStartDate, setWeekStartDate] = useState(() => getWeekStartMonday())
@@ -54,19 +45,11 @@ export default function DashboardPage() {
   }
 
   function handlePrevWeek() {
-    setWeekStartDate((d) => {
-      const dt = new Date(d + 'T00:00:00.000Z')
-      dt.setUTCDate(dt.getUTCDate() - 7)
-      return dt.toISOString().substring(0, 10)
-    })
+    setWeekStartDate((d) => addDays(d, -7))
   }
 
   function handleNextWeek() {
-    setWeekStartDate((d) => {
-      const dt = new Date(d + 'T00:00:00.000Z')
-      dt.setUTCDate(dt.getUTCDate() + 7)
-      return dt.toISOString().substring(0, 10)
-    })
+    setWeekStartDate((d) => addDays(d, 7))
   }
 
   function handleToday() {

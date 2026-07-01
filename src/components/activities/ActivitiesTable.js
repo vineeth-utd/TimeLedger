@@ -1,13 +1,11 @@
 import { Pencil, Trash2 } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
-import { formatTime, formatMinutes } from '@/lib/formatters'
+import { formatDateOnly, formatTime, formatMinutes } from '@/lib/formatters'
 
 function formatDate(isoString) {
-  const d = new Date(isoString)
-  return d.toLocaleDateString('en-US', {
+  return formatDateOnly(isoString, {
     month: 'short',
     day: 'numeric',
-    timeZone: 'UTC',
   })
 }
 
