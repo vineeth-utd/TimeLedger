@@ -1,4 +1,7 @@
-import { Pencil, Trash2 } from 'lucide-react'
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
+import { Check, Copy, Pencil, Trash2 } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
 import { formatDateOnly, formatTime, formatMinutes } from '@/lib/formatters'
 
@@ -10,6 +13,29 @@ function formatDate(isoString) {
 }
 
 export default function ActivitiesTable({ activities, onEdit, onDelete }) {
+  const [copiedActivityId, setCopiedActivityId] = useState(null)
+  const copyTimeoutRef = useRef(null)
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+    }
+  }, [])
+
+  async function handleCopyTitle(e, activity) {
+    e.stopPropagation()
+    try {
+      await navigator.clipboard.writeText(activity.title)
+      setCopiedActivityId(activity.id)
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+      copyTimeoutRef.current = setTimeout(() => {
+        setCopiedActivityId((current) => current === activity.id ? null : current)
+      }, 1500)
+    } catch {
+      // Clipboard access can fail if the browser blocks it; no toast needed here.
+    }
+  }
+
   if (activities.length === 0) {
     return (
       <div className="bg-white border border-zinc-200 rounded-lg shadow-sm">
@@ -39,8 +65,25 @@ export default function ActivitiesTable({ activities, onEdit, onDelete }) {
                 <td className="px-5 py-3.5 text-zinc-500 whitespace-nowrap">
                   {formatDate(activity.activityDate)}
                 </td>
-                <td className="px-5 py-3.5 text-zinc-800 font-medium max-w-[180px] truncate">
-                  {activity.title}
+                <td
+                  className="px-5 py-3.5 text-zinc-800 font-medium max-w-[180px]"
+                  title={activity.title}
+                >
+                  <div className="flex items-center gap-1 min-w-0">
+                    <span className="truncate min-w-0">{activity.title}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => handleCopyTitle(e, activity)}
+                      aria-label={`Copy title: ${activity.title}`}
+                      title="Copy title"
+                      className="p-1 rounded text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors shrink-0"
+                    >
+                      {copiedActivityId === activity.id
+                        ? <Check className="w-3.5 h-3.5 text-green-600" aria-hidden="true" />
+                        : <Copy className="w-3.5 h-3.5" aria-hidden="true" />
+                      }
+                    </button>
+                  </div>
                 </td>
                 <td className="px-5 py-3.5 hidden sm:table-cell">
                   <span className="text-zinc-700">{activity.subCategory?.name}</span>
@@ -52,7 +95,10 @@ export default function ActivitiesTable({ activities, onEdit, onDelete }) {
                 <td className="px-5 py-3.5 text-zinc-700 whitespace-nowrap">
                   {formatMinutes(activity.durationMinutes)}
                 </td>
-                <td className="px-5 py-3.5 hidden lg:table-cell max-w-[200px] truncate">
+                <td
+                  className="px-5 py-3.5 hidden lg:table-cell max-w-[200px] truncate"
+                  title={activity.notes || undefined}
+                >
                   {activity.notes
                     ? <span className="text-zinc-600 italic">{activity.notes}</span>
                     : <span className="text-zinc-400">—</span>
