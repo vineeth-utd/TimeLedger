@@ -128,3 +128,145 @@ Protected Pages
 Protected APIs
 User-scoped Data
 ```
+
+---
+
+## Project Structure
+
+```
+time-ledger/
+├── prisma/
+│   ├── migrations/
+│   └── schema.prisma
+│
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── analytics/
+│   │   ├── activities/
+│   │   ├── auth/
+│   │   ├── categories/
+│   │   ├── login/
+│   │   └── page.js
+│   │
+│   ├── components/
+│   │   ├── activities/
+│   │   ├── categories/
+│   │   ├── dashboard/
+│   │   └── ...
+│   │
+│   ├── lib/
+│   │   ├── auth.js
+│   │   ├── prisma.js
+│   │   ├── formatters.js
+│   │   └── supabase/
+│   │
+│   └── proxy.js
+│
+├── docs/
+│   ├── database.md
+│   ├── api.md
+│   ├── ui.md
+│   ├── planning.md
+│   ├── auth_phase_plan.md
+│   └── ui_refinement_plan.md
+│
+└── README.md
+```
+
+The project follows a feature-oriented structure using the Next.js App Router. Shared components, utilities, authentication, and API routes are organized separately to keep the codebase modular and maintainable.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+Before running the application, ensure the following are installed:
+
+- Node.js 20+
+- npm
+- PostgreSQL (via Supabase)
+- Git
+
+---
+
+### Installation
+
+Clone the repository:
+
+```bash
+git clone <repository-url>
+cd time-ledger
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+---
+
+### Environment Variables
+
+Create a `.env` file in the project root.
+
+Required variables:
+
+```env
+DATABASE_URL=
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+```
+
+Where:
+
+- `DATABASE_URL` → Supabase Session Pooler connection string
+- `NEXT_PUBLIC_SUPABASE_URL` → Supabase Project URL
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` → Supabase Publishable (Anon) Key
+
+---
+
+### Database
+
+Generate the Prisma client:
+
+```bash
+npx prisma generate
+```
+
+Apply migrations:
+
+```bash
+npx prisma migrate dev
+```
+
+---
+
+### Running the Application
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Open:
+
+```
+http://localhost:3000
+```
+
+---
+
+### Production
+
+The production application is deployed on Vercel.
+
+Deployment requires:
+
+- Vercel
+- Supabase
+- Google OAuth credentials
+- Environment variables configured in Vercel
