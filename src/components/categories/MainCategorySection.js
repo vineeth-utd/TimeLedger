@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Eye, EyeOff, Pencil, Plus } from 'lucide-react'
+import { ChevronDown, Eye, EyeOff, Pencil, Plus, Trash2 } from 'lucide-react'
 
 export default function MainCategorySection({
   mainCategory,
@@ -9,9 +9,11 @@ export default function MainCategorySection({
   statusFilter,
   onRenameMain,
   onToggleMain,
+  onDeleteMain,
   onAddSub,
   onRenameSub,
   onToggleSub,
+  onDeleteSub,
 }) {
   const [open, setOpen] = useState(true)
 
@@ -61,6 +63,13 @@ export default function MainCategorySection({
           >
             {mainCategory.isActive ? <EyeOff className="w-3.5 h-3.5" aria-hidden="true" /> : <Eye className="w-3.5 h-3.5" aria-hidden="true" />}
           </button>
+          <button
+            onClick={() => onDeleteMain(mainCategory)}
+            aria-label={`Delete ${mainCategory.name}`}
+            className="p-1.5 rounded text-zinc-400 hover:text-red-500 hover:bg-zinc-100 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+          </button>
         </div>
       </div>
 
@@ -108,6 +117,13 @@ export default function MainCategorySection({
                     }`}
                   >
                     {sc.isActive ? <EyeOff className="w-3.5 h-3.5" aria-hidden="true" /> : <Eye className="w-3.5 h-3.5" aria-hidden="true" />}
+                  </button>
+                  <button
+                    onClick={() => onDeleteSub(sc)}
+                    aria-label={`Delete ${sc.name}`}
+                    className="p-1.5 rounded text-zinc-400 hover:text-red-500 hover:bg-zinc-100 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 </div>
               </div>

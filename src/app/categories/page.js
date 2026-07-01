@@ -5,6 +5,7 @@ import PageHeader from '@/components/PageHeader'
 import LoadingState from '@/components/LoadingState'
 import ErrorBanner from '@/components/ErrorBanner'
 import EmptyState from '@/components/EmptyState'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import CategoryModal from '@/components/categories/CategoryModal'
 import MainCategorySection from '@/components/categories/MainCategorySection'
 import WeeklyTargetsSection from '@/components/categories/WeeklyTargetsSection'
@@ -30,11 +31,14 @@ export default function CategoriesPage() {
 
   const [togglingId, setTogglingId] = useState(null)
   const [toggleError, setToggleError] = useState('')
+  const [deletingCategory, setDeletingCategory] = useState(null)
+  const [deleteError, setDeleteError] = useState('')
 
   useEffect(() => {
     setLoading(true)
     setError(null)
     setToggleError('')
+    setDeleteError('')
     Promise.all([
       fetch('/api/main-categories').then((r) => r.json()),
       fetch('/api/sub-categories').then((r) => r.json()),
@@ -80,6 +84,16 @@ export default function CategoriesPage() {
     setModalOpen(true)
   }
 
+  function openDeleteMain(mc) {
+    setDeletingCategory({ type: 'main', category: mc })
+    setDeleteError('')
+  }
+
+  function openDeleteSub(sc) {
+    setDeletingCategory({ type: 'sub', category: sc })
+    setDeleteError('')
+  }
+
   async function handleToggleMain(mc) {
     const key = `main-${mc.id}`
     if (togglingId === key) return
@@ -119,6 +133,30 @@ export default function CategoriesPage() {
       setToggleError('Network error. Please try again.')
     } finally {
       setTogglingId(null)
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!deletingCategory) return
+    setDeleteError('')
+
+    const isMain = deletingCategory.type === 'main'
+    const category = deletingCategory.category
+    const url = isMain
+      ? `/api/main-categories/${category.id}`
+      : `/api/sub-categories/${category.id}`
+
+    try {
+      const res = await fetch(url, { method: 'DELETE' })
+      const json = await res.json()
+      if (json.success) {
+        setDeletingCategory(null)
+        refresh()
+      } else {
+        setDeleteError(json.message ?? 'Delete failed')
+      }
+    } catch {
+      setDeleteError('Network error. Please try again.')
     }
   }
 
@@ -189,9 +227,11 @@ export default function CategoriesPage() {
               statusFilter={statusFilter}
               onRenameMain={openRenameMain}
               onToggleMain={handleToggleMain}
+              onDeleteMain={openDeleteMain}
               onAddSub={openAddSub}
               onRenameSub={openRenameSub}
               onToggleSub={handleToggleSub}
+              onDeleteSub={openDeleteSub}
             />
           ))}
         </div>
@@ -206,6 +246,19 @@ export default function CategoriesPage() {
         subCategory={modalSubCategory}
         onClose={() => setModalOpen(false)}
         onSuccess={() => { setModalOpen(false); refresh() }}
+      />
+
+      <ConfirmDialog
+        isOpen={!!deletingCategory}
+        title={deletingCategory?.type === 'main' ? 'Delete Main Category' : 'Delete Sub Category'}
+        message={
+          deletingCategory
+            ? `Delete "${deletingCategory.category.name}"? This cannot be undone.`
+            : ''
+        }
+        error={deleteError}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => { setDeletingCategory(null); setDeleteError('') }}
       />
     </div>
   )
