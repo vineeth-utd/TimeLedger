@@ -9,7 +9,7 @@ export default function TodayTimeline({ activities, onEdit, onDelete }) {
     <section className="bg-white border border-gray-200 rounded-xl shadow-sm">
       <div className="px-6 py-4 border-b border-gray-100">
         <h2 className="text-sm font-semibold text-gray-900">Today&apos;s Timeline</h2>
-        <p className="text-xs text-gray-500 mt-0.5">Activities logged today, in order</p>
+        <p className="text-xs text-gray-500 mt-0.5">Activities logged today, newest first</p>
       </div>
 
       {activities.length === 0 ? (
