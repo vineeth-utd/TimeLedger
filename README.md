@@ -270,3 +270,93 @@ Deployment requires:
 - Supabase
 - Google OAuth credentials
 - Environment variables configured in Vercel
+
+---
+
+## Project Documentation
+
+Detailed design and implementation documents are available in the `docs/` directory.
+
+| Document | Description |
+|----------|-------------|
+| `planning.md` | Original project planning and overall roadmap |
+| `database.md` | Database schema, relationships, and business rules |
+| `api.md` | REST API design and endpoint specifications |
+| `ui.md` | User interface design and application workflows |
+| `auth_phase_plan.md` | Authentication implementation plan and design decisions |
+| `ui_refinement_plan.md` | UI refinement history and implementation details |
+
+---
+
+## Current Status
+
+**Version:** 1.0
+
+TimeLedger is a fully functional, authenticated personal productivity application that is actively used for daily time tracking.
+
+### Core Features
+
+- Dashboard
+- Activities
+- Categories
+- Weekly Targets
+- Analytics
+
+### Authentication & Security
+
+- Google Authentication
+- User-scoped data ownership
+- Protected pages
+- Protected APIs
+
+### User Experience
+
+- Responsive UI
+- Accessibility improvements
+- Local timezone handling
+
+### Deployment
+
+- Vercel
+- Supabase
+
+---
+
+## Roadmap
+
+Future enhancements include:
+
+### Productivity
+
+- Recurring activities
+- Wake-up tracking
+- Reminders
+
+### Analytics
+
+- LLM-powered productivity insights
+- Advanced analytics
+- Better trend analysis
+
+### Integrations
+
+- Google Calendar integration
+
+### Data Management
+
+- CSV import
+- CSV export
+
+### Personalization
+
+- Dark mode
+
+### Authentication
+
+- Email and Password authentication
+
+For the complete roadmap, refer to **Future Extensions** in `docs/ui.md`.
+
+---
+
+TimeLedger continues to evolve through real-world daily usage, with future enhancements driven by practical experience rather than planned feature additions.
