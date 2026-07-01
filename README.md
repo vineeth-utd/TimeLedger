@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# TimeLedger
 
-## Getting Started
+A private, authenticated web application for tracking, organizing, and analyzing personal time.
 
-First, run the development server:
+TimeLedger was originally built to replace my Google Sheets based time tracking workflow and has evolved into a full-stack application that I use daily to log activities, manage categories, set weekly targets, and analyze how my time is spent.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+The application is designed with a strong focus on fast activity logging, meaningful analytics, and a clean user experience across desktop and mobile.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Live Demo
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Application:** https://timeledger-app.vercel.app
 
-## Learn More
+> Google Sign-In is required to access the application.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Key Features
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Activity Management
 
-## Deploy on Vercel
+- Log activities with start and end times
+- Edit and delete existing activities
+- Copy activity titles for quick reuse
+- Track time using local timezone with 12-hour AM/PM display
+- Organize activities using reusable categories
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Dashboard
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Weekly summary cards
+- Today's activity summary
+- Today's timeline
+- Weekly progress against targets
+- Quick activity logging
+
+### Categories
+
+- Main Category and Sub Category management
+- Activate / Deactivate categories
+- Safe deletion with dependency validation
+
+### Weekly Targets
+
+- Set weekly targets using hours and minutes
+- Track progress against goals
+- Compare planned vs actual effort
+
+### Analytics
+
+- Time distribution by category
+- Daily trends
+- Week-over-week comparison
+- Target vs Actual analysis
+- Activity insights
+- Most Active Category
+- Average Session Duration
+- Longest Session
+
+### Authentication
+
+- Google Sign-In with Supabase Auth
+- User-scoped data isolation
+- Protected pages and APIs
+- Secure server-side session validation
