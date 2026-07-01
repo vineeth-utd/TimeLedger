@@ -65,6 +65,7 @@ export default function Nav() {
   }, [pathname])
 
   const authActionLabel = isAuthenticated ? 'Sign Out' : 'Sign In'
+  const isLoginPage = pathname === '/login'
 
   return (
     <nav aria-label="Main navigation" className="bg-white border-b border-gray-200 sticky top-0 z-30">
@@ -77,7 +78,7 @@ export default function Nav() {
           <span className="font-semibold text-sm tracking-tight">TimeLedger</span>
         </Link>
 
-        {isAuthenticated ? (
+        {isLoginPage ? null : isAuthenticated ? (
           <>
             {/* Desktop nav */}
             <div className="hidden md:flex items-center gap-0.5">
@@ -130,7 +131,7 @@ export default function Nav() {
       </div>
 
       {/* Mobile menu */}
-      {isAuthenticated && open && (
+      {!isLoginPage && isAuthenticated && open && (
         <div id="mobile-nav" className="md:hidden border-t border-gray-100 bg-white px-4 py-2">
           {links.map(({ href, label }) => {
             const active = pathname === href
