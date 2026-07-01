@@ -20,6 +20,10 @@ All API routes should use Prisma for database access and follow the database des
 * Recalculate summaries whenever activities change.
 * Do not expose unnecessary database details.
 * Main Categories and Sub Categories are separate resources.
+* Every API route requires an authenticated user unless explicitly documented otherwise.
+* User ownership is enforced on every request.
+* Never trust user identifiers supplied by the client.
+* Always derive the authenticated user from the Supabase session.
 
 ---
 
@@ -53,6 +57,89 @@ All API routes should use Prisma for database access and follow the database des
 
 ---
 
+# Authentication
+
+## Authentication Provider
+
+TimeLedger uses **Supabase Auth** for authentication.
+
+Version 1 supports:
+
+* Google Sign-In
+
+Future versions may additionally support:
+
+* Email and Password authentication
+
+---
+
+## Authentication Flow
+
+1. User signs in using Google.
+2. Supabase authenticates the user.
+3. Supabase creates a session.
+4. The authenticated Supabase `user.id` becomes the ownership key for all application data.
+5. The session is validated on every protected request.
+
+The application never stores user passwords or manages authentication directly.
+
+---
+
+## Authorization
+
+All user-owned resources are scoped to the authenticated user.
+
+The authenticated Supabase `user.id` is automatically used by the backend to determine data ownership.
+
+The client never supplies or controls the `userId`.
+
+Every protected API route derives the authenticated user from the current Supabase session before performing any database operation.
+
+---
+
+## Protected Resources
+
+The following resources are user-owned:
+
+* Main Categories
+* Sub Categories
+* Activities
+* Daily Sub Category Summaries
+* Weekly Targets
+* Dashboard data
+* Analytics data
+
+Each user can access only their own data.
+
+---
+
+## Public Routes
+
+The following routes remain publicly accessible:
+
+* `/login`
+* `/auth/callback`
+
+All other application pages require authentication.
+
+---
+
+## Unauthorized Requests
+
+Protected API routes require a valid authenticated Supabase session.
+
+If authentication fails, the API returns:
+
+* **401 Unauthorized**
+
+If a requested resource belongs to another user, the API behaves as though the resource does not exist and returns:
+
+* **404 Not Found**
+
+This prevents exposing the existence of another user's data.
+
+---
+
 # Route Structure
 
 ```
@@ -74,9 +161,6 @@ src/
         │   └── [id]/
         │       └── route.js
         │
-        ├── daily-main-category-summaries/
-        │   └── route.js
-        │
         ├── daily-sub-category-summaries/
         │   └── route.js
         │
@@ -86,9 +170,7 @@ src/
         │       └── route.js
         │
         └── dashboard/
-            ├── weekly/
-            │   └── route.js
-            └── monthly/
+            └── weekly/
                 └── route.js
 ```
 
@@ -108,6 +190,8 @@ Behavior:
 * isActive=false → inactive only
 * omitted → all
 
+Returns only the authenticated user's records.
+
 Default ordering:
 
 * name ascending
@@ -124,6 +208,8 @@ Validation:
 * name unique
 * name not empty
 
+The authenticated user's userId is assigned automatically.
+
 ---
 
 ## PATCH /api/main-categories/:id
@@ -132,6 +218,8 @@ Supported updates:
 
 * name
 * isActive
+
+Ownership is verified before updating.
 
 ---
 
@@ -149,6 +237,8 @@ Behavior:
 mainCategoryId filters sub categories belonging to a particular main category.
 
 isActive behaves like Main Categories.
+
+Returns only the authenticated user's records.
 
 Default ordering:
 
@@ -169,6 +259,8 @@ Validation:
 * name required
 * name unique within the selected Main Category
 
+The authenticated user's userId is assigned automatically.
+
 ---
 
 ## PATCH /api/sub-categories/:id
@@ -178,6 +270,8 @@ Supported updates:
 * name
 * mainCategoryId
 * isActive
+
+Ownership is verified before updating.
 
 Future support:
 
@@ -195,6 +289,10 @@ Query Parameters
 * endDate
 * mainCategoryId (optional)
 * subCategoryId (optional)
+
+Behavior:
+
+Returns only the authenticated user's records.
 
 Sorting
 
@@ -226,6 +324,8 @@ Server Responsibilities
 * Save activity
 * Recalculate daily summaries
 
+The authenticated user's userId is assigned automatically.
+
 ---
 
 ## PATCH /api/activities/:id
@@ -236,6 +336,7 @@ Server Responsibilities
 * Recalculate durationMinutes
 * Update activity
 * Recalculate daily summaries
+* Ownership is verified before updating.
 
 ---
 
@@ -245,6 +346,7 @@ Server Responsibilities
 
 * Delete activity
 * Recalculate daily summaries
+* Ownership is verified before deleting.
 
 ---
 
@@ -255,6 +357,10 @@ Server Responsibilities
 Query Parameters
 
 * weekStartDate
+
+Behavior:
+
+Returns only the authenticated user's records.
 
 ---
 
@@ -268,11 +374,15 @@ Required fields
 
 Targets are maintained only for Main Categories.
 
+The authenticated user's userId is assigned automatically.
+
 ---
 
 ## PATCH /api/weekly-targets/:id
 
 Update target.
+
+Ownership is verified before updating.
 
 ---
 
@@ -280,15 +390,19 @@ Update target.
 
 Delete target.
 
+Ownership is verified before deleting.
+
 ---
 
 # Dashboard API
 
-## GET /api/dashboard
+## GET /api/dashboard/weekly
 
 ### Purpose
 
-Return all data required to render the Dashboard.
+Return all data required to render the Dashboard. 
+
+Returns only the authenticated user's records.
 
 The frontend should make a single request to this endpoint.
 
@@ -308,9 +422,8 @@ The backend is responsible for aggregating data from:
 
 Supported values:
 
+* weekStartDate
 * today
-* week
-* month
 
 Default:
 
@@ -420,6 +533,14 @@ It exists specifically to simplify the Dashboard UI by returning a fully prepare
 * mainCategoryId must exist
 * targetMinutes must be zero or greater
 
+## Authentication
+
+All protected routes require a valid authenticated Supabase session.
+
+Unauthenticated requests return:
+
+401 Unauthorized
+
 ---
 
 # Business Rules
@@ -449,6 +570,10 @@ Main Categories
 
 * are derived automatically
 
+All CRUD operations are performed only within the authenticated user's data.
+
+Cross-user access is never permitted.
+
 ---
 
 # HTTP Status Codes
@@ -458,6 +583,7 @@ Main Categories
 | 200    | Success               |
 | 201    | Resource created      |
 | 400    | Validation error      |
+| 401    | Unauthorized          |
 | 404    | Resource not found    |
 | 409    | Duplicate resource    |
 | 500    | Internal server error |
@@ -475,4 +601,15 @@ Implement:
 * Weekly Target API
 * Dashboard API
 
-Authentication, authorization, pagination, caching, background jobs, and advanced analytics are outside the MVP scope.
+Implemented:
+
+* Google Authentication
+* User-scoped authorization
+* Protected API routes
+
+Not included:
+
+* Email/password authentication
+* Pagination
+* Background jobs
+* Advanced caching
