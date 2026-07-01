@@ -20,6 +20,9 @@ The design should remain simple, normalized, and easy to maintain.
 # Design Principles
 
 * `activities` is the source of truth.
+* Every user-owned record belongs to exactly one authenticated user.
+* The authenticated Supabase Auth `user.id` is used as the ownership key.
+* All application data is scoped by user ownership.
 * Every activity belongs to exactly one sub category.
 * Every sub category belongs to exactly one main category.
 * Main categories are derived through sub categories and should never be manually selected while creating an activity.
@@ -51,6 +54,7 @@ Examples:
 * is_active
 * created_at
 * updated_at
+* user_id
 
 ### Constraints
 
@@ -64,6 +68,8 @@ One main category has many sub categories.
 One main category has many weekly targets.
 
 One main category has many daily main category summaries.
+
+Many main categories belong to one authenticated user.
 
 ---
 
@@ -96,6 +102,7 @@ Admin / Life Maintenance
 * is_active
 * created_at
 * updated_at
+* user_id
 
 ### Constraints
 
@@ -109,6 +116,8 @@ One sub category belongs to one main category.
 One sub category has many activities.
 
 One sub category has many daily sub category summaries.
+
+Many sub categories belong to one authenticated user.
 
 ---
 
@@ -132,6 +141,7 @@ This is the source of truth for all analytics.
 * notes
 * created_at
 * updated_at
+* user_id
 
 ### Notes
 
@@ -142,6 +152,8 @@ This is the source of truth for all analytics.
 ### Relationships
 
 Many activities belong to one sub category.
+
+Many activities belong to one authenticated user.
 
 ---
 
@@ -160,8 +172,13 @@ Stores precomputed daily totals for every sub category.
 * total_activities
 * created_at
 * updated_at
+* user_id
 
-## 6. weekly_targets
+### Relationships
+
+Many daily summaries belong to one authenticated user.
+
+## 5. weekly_targets
 
 ### Purpose
 
@@ -177,6 +194,11 @@ Targets exist only for main categories.
 * target_minutes
 * created_at
 * updated_at
+* user_id
+
+### Relationships
+
+Many weekly targets belong to one authenticated user.
 
 ---
 
@@ -217,7 +239,8 @@ Inactive categories
 * should not appear in activity forms
 * should remain visible in category management
 * can be reactivated
-* should never be deleted in the MVP
+* can be deleted only when no dependent data exists
+* otherwise deletion is blocked with a clear validation message
 
 ---
 
@@ -237,7 +260,7 @@ Current Week
 
 Today's Timeline
 
-* chronological activity list
+* reverse chronological activity list (most recent first)
 
 ---
 
@@ -245,7 +268,26 @@ Today's Timeline
 
 * Store timestamps using timezone-aware types.
 * Store durations as integer minutes.
-* Use a consistent definition of week start.
+* Store weekly targets internally as integer minutes.
+* All user-facing dates are interpreted using the user's local timezone.
+* Week calculations are based on the user's local timezone.
+* Times are displayed in 12-hour AM/PM format throughout the UI.
+
+---
+
+# Authentication & Data Ownership
+
+TimeLedger is a private application.
+
+Authentication is provided by Supabase Auth using Google Sign-In.
+
+Every user-owned record stores the authenticated Supabase `user.id` as `user_id`.
+
+All database reads and writes are scoped to the authenticated user.
+
+No application-managed User table exists.
+
+Supabase Auth remains the single source of truth for user identity.
 
 ---
 
@@ -259,4 +301,11 @@ The MVP supports:
 * Daily summaries
 * Weekly targets
 
-No additional tables should be introduced unless clearly required.
+The current implementation also includes:
+
+* Google Authentication
+* User-scoped data ownership
+* Protected API routes
+* Protected application pages
+
+No additional database tables are required beyond the current schema.

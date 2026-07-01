@@ -26,8 +26,10 @@ The UI should remain clean, responsive, and easy to use on desktop and mobile.
 6. Keep primary actions easy to find.
 7. Show validation errors clearly and near the relevant fields.
 8. Avoid unnecessary animations and visual clutter.
-9. Do not add authentication in the MVP.
-10. Do not add settings, themes, or other nonessential features.
+9. Authentication should remain simple and unobtrusive.
+10. Keep the interface focused on fast daily usage.
+11. Avoid unnecessary settings and configuration.
+12. Prioritize real-world usability over visual complexity.
 
 ---
 
@@ -61,34 +63,90 @@ The application should use a consistent shell across pages.
 3. Convert wide tables into stacked rows or compact cards where needed.
 4. Keep form fields easy to tap.
 
+### Authentication
+
+The application requires authentication.
+
+Unauthenticated users are redirected to the Login page.
+
+Authenticated users can access all application pages.
+
+Google Sign-In is currently supported.
+
+The navigation automatically adapts to the authentication state.
+
+* Logged in → Dashboard, Activities, Categories, Analytics, Sign Out
+* Logged out → TimeLedger logo and Sign In
+
 ---
 
 ## Navigation Flow
 
-Default page:
+### Default Landing Page
 
+- Dashboard (`/`)
+
+### Authentication Flow
+
+Unauthenticated users:
+
+```
+Application
+        ↓
+     /login
+        ↓
+Continue with Google
+        ↓
+Google Authentication
+        ↓
 Dashboard
+```
 
-Navigation:
+Authenticated users can navigate between:
 
+```
 Dashboard
-↓
-
+      ↓
 Activities
-↓
-
+      ↓
 Categories
-↓
-
+      ↓
 Analytics
+```
 
-The application should preserve filters when navigating back where practical.
+The application should preserve filters where practical when navigating between pages.
+
+Navigation automatically adapts to the authentication state.
+
+Authenticated users:
+
+- Dashboard
+- Activities
+- Categories
+- Analytics
+- Sign Out
+
+Unauthenticated users:
+
+- TimeLedger logo
+- Sign In
 
 ---
 
 ## Shared UI Components
 
 The following components should be reused across pages.
+
+### Login Page
+
+Displays:
+
+* TimeLedger branding
+* Google Sign-In button
+* Brief application description
+* Authentication benefits
+
+The login page should remain minimal and distraction free.
 
 ### PageHeader
 
@@ -238,10 +296,15 @@ Recommended columns:
 7. Notes
 8. Actions
 
+Activity titles and truncated notes display native tooltips on hover.
+
+A copy action is available for activity titles to support quick reuse.
+
 #### Row Actions
 
 1. Edit
 2. Delete
+3. Copy Activity Title
 
 ### Activity Modal
 
@@ -259,6 +322,10 @@ The Add Activity and Edit Activity modal should be reusable from both the Dashbo
 Selecting a Sub Category should automatically populate the corresponding Main Category.
 
 The Main Category is read-only and cannot be changed directly.
+
+Default Activity Date should use the user's local date.
+
+Start and End times are displayed in 12-hour AM/PM format.
 
 #### Behavior
 1. Add opens an empty form
@@ -373,8 +440,9 @@ Example layout:
 For each Main Category:
 
 1. Rename
-2. Deactivate if active
-3. Reactivate if inactive
+2. Deactivate
+3. Reactivate
+4. Delete (only when no dependent data exists)
 
 #### Sub Category Actions
 
@@ -466,7 +534,6 @@ If there are no Main Categories for the selected filter:
 4. Both active and inactive categories should remain visible in Category Management based on the selected filter.
 5. Both Main Categories and Sub Categories can be reactivated from the Categories page.
 
-
 ---
 
 ## Page 3: Dashboard
@@ -489,7 +556,9 @@ This page should answer:
 3. Show weekly targets
 4. Show remaining time per category
 5. Show progress percentage
-6. Support date range filters
+6. Support week navigation.
+7. Weekly metrics and weekly progress reflect the selected week.
+8. Today's Summary and Today's Timeline always display today's data regardless of the selected week.
 
 ### Data Source
 
@@ -527,7 +596,9 @@ Show each category with:
 
 #### Today's Timeline
 
-Show all of today's activities in chronological order.
+Show today's activities in reverse chronological order (most recent first).
+
+This supports quickly editing the most recently logged activity.
 
 Each row should show:
 - Time
@@ -594,24 +665,22 @@ It helps answer questions such as:
 
 ### Main Features
 
-1. Weekly Main Category comparison
-2. Weekly Sub Category comparison
-3. Monthly Main Category comparison
-4. Monthly Sub Category comparison
-5. Time spent trend over time
-6. Weekly target progress history
-7. Distribution of time across Main Categories and Sub Categories
+1. Summary metrics
+2. Most Active Category
+3. Average Session
+4. Longest Session
+5. Week-over-week comparison
+6. Target vs Actual comparison
+7. Main Category comparison
+8. Daily trend
+9. Top Sub Categories
 
 ---
 
 ### Data Source
 
-The Analytics page should use:
-
-1. Daily Main Category Summaries
-2. Daily Sub Category Summaries
-3. Weekly Targets
-4. Activities where additional detail is required
+Analytics is primarily computed from Activities with client-side aggregation.
+Weekly Targets are additionally used for Target vs Actual analysis.
 
 ---
 
@@ -732,7 +801,8 @@ If there is insufficient data:
 
 ### Delete Behavior
 1. Always ask for confirmation before deleting an activity.
-2. Deactivate categories with a clear confirmation step if needed.
+2. Deactivate categories when they should no longer appear for new activities.
+3. Delete categories only when they contain no dependent data. Otherwise display a clear validation message describing the blocking dependencies.
 
 ---
 
@@ -743,6 +813,9 @@ If there is insufficient data:
 3. Modal dialogs should be closable with Escape.
 4. Focus should move into the modal when it opens.
 5. Tables and charts should remain readable on smaller screens.
+6. Authentication redirects should prevent unauthorized page access.
+7. Navigation adapts to authentication state.
+8. Icon-only buttons include accessible labels.
 
 ---
 
@@ -768,28 +841,63 @@ The MVP UI should include:
 3. Dashboard page
 4. Analytics page
 
-The UI should not include:
-1. Authentication
-2. User profiles
-3. Settings pages
-4. Themes
-5. Advanced permissions
-6. Background automation
-7. Overly complex animations
+Implemented:
+
+* Google Authentication
+* Protected Pages
+* Responsive Design
+* Accessibility Improvements
+
+Not yet implemented:
+
+* Email / Password login
+* User Profile
+* Settings
+* Themes
+* Background Automation
 
 ---
 
 ## Future Extensions
 
-Possible future additions:
+### Productivity
+
 1. Keyboard shortcuts for faster logging
 2. Inline quick add row
-3. Export to CSV
-4. Dark mode
-5. More advanced analytics filters
-6. Category reactivation history
-7. Bulk activity editing
-8. Import existing activity data from CSV or Google Sheets
-9. Move Sub Category to another Main Category.
-10. Merge Main Categories.
-11. Merge Sub Categories.
+3. Bulk activity editing
+4. Recurring activities
+5. Wake-up tracking
+6. Reminders
+
+### Categories & Activities
+
+7. Move Sub Category to another Main Category
+8. Merge Main Categories
+9. Merge Sub Categories
+
+### Analytics
+
+10. More advanced analytics filters
+11. LLM insights
+
+### Data Management
+
+12. Export to CSV
+13. Import existing activity data from CSV or Google Sheets
+
+### Integrations
+
+14. Google Calendar integration
+
+### Personalization
+
+15. Dark mode
+
+### Authentication
+
+16. Email / Password authentication
+17. User profile and preferences
+
+### Workflow Improvements
+
+18. Duplicate / Copy previous activity

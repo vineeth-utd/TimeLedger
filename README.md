@@ -1,36 +1,362 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# TimeLedger
+
+A private, authenticated web application for tracking, organizing, and analyzing personal time.
+
+TimeLedger was originally built to replace my Google Sheets based time tracking workflow and has evolved into a full-stack application that I use daily to log activities, manage categories, set weekly targets, and analyze how my time is spent.
+
+The application is designed with a strong focus on fast activity logging, meaningful analytics, and a clean user experience across desktop and mobile.
+
+---
+
+## Live Demo
+
+**Application:** https://timeledger-app.vercel.app
+
+> Google Sign-In is required to access the application.
+
+---
+
+## Key Features
+
+### Activity Management
+
+- Log activities with start and end times
+- Edit and delete existing activities
+- Copy activity titles for quick reuse
+- Track time using local timezone with 12-hour AM/PM display
+- Organize activities using reusable categories
+
+### Dashboard
+
+- Weekly summary cards
+- Today's activity summary
+- Today's timeline
+- Weekly progress against targets
+- Quick activity logging
+
+### Categories
+
+- Main Category and Sub Category management
+- Activate / Deactivate categories
+- Safe deletion with dependency validation
+
+### Weekly Targets
+
+- Set weekly targets using hours and minutes
+- Track progress against goals
+- Compare planned vs actual effort
+
+### Analytics
+
+- Time distribution by category
+- Daily trends
+- Week-over-week comparison
+- Target vs Actual analysis
+- Activity insights
+- Most Active Category
+- Average Session Duration
+- Longest Session
+
+### Authentication
+
+- Google Sign-In with Supabase Auth
+- User-scoped data isolation
+- Protected pages and APIs
+- Secure server-side session validation
+
+---
+
+## Technology Stack
+
+### Frontend
+
+- Next.js 16 (App Router)
+- React
+- Tailwind CSS
+- Recharts
+- Lucide React
+
+### Backend
+
+- Next.js Route Handlers
+- Prisma ORM
+
+### Database
+
+- PostgreSQL (Supabase)
+
+### Authentication
+
+- Supabase Auth
+- Google OAuth
+
+### Deployment
+
+- Vercel
+- Supabase
+
+---
+
+## Architecture
+
+```
+Browser
+    │
+    ▼
+Next.js (App Router)
+    │
+    ├── React UI
+    ├── API Routes
+    │
+    ▼
+Prisma ORM
+    │
+    ▼
+Supabase PostgreSQL
+```
+
+```
+Authentication
+──────────────
+Google OAuth
+      │
+      ▼
+Supabase Auth
+      │
+      ▼
+Protected Pages
+Protected APIs
+User-scoped Data
+```
+
+---
+
+## Project Structure
+
+```
+time-ledger/
+├── prisma/
+│   ├── migrations/
+│   └── schema.prisma
+│
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── analytics/
+│   │   ├── activities/
+│   │   ├── auth/
+│   │   ├── categories/
+│   │   ├── login/
+│   │   └── page.js
+│   │
+│   ├── components/
+│   │   ├── activities/
+│   │   ├── categories/
+│   │   ├── dashboard/
+│   │   └── ...
+│   │
+│   ├── lib/
+│   │   ├── auth.js
+│   │   ├── prisma.js
+│   │   ├── formatters.js
+│   │   └── supabase/
+│   │
+│   └── proxy.js
+│
+├── docs/
+│   ├── database.md
+│   ├── api.md
+│   ├── ui.md
+│   ├── planning.md
+│   ├── auth_phase_plan.md
+│   └── ui_refinement_plan.md
+│
+└── README.md
+```
+
+The project follows a feature-oriented structure using the Next.js App Router. Shared components, utilities, authentication, and API routes are organized separately to keep the codebase modular and maintainable.
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+Before running the application, ensure the following are installed:
+
+- Node.js 20+
+- npm
+- PostgreSQL (via Supabase)
+- Git
+
+---
+
+### Installation
+
+Clone the repository:
+
+```bash
+git clone <repository-url>
+cd time-ledger
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+---
+
+### Environment Variables
+
+Create a `.env` file in the project root.
+
+Required variables:
+
+```env
+DATABASE_URL=
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+```
+
+Where:
+
+- `DATABASE_URL` → Supabase Session Pooler connection string
+- `NEXT_PUBLIC_SUPABASE_URL` → Supabase Project URL
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` → Supabase Publishable (Anon) Key
+
+---
+
+### Database
+
+Generate the Prisma client:
+
+```bash
+npx prisma generate
+```
+
+Apply migrations:
+
+```bash
+npx prisma migrate dev
+```
+
+---
+
+### Running the Application
+
+Start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open:
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+```
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+### Production
 
-To learn more about Next.js, take a look at the following resources:
+The production application is deployed on Vercel.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Deployment requires:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Vercel
+- Supabase
+- Google OAuth credentials
+- Environment variables configured in Vercel
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project Documentation
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Detailed design and implementation documents are available in the `docs/` directory.
+
+| Document | Description |
+|----------|-------------|
+| `planning.md` | Original project planning and overall roadmap |
+| `database.md` | Database schema, relationships, and business rules |
+| `api.md` | REST API design and endpoint specifications |
+| `ui.md` | User interface design and application workflows |
+| `auth_phase_plan.md` | Authentication implementation plan and design decisions |
+| `ui_refinement_plan.md` | UI refinement history and implementation details |
+
+---
+
+## Current Status
+
+**Version:** 1.0
+
+TimeLedger is a fully functional, authenticated personal productivity application that is actively used for daily time tracking.
+
+### Core Features
+
+- Dashboard
+- Activities
+- Categories
+- Weekly Targets
+- Analytics
+
+### Authentication & Security
+
+- Google Authentication
+- User-scoped data ownership
+- Protected pages
+- Protected APIs
+
+### User Experience
+
+- Responsive UI
+- Accessibility improvements
+- Local timezone handling
+
+### Deployment
+
+- Vercel
+- Supabase
+
+---
+
+## Roadmap
+
+Future enhancements include:
+
+### Productivity
+
+- Recurring activities
+- Wake-up tracking
+- Reminders
+
+### Analytics
+
+- LLM-powered productivity insights
+- Advanced analytics
+- Better trend analysis
+
+### Integrations
+
+- Google Calendar integration
+
+### Data Management
+
+- CSV import
+- CSV export
+
+### Personalization
+
+- Dark mode
+
+### Authentication
+
+- Email and Password authentication
+
+For the complete roadmap, refer to **Future Extensions** in `docs/ui.md`.
+
+---
+
+TimeLedger continues to evolve through real-world daily usage, with future enhancements driven by practical experience rather than planned feature additions.

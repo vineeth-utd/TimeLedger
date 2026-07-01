@@ -296,3 +296,42 @@ The MVP is complete when:
 * Test each completed phase before proceeding.
 * Prefer reusable components and utilities where appropriate.
 * Keep backend, frontend, and documentation aligned whenever changes are introduced.
+
+---
+
+# Project Status
+
+## Version 1.0 Completed
+
+The implementation has evolved beyond the original planning document.
+
+The core MVP has been successfully completed with several enhancements and architectural improvements discovered during development and real-world usage.
+
+Implemented:
+
+- Dashboard
+- Activities
+- Categories
+- Weekly Targets
+- Analytics
+- Responsive UI
+- Accessibility improvements
+- Authentication (Google Sign-In)
+- User-scoped data isolation
+- Protected API routes
+- Protected pages
+- Logout
+- Production deployment (Vercel + Supabase)
+
+Additional implementation details and refinements are documented in:
+
+- `ui_refinement_plan.md`
+- `auth_phase_plan.md`
+
+The current application behavior is documented in:
+
+- `database.md`
+- `api.md`
+- `ui.md`
+
+Future enhancements will be tracked separately in `BACKLOG.md`.
