@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/PageHeader'
 import LoadingState from '@/components/LoadingState'
 import ErrorBanner from '@/components/ErrorBanner'
@@ -62,10 +62,10 @@ export default function ActivitiesPage() {
     setRefreshKey((k) => k + 1)
   }
 
-  function handleDateRangeChange({ startDate: s, endDate: e }) {
+  const handleDateRangeChange = useCallback(({ startDate: s, endDate: e }) => {
     setStartDate(s)
     setEndDate(e)
-  }
+  }, [])
 
   function handleMainCategoryChange(e) {
     setMainCategoryId(e.target.value)

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getWeekStartMonday } from '@/lib/formatters'
+import { addDays, getLocalMonthRange, getLocalToday, getWeekStartMonday } from '@/lib/formatters'
 
 const PRESETS = [
   { key: 'today', label: 'Today' },
@@ -13,43 +13,30 @@ const PRESETS = [
 ]
 
 function computeDates(preset) {
-  const todayStr = new Date().toISOString().substring(0, 10)
-  const today = new Date(todayStr + 'T00:00:00.000Z')
+  const today = getLocalToday()
 
-  if (preset === 'today') return { startDate: todayStr, endDate: todayStr }
+  if (preset === 'today') return { startDate: today, endDate: today }
 
   if (preset === 'yesterday') {
-    const y = new Date(today)
-    y.setUTCDate(y.getUTCDate() - 1)
-    const s = y.toISOString().substring(0, 10)
-    return { startDate: s, endDate: s }
+    const yesterday = addDays(today, -1)
+    return { startDate: yesterday, endDate: yesterday }
   }
 
   if (preset === 'week') {
     const start = getWeekStartMonday(today)
-    const end = new Date(start + 'T00:00:00.000Z')
-    end.setUTCDate(end.getUTCDate() + 6)
-    return { startDate: start, endDate: end.toISOString().substring(0, 10) }
+    return { startDate: start, endDate: addDays(start, 6) }
   }
 
   if (preset === 'prev-week') {
-    const thisMonday = new Date(getWeekStartMonday(today) + 'T00:00:00.000Z')
-    const prevMonday = new Date(thisMonday)
-    prevMonday.setUTCDate(prevMonday.getUTCDate() - 7)
-    const prevSunday = new Date(prevMonday)
-    prevSunday.setUTCDate(prevSunday.getUTCDate() + 6)
+    const prevMonday = addDays(getWeekStartMonday(today), -7)
     return {
-      startDate: prevMonday.toISOString().substring(0, 10),
-      endDate: prevSunday.toISOString().substring(0, 10),
+      startDate: prevMonday,
+      endDate: addDays(prevMonday, 6),
     }
   }
 
   if (preset === 'month') {
-    const y = today.getUTCFullYear()
-    const m = today.getUTCMonth()
-    const first = new Date(Date.UTC(y, m, 1)).toISOString().substring(0, 10)
-    const last = new Date(Date.UTC(y, m + 1, 0)).toISOString().substring(0, 10)
-    return { startDate: first, endDate: last }
+    return getLocalMonthRange(today)
   }
 
   return null
@@ -60,7 +47,6 @@ export default function DateRangeFilter({ onChange }) {
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (preset === 'custom') {
       if (customStart && customEnd && customEnd >= customStart) {
@@ -70,7 +56,7 @@ export default function DateRangeFilter({ onChange }) {
     }
     const dates = computeDates(preset)
     if (dates) onChange(dates)
-  }, [preset, customStart, customEnd])
+  }, [preset, customStart, customEnd, onChange])
 
   return (
     <div className="bg-white border border-zinc-200 rounded-lg px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">

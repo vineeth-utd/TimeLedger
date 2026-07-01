@@ -5,7 +5,7 @@ import { Check } from 'lucide-react'
 import WeekNavigator from '@/components/dashboard/WeekNavigator'
 import LoadingState from '@/components/LoadingState'
 import ErrorBanner from '@/components/ErrorBanner'
-import { getWeekStartMonday, formatMinutes } from '@/lib/formatters'
+import { addDays, getWeekStartMonday, formatMinutes } from '@/lib/formatters'
 
 function minutesToHM(totalMinutes) {
   return { h: String(Math.floor(totalMinutes / 60)), m: String(totalMinutes % 60) }
@@ -58,19 +58,11 @@ export default function WeeklyTargetsSection() {
   }, [weekStartDate])
 
   function handlePrevWeek() {
-    setWeekStartDate((d) => {
-      const dt = new Date(d + 'T00:00:00.000Z')
-      dt.setUTCDate(dt.getUTCDate() - 7)
-      return dt.toISOString().substring(0, 10)
-    })
+    setWeekStartDate((d) => addDays(d, -7))
   }
 
   function handleNextWeek() {
-    setWeekStartDate((d) => {
-      const dt = new Date(d + 'T00:00:00.000Z')
-      dt.setUTCDate(dt.getUTCDate() + 7)
-      return dt.toISOString().substring(0, 10)
-    })
+    setWeekStartDate((d) => addDays(d, 7))
   }
 
   function handleToday() {

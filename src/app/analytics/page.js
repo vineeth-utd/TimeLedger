@@ -19,7 +19,13 @@ import SummaryCard from '@/components/SummaryCard'
 import LoadingState from '@/components/LoadingState'
 import ErrorBanner from '@/components/ErrorBanner'
 import EmptyState from '@/components/EmptyState'
-import { formatMinutes } from '@/lib/formatters'
+import {
+  addDays,
+  differenceInCalendarDays,
+  formatDateOnly,
+  formatMinutes,
+  toDateOnly,
+} from '@/lib/formatters'
 
 function aggregateByMainCategory(activities) {
   const map = {}
@@ -47,7 +53,7 @@ function aggregateBySubCategory(activities) {
 function aggregateByDate(activities) {
   const map = {}
   for (const a of activities) {
-    const date = String(a.activityDate).substring(0, 10)
+    const date = toDateOnly(a.activityDate)
     if (!map[date]) map[date] = 0
     map[date] += a.durationMinutes
   }
@@ -61,28 +67,23 @@ function computeSummary(activities) {
   let totalMinutes = 0
   for (const a of activities) {
     totalMinutes += a.durationMinutes
-    dates.add(String(a.activityDate).substring(0, 10))
+    dates.add(toDateOnly(a.activityDate))
   }
   return { totalMinutes, totalActivities: activities.length, activeDays: dates.size }
 }
 
 function formatAxisDate(dateStr) {
-  return new Date(dateStr + 'T00:00:00.000Z').toLocaleDateString('en-US', {
+  return formatDateOnly(dateStr, {
     month: 'short',
     day: 'numeric',
-    timeZone: 'UTC',
   })
 }
 
 function getPrevWeekDates(startDate) {
-  const start = new Date(startDate + 'T00:00:00.000Z')
-  const prevEnd = new Date(start)
-  prevEnd.setUTCDate(prevEnd.getUTCDate() - 1)
-  const prevStart = new Date(prevEnd)
-  prevStart.setUTCDate(prevStart.getUTCDate() - 6)
+  const prevEnd = addDays(startDate, -1)
   return {
-    startDate: prevStart.toISOString().slice(0, 10),
-    endDate: prevEnd.toISOString().slice(0, 10),
+    startDate: addDays(prevEnd, -6),
+    endDate: prevEnd,
   }
 }
 
@@ -145,9 +146,7 @@ export default function AnalyticsPage() {
     setLoading(true)
     setError(null)
 
-    const rl = Math.round(
-      (new Date(dateRange.endDate + 'T00:00:00.000Z') - new Date(dateRange.startDate + 'T00:00:00.000Z')) / 86400000
-    )
+    const rl = differenceInCalendarDays(dateRange.endDate, dateRange.startDate)
     const weekRange = rl === 6
 
     const primaryFetch = fetch(
@@ -190,10 +189,7 @@ export default function AnalyticsPage() {
   }, [dateRange])
 
   const rangeLength = dateRange
-    ? Math.round(
-        (new Date(dateRange.endDate + 'T00:00:00.000Z') - new Date(dateRange.startDate + 'T00:00:00.000Z')) /
-          86400000
-      )
+    ? differenceInCalendarDays(dateRange.endDate, dateRange.startDate)
     : -1
   const isWeekRange = rangeLength === 6
 

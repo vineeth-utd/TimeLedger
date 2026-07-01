@@ -1,14 +1,11 @@
 'use client'
 
-import { getWeekStartMonday } from '@/lib/formatters'
+import { addDays, formatDateOnly, getWeekStartMonday } from '@/lib/formatters'
 
 function formatWeekLabel(weekStartDate) {
-  const start = new Date(weekStartDate + 'T00:00:00.000Z')
-  const end = new Date(weekStartDate + 'T00:00:00.000Z')
-  end.setUTCDate(end.getUTCDate() + 6)
-  const fmt = (d) =>
-    d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
-  return `${fmt(start)} – ${fmt(end)}, ${end.getUTCFullYear()}`
+  const weekEndDate = addDays(weekStartDate, 6)
+  const fmt = (date) => formatDateOnly(date, { month: 'short', day: 'numeric' })
+  return `${fmt(weekStartDate)} – ${fmt(weekEndDate)}, ${formatDateOnly(weekEndDate, { year: 'numeric' })}`
 }
 
 export default function WeekNavigator({ weekStartDate, onPrev, onNext, onToday, onGoTo }) {
@@ -51,7 +48,7 @@ export default function WeekNavigator({ weekStartDate, onPrev, onNext, onToday, 
             className="text-sm border border-gray-200 rounded-md px-2 py-1 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
             onChange={(e) => {
               if (e.target.value) {
-                onGoTo(getWeekStartMonday(new Date(e.target.value + 'T00:00:00')))
+                onGoTo(getWeekStartMonday(e.target.value))
               }
             }}
           />
