@@ -39,7 +39,10 @@ export default function ActivitiesTable({ activities, onEdit, onDelete }) {
                 <td className="px-5 py-3.5 text-zinc-500 whitespace-nowrap">
                   {formatDate(activity.activityDate)}
                 </td>
-                <td className="px-5 py-3.5 text-zinc-800 font-medium max-w-[180px] truncate">
+                <td
+                  className="px-5 py-3.5 text-zinc-800 font-medium max-w-[180px] truncate"
+                  title={activity.title}
+                >
                   {activity.title}
                 </td>
                 <td className="px-5 py-3.5 hidden sm:table-cell">
@@ -52,7 +55,10 @@ export default function ActivitiesTable({ activities, onEdit, onDelete }) {
                 <td className="px-5 py-3.5 text-zinc-700 whitespace-nowrap">
                   {formatMinutes(activity.durationMinutes)}
                 </td>
-                <td className="px-5 py-3.5 hidden lg:table-cell max-w-[200px] truncate">
+                <td
+                  className="px-5 py-3.5 hidden lg:table-cell max-w-[200px] truncate"
+                  title={activity.notes || undefined}
+                >
                   {activity.notes
                     ? <span className="text-zinc-600 italic">{activity.notes}</span>
                     : <span className="text-zinc-400">—</span>
