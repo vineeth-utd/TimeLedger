@@ -22,12 +22,12 @@ export default function WeeklyProgress({ weeklyProgress }) {
   return (
     <section className="bg-white border border-gray-200 rounded-xl shadow-sm">
       <div className="px-6 py-4 border-b border-gray-100">
-        <h2 className="text-sm font-semibold text-gray-900">Current Week Progress</h2>
-        <p className="text-xs text-gray-500 mt-0.5">Progress by main category</p>
+        <h2 className="text-sm font-semibold text-gray-900">Weekly Progress</h2>
+        <p className="text-xs text-gray-500 mt-0.5">Progress by main category for the selected week</p>
       </div>
 
       {weeklyProgress.length === 0 ? (
-        <EmptyState message="No weekly targets or activity data for this week." />
+        <EmptyState message="No weekly targets or activity data for the selected week." />
       ) : (
         <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {weeklyProgress.map((row, i) => {

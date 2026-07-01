@@ -45,7 +45,7 @@ export async function GET(request) {
         prisma.activity.findMany({
           where: { userId, activityDate: today },
           include: { subCategory: { include: { mainCategory: true } } },
-          orderBy: { startTime: 'asc' },
+          orderBy: { startTime: 'desc' },
         }),
 
         prisma.dailySubCategorySummary.findMany({
@@ -121,7 +121,7 @@ export async function GET(request) {
       })
     }
 
-    // Union of main categories: those with explicit targets OR activity this week
+    // Union of main categories: those with explicit targets OR activity in the selected week
     const allMainCategoryIds = new Set([
       ...explicitTargetMap.keys(),
       ...weekSpentMap.keys(),
