@@ -63,3 +63,68 @@ The application is designed with a strong focus on fast activity logging, meanin
 - User-scoped data isolation
 - Protected pages and APIs
 - Secure server-side session validation
+
+---
+
+## Technology Stack
+
+### Frontend
+
+- Next.js 16 (App Router)
+- React
+- Tailwind CSS
+- Recharts
+- Lucide React
+
+### Backend
+
+- Next.js Route Handlers
+- Prisma ORM
+
+### Database
+
+- PostgreSQL (Supabase)
+
+### Authentication
+
+- Supabase Auth
+- Google OAuth
+
+### Deployment
+
+- Vercel
+- Supabase
+
+---
+
+## Architecture
+
+```
+Browser
+    │
+    ▼
+Next.js (App Router)
+    │
+    ├── React UI
+    ├── API Routes
+    │
+    ▼
+Prisma ORM
+    │
+    ▼
+Supabase PostgreSQL
+```
+
+```
+Authentication
+──────────────
+Google OAuth
+      │
+      ▼
+Supabase Auth
+      │
+      ▼
+Protected Pages
+Protected APIs
+User-scoped Data
+```
