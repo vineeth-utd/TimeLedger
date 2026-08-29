@@ -26,11 +26,13 @@ export async function proxy(request) {
     }
   )
 
+  const path = request.nextUrl.pathname
+
+  const __t0 = performance.now() // [PERF-TMP]
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
-  const path = request.nextUrl.pathname
+  console.log(`[PERF-TMP] proxy supabase.auth.getUser() for ${path}: ${(performance.now() - __t0).toFixed(1)}ms`) // [PERF-TMP]
   const isPublic = path === '/login' || path.startsWith('/auth/')
 
   if (!user && !isPublic) {
