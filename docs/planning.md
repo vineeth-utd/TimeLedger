@@ -373,7 +373,7 @@ Initial tools:
 - `createMainCategory`
 - `createSubCategory`
 
-**Status:** Pending
+**Status:** Complete
 
 ---
 
