@@ -335,3 +335,190 @@ The current application behavior is documented in:
 - `ui.md`
 
 Future enhancements will be tracked separately in `BACKLOG.md`.
+
+---
+
+# Phase 10 - AI Assistant
+
+Add a conversational AI interface that allows TimeLedger operations to be performed through natural language.
+
+Detailed AI architecture, tool contracts, safety rules, and agent behavior are documented in `docs/ai.md`.
+
+## Phase 10A - Text-Based AI Assistant
+
+### Milestone 1 - AI Tool Foundation
+
+Implement the controlled interface between the AI Assistant and TimeLedger.
+
+Scope:
+
+- Inspect and reuse existing application/service logic
+- Add authenticated AI tool execution context
+- Define tool schemas
+- Implement activity retrieval tools
+- Implement activity mutation tools
+- Implement taxonomy retrieval/mutation tools
+- Add structured tool results
+- Add structured application-level errors
+- Enforce user ownership and validation
+
+Initial tools:
+
+- `getCategories`
+- `getActivities`
+- `getRecentActivities`
+- `createActivity`
+- `updateActivity`
+- `deleteActivity`
+- `createMainCategory`
+- `createSubCategory`
+
+**Status:** Pending
+
+---
+
+### Milestone 2 - LLM and LangGraph Foundation
+
+Integrate the conversational reasoning/orchestration layer.
+
+Scope:
+
+- Configure LLM provider
+- Integrate LangGraph
+- Register TimeLedger tools
+- Define assistant system instructions
+- Supply current date/time and timezone context
+- Implement LLM → tool → LLM execution loop
+- Support multiple sequential tool calls
+- Define initial graph/conversation state
+
+**Status:** Pending
+
+---
+
+### Milestone 3 - Core Activity Workflows
+
+Support natural-language activity management.
+
+Scope:
+
+- Create activities
+- Retrieve/search activities
+- Update activities
+- Delete activities
+- Resolve latest/previous activity
+- Exact-date retrieval
+- Date-range retrieval
+- Text-based retrieval
+- Time-window retrieval
+- Relative date/time interpretation
+- Multi-step activity operations
+
+**Status:** Pending
+
+---
+
+### Milestone 4 - Intelligent Category Resolution
+
+Allow the assistant to reason over the existing Main Category/Sub Category taxonomy.
+
+Scope:
+
+- Fetch taxonomy only when required
+- Match obvious existing categories
+- Use clear matches without unnecessary confirmation
+- Detect ambiguous category matches
+- Ask for clarification when required
+- Detect when no suitable category exists
+- Suggest new Main Categories/Sub Categories
+
+**Status:** Pending
+
+---
+
+### Milestone 5 - Human-in-the-Loop Safety
+
+Add stateful confirmation workflows using LangGraph.
+
+Confirmation is required for:
+
+- Main Category creation
+- Sub Category creation
+- Activity deletion
+- Bulk updates
+- Bulk deletion
+
+Scope:
+
+- Pending action state
+- LangGraph interruption
+- User approval/rejection
+- Workflow resumption
+- Safe cancellation
+- Handling conversation changes while confirmation is pending
+
+**Status:** Pending
+
+---
+
+### Milestone 6 - Assistant UI
+
+Build the text-based conversational interface.
+
+Scope:
+
+- Assistant chat interface
+- User and assistant messages
+- Loading/tool execution states
+- Confirmation UI
+- Error states
+- Appropriate retry behavior
+- Mobile responsiveness
+- Streaming responses if appropriate
+
+**Status:** Pending
+
+---
+
+### Milestone 7 - Reliability and Hardening
+
+Validate the assistant against failure cases and security boundaries.
+
+Scope:
+
+- Tool schema tests
+- Authorization tests
+- User-isolation tests
+- Service-layer validation tests
+- Agent workflow tests
+- Confirmation workflow tests
+- Ambiguous activity/category cases
+- Invalid date/time handling
+- Tool/database failure handling
+- Multi-step partial failures
+- Excessively broad retrieval
+- Safe logging
+
+**Status:** Pending
+
+---
+
+## Phase 10B - Voice Input
+
+Add voice as an alternative input method after the text assistant is stable.
+
+```text
+Voice
+  ↓
+Speech-to-text
+  ↓
+Existing AI Assistant
+  ↓
+Existing LangGraph + Tool Pipeline
+```
+
+Voice should reuse the complete Phase 10A assistant architecture.
+
+Detailed voice implementation will be planned when Phase 10A is complete.
+
+**Status:** Future

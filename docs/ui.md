@@ -868,6 +868,7 @@ Not yet implemented:
 4. Recurring activities
 5. Wake-up tracking
 6. Reminders
+7. Daily target task checklist and progress
 
 ### Categories & Activities
 
