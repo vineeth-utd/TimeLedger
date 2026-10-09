@@ -157,7 +157,8 @@ function buildTimeWindowFilter({ startDate, endDate, timeFrom, timeTo, timezone 
 // Filters (all optional, AND-combined):
 //   startDate/endDate "YYYY-MM-DD" inclusive, query, mainCategoryId, subCategoryId,
 //   timeFrom/timeTo "HH:mm" (needs a date range and `timezone`), limit.
-// Ordered chronologically (activityDate ASC, startTime ASC).
+// Ordered chronologically (activityDate ASC, startTime ASC). `totalMinutes` sums the duration of
+// ALL matches, independent of `limit`.
 export async function searchActivities(userId, filters) {
   const { startDate, endDate, query, mainCategoryId, subCategoryId, timeFrom, timeTo, timezone } = filters
   const limit = clampLimit(filters.limit, SEARCH_DEFAULT_LIMIT, SEARCH_MAX_LIMIT)
@@ -206,8 +207,9 @@ export async function searchActivities(userId, filters) {
     and.push(buildTimeWindowFilter({ startDate, endDate, timeFrom, timeTo, timezone }))
   }
 
-  const [totalMatches, activities] = await Promise.all([
+  const [totalMatches, totals, activities] = await Promise.all([
     prisma.activity.count({ where }),
+    prisma.activity.aggregate({ where, _sum: { durationMinutes: true } }),
     prisma.activity.findMany({
       where,
       include: ACTIVITY_INCLUDE,
@@ -216,7 +218,7 @@ export async function searchActivities(userId, filters) {
     }),
   ])
 
-  return { activities, totalMatches }
+  return { activities, totalMatches, totalMinutes: totals._sum.durationMinutes ?? 0 }
 }
 
 export async function listRecentActivities(userId, limit) {

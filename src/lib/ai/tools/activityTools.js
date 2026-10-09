@@ -67,11 +67,12 @@ export const getActivitiesTool = defineTool({
     "Search the authenticated user's activities. Filters are AND-combined: a single date (YYYY-MM-DD) or " +
     'startDate+endDate, a case-insensitive text query over title/notes/category names, exact mainCategoryId or ' +
     'subCategoryId, and an overlapping local time window (timeFrom/timeTo, HH:mm; requires a date or date range). ' +
-    'Results are chronological (oldest first), default 20, max 50, with truncation metadata.',
+    'Prefer narrow filters. Results are chronological (oldest first), default 20, max 50. totalMinutes is the ' +
+    'authoritative total duration of ALL matches (even if truncated).',
   schema: getActivitiesSchema,
   async handler(ctx, input) {
     const { date, ...filters } = input
-    const { activities, totalMatches } = await searchActivities(ctx.userId, {
+    const { activities, totalMatches, totalMinutes } = await searchActivities(ctx.userId, {
       ...filters,
       startDate: date ?? input.startDate,
       endDate: date ?? input.endDate,
@@ -80,6 +81,7 @@ export const getActivitiesTool = defineTool({
     return {
       activities: activities.map((activity) => serializeActivity(activity, ctx.timezone)),
       totalMatches,
+      totalMinutes,
       returned: activities.length,
       truncated: totalMatches > activities.length,
     }
@@ -92,7 +94,7 @@ export const getRecentActivitiesTool = defineTool({
   name: 'getRecentActivities',
   description:
     "Get the authenticated user's most recent activities, newest first (by date, then start time). " +
-    'Default 5, max 20.',
+    'Use for "latest/last/previous activity". Default 5, max 20.',
   schema: z.strictObject({ limit: z.number().int().min(1).max(RECENT_MAX_LIMIT).optional() }),
   async handler(ctx, { limit }) {
     const activities = await listRecentActivities(ctx.userId, limit)
@@ -153,7 +155,7 @@ const updateActivitySchema = z
 export const updateActivityTool = defineTool({
   name: 'updateActivity',
   description:
-    'Update one exactly identified activity by activityId. Only provided fields change. Times are local HH:mm ' +
+    'Update one exactly identified activity by activityId. Send ONLY the fields that change. Times are local HH:mm ' +
     '(endTime may be the internal end-of-day value "24:00"); notes may be null/"" to clear. ' +
     'Does not search for activities.',
   schema: updateActivitySchema,

@@ -25,16 +25,27 @@ function messageText(message) {
 // Internal only: never returned from the public API.
 function collectToolCalls(messages) {
   const lastHumanIndex = messages.findLastIndex((message) => message.getType() === 'human')
-  return messages
-    .slice(lastHumanIndex + 1)
+  const turn = messages.slice(lastHumanIndex + 1)
+  const argsById = new Map(
+    turn.flatMap((message) => (message.tool_calls ?? []).map((call) => [call.id, call.args]))
+  )
+  return turn
     .filter((message) => message instanceof ToolMessage)
     .map((message) => {
       let success = null
       try {
         success = JSON.parse(message.content).success
       } catch {}
-      return { name: message.name, success, result: message.content }
+      return { name: message.name, args: argsById.get(message.tool_call_id), success, result: message.content }
     })
+}
+
+// Tokens the model consumed during this turn (for pacing/diagnostics). Internal only.
+function collectTokenUsage(messages) {
+  const lastHumanIndex = messages.findLastIndex((message) => message.getType() === 'human')
+  return messages
+    .slice(lastHumanIndex + 1)
+    .reduce((total, message) => total + (message.usage_metadata?.total_tokens ?? 0), 0)
 }
 
 // Runs one user turn. Conversation state (user/assistant/tool messages) is owned by the
@@ -61,7 +72,11 @@ export async function runAssistant({
       { configurable: { thread_id: `${ctx.userId}:${threadId}` }, recursionLimit }
     )
     const messages = state.messages
-    return { reply: messageText(messages[messages.length - 1]), toolCalls: collectToolCalls(messages) }
+    return {
+      reply: messageText(messages[messages.length - 1]),
+      toolCalls: collectToolCalls(messages),
+      tokensUsed: collectTokenUsage(messages),
+    }
   } catch (error) {
     if (error instanceof GraphRecursionError) {
       return { reply: STEP_LIMIT_REPLY, toolCalls: [], stepLimitReached: true }

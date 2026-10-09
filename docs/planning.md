@@ -414,7 +414,14 @@ Scope:
 - Relative date/time interpretation
 - Multi-step activity operations
 
-**Status:** Pending
+**Status:** In progress — implementation done, live behavioral verification pending (Groq daily token quota)
+
+Implemented: `totalMinutes` (service-calculated total across all matches), compact workflow prompt, code-computed
+calendar block (today/yesterday/this & last week/last 7 days), delete intent resolved prompt-only (deletion stays
+unavailable until Milestone 5), opt-in behavioral evaluator `scripts/ai-eval.mjs`.
+
+Live evaluation: run only the unresolved scenarios (#4, #6, #9, #10, #11, #12, #13, #16), one run each; fix and
+re-run only failures. The full suite is not required and is not run automatically.
 
 ---
 
