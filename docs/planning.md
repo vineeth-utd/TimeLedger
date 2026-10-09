@@ -439,7 +439,12 @@ Scope:
 - Detect when no suitable category exists
 - Suggest new Main Categories/Sub Categories
 
-**Status:** Pending
+**Status:** In progress — implemented; deterministic checks pass; live behavioral verification pending (Groq quota)
+
+Implemented: category-resolution rules in the system prompt (clear / explicit / ambiguous / no-match, thread
+taxonomy reuse, text-only proposals — category creation stays unavailable until Milestone 5), `getCategories`
+description update (contract unchanged). Live scenarios #21-#25 in `scripts/ai-eval.mjs` run later together with
+the unresolved Milestone 3 scenarios (one run each, targeted).
 
 ---
 

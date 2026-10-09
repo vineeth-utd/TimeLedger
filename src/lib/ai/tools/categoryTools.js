@@ -12,7 +12,8 @@ export const getCategoriesTool = defineTool({
   name: 'getCategories',
   description:
     'Get the authenticated user\'s active Main Category / Sub Category taxonomy. Retrieval only; ' +
-    'choosing the best category for an activity is the caller\'s job.',
+    'choosing the best category is the caller\'s job. Call only when a category must be picked or changed; ' +
+    'ids from an earlier result in this conversation can be reused.',
   schema: z.strictObject({}),
   async handler(ctx) {
     const mainCategories = await listActiveTaxonomy(ctx.userId)

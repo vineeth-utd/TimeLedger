@@ -62,7 +62,7 @@ const SEED_ACTIVITIES = [
 async function seedUser(userId) {
   const subs = {}
   const taxonomy = {
-    Career: ['LeetCode', 'Interview Prep'],
+    Career: ['LeetCode', 'Interview Prep', 'System Design', 'Behavioral Interview Prep'],
     Health: ['Gym'],
     Personal: ['Cooking', 'Reading'],
   }
@@ -432,6 +432,71 @@ const SCENARIOS = [
       const updates = callsNamed(turns, 'updateActivity')
       check(f, updates.length === 1 && updates[0].args?.activityId === seed.ids['Cooking breakfast'], 'did not update the latest activity')
       check(f, updates[0]?.args?.endTime === '10:00', `endTime ${updates[0]?.args?.endTime} (expected 10:00)`)
+      return f
+    },
+  },
+  // ---- Milestone 4: category resolution ----
+  {
+    id: 21,
+    name: 'category: clear match used silently',
+    turns: ['Add LeetCode today from 9 to 10 AM.'],
+    async check({ turns, userId, seed }) {
+      const f = []
+      const rows = await newRows(userId, seed)
+      check(f, rows.length === 1 && rows[0].subCategoryId === seed.subs.LeetCode, 'not logged under LeetCode')
+      check(f, callsNamed(turns, 'getCategories').length === 1, 'expected exactly one getCategories')
+      return f
+    },
+  },
+  {
+    id: 22,
+    name: 'category: ambiguous -> asks with options, no write',
+    turns: ['Add interview preparation today from 9 to 10 AM.'],
+    async check({ turns, userId, seed }) {
+      const f = []
+      check(f, callsNamed(turns, 'createActivity').length === 0, 'created without asking')
+      check(f, asks(lastReply(turns)), 'did not ask')
+      const options = [/interview prep/i, /behavioral/i, /system design/i].filter((re) => re.test(lastReply(turns)))
+      check(f, options.length >= 2, 'did not list the plausible options')
+      check(f, await unchanged(userId, seed), 'data changed')
+      return f
+    },
+  },
+  {
+    id: 23,
+    name: 'category: no match -> proposes, no creation',
+    turns: ['Add Kubernetes study today from 8 to 9 PM.'],
+    async check({ turns, userId, seed }) {
+      const f = []
+      check(f, callsNamed(turns, 'createActivity').length === 0, 'created an activity')
+      check(f, !names(turns).some((n) => /^create(Main|Sub)Category$/.test(n)), 'tried to create a category')
+      check(f, /kubernetes/i.test(lastReply(turns)) && /new|create/i.test(lastReply(turns)), 'did not propose a new category')
+      check(f, (await prisma.subCategory.count({ where: { userId } })) === Object.keys(seed.subs).length, 'taxonomy changed')
+      check(f, await unchanged(userId, seed), 'data changed')
+      return f
+    },
+  },
+  {
+    id: 24,
+    name: 'category: follow-up choice reuses thread (no re-fetch)',
+    turns: ['Add interview preparation today from 9 to 10 AM.', 'Use System Design instead.'],
+    async check({ turns, userId, seed }) {
+      const f = []
+      const rows = await newRows(userId, seed)
+      check(f, rows.length === 1 && rows[0].subCategoryId === seed.subs['System Design'], 'not logged under System Design')
+      if (rows[0]) check(f, localView(rows[0]).start === '09:00' && localView(rows[0]).end === '10:00', 'times lost across turns')
+      check(f, !turns[1].calls.some((c) => c.name === 'getCategories'), 'refetched taxonomy on follow-up')
+      return f
+    },
+  },
+  {
+    id: 25,
+    name: 'category: explicit category honored',
+    turns: ['Log stretching today from 6 to 6:30 AM under Gym.'],
+    async check({ turns, userId, seed }) {
+      const f = []
+      const rows = await newRows(userId, seed)
+      check(f, rows.length === 1 && rows[0].subCategoryId === seed.subs.Gym, 'not logged under Gym')
       return f
     },
   },
