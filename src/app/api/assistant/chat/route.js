@@ -40,7 +40,7 @@ export async function POST(request) {
     const ctx = createToolContext({ userId: user.id, timezone, now: new Date() })
     const result = await runAssistant({ ctx, threadId, message })
 
-    return turnResponse(threadId, result)
+    return turnResponse(threadId, result, 'POST /api/assistant/chat')
   } catch (error) {
     return assistantErrorResponse(error, 'POST /api/assistant/chat')
   }

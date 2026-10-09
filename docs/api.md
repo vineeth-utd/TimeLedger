@@ -340,6 +340,12 @@ Server Responsibilities
 
 ---
 
+## DELETE /api/main-categories/:id and /api/sub-categories/:id
+
+Behavior is unchanged; the rules now live in `categoryService` (`deleteMainCategory`, `deleteSubCategory`), also used by the assistant's confirmed delete tools. Deletion is blocked with 409 while dependent data exists (main: sub categories, activities, weekly targets; sub: activities, daily summaries).
+
+---
+
 ## DELETE /api/activities/:id
 
 Server Responsibilities

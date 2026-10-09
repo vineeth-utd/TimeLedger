@@ -35,7 +35,8 @@ export function toPublicPendingAction(pending) {
   return {
     actionId: pending.actionId,
     expiresAt: pending.expiresAt,
-    actions: pending.actions.map(({ kind, display }) => ({ kind, display })),
+    // Only the server-built summary leaves the server (no ids, snapshots or tool arguments).
+    actions: pending.actions.map(({ kind, display }) => ({ kind, display: { summary: display.summary } })),
   }
 }
 

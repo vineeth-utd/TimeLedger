@@ -1,15 +1,7 @@
 import prisma from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/auth'
-
-function pluralize(count, singular, plural = `${singular}s`) {
-  return `${count} ${count === 1 ? singular : plural}`
-}
-
-function formatList(items) {
-  if (items.length === 1) return items[0]
-  if (items.length === 2) return `${items[0]} and ${items[1]}`
-  return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`
-}
+import { handleRouteError } from '@/lib/errors'
+import { deleteMainCategory } from '@/lib/services/categoryService'
 
 export async function PATCH(request, ctx) {
   try {
@@ -78,49 +70,12 @@ export async function DELETE(_request, ctx) {
     if (!user) {
       return Response.json({ success: false, message: 'Unauthorized' }, { status: 401 })
     }
-    const userId = user.id
 
     const { id } = await ctx.params
-    const mainCategoryId = Number(id)
+    const data = await deleteMainCategory(user.id, Number(id))
 
-    const existing = await prisma.mainCategory.findUnique({ where: { id: mainCategoryId } })
-    if (!existing || existing.userId !== userId) {
-      return Response.json(
-        { success: false, message: 'Main category not found' },
-        { status: 404 }
-      )
-    }
-
-    const [subCategoryCount, activityCount, weeklyTargetCount] = await Promise.all([
-      prisma.subCategory.count({ where: { userId, mainCategoryId } }),
-      prisma.activity.count({ where: { userId, subCategory: { mainCategoryId } } }),
-      prisma.weeklyTarget.count({ where: { userId, mainCategoryId } }),
-    ])
-
-    const blockers = [
-      subCategoryCount > 0 ? pluralize(subCategoryCount, 'sub category', 'sub categories') : null,
-      activityCount > 0 ? pluralize(activityCount, 'activity', 'activities') : null,
-      weeklyTargetCount > 0 ? pluralize(weeklyTargetCount, 'weekly target') : null,
-    ].filter(Boolean)
-
-    if (blockers.length > 0) {
-      return Response.json(
-        {
-          success: false,
-          message: `Cannot delete main category because it has ${formatList(blockers)}. Delete the dependent data first.`,
-        },
-        { status: 409 }
-      )
-    }
-
-    await prisma.mainCategory.delete({ where: { id: mainCategoryId } })
-
-    return Response.json({ success: true, data: { id: mainCategoryId } })
+    return Response.json({ success: true, data })
   } catch (error) {
-    console.error('DELETE /api/main-categories/[id] error:', error)
-    return Response.json(
-      { success: false, message: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'DELETE /api/main-categories/[id]')
   }
 }

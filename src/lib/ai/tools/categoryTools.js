@@ -2,7 +2,12 @@ import { z } from 'zod'
 import {
   createMainCategory,
   createSubCategory,
+  deleteMainCategory,
+  deleteSubCategory,
+  getDeletableMainCategory,
+  getDeletableSubCategory,
   listActiveTaxonomy,
+  listTaxonomy,
 } from '@/lib/services/categoryService'
 import { ServiceError } from '@/lib/errors'
 import { defineTool, serializeMainCategory, serializeSubCategory } from '@/lib/ai/results'
@@ -14,14 +19,18 @@ export const getCategoriesTool = defineTool({
   description:
     'Get the authenticated user\'s active Main Category / Sub Category taxonomy. Retrieval only; ' +
     'choosing the best category is the caller\'s job. Call only when a category must be picked or changed; ' +
-    'ids from an earlier result in this conversation can be reused.',
-  schema: z.strictObject({}),
-  async handler(ctx) {
-    const mainCategories = await listActiveTaxonomy(ctx.userId)
+    'ids from an earlier result in this conversation can be reused. Active categories only, unless ' +
+    'includeInactive is true (only when the user needs to manage/delete an inactive category).',
+  schema: z.strictObject({ includeInactive: z.boolean().optional() }),
+  async handler(ctx, { includeInactive = false }) {
+    const mainCategories = await listTaxonomy(ctx.userId, { includeInactive })
+    // isActive is reported only when inactive categories were requested.
+    const flag = (category) => (includeInactive ? { isActive: category.isActive } : {})
     return {
       categories: mainCategories.map((main) => ({
         ...serializeMainCategory(main),
-        subCategories: main.subCategories.map(serializeSubCategory),
+        ...flag(main),
+        subCategories: main.subCategories.map((sub) => ({ ...serializeSubCategory(sub), ...flag(sub) })),
       })),
     }
   },
@@ -88,5 +97,63 @@ export const createSubCategoryTool = defineTool({
         mainCategory: serializeMainCategory(subCategory.mainCategory),
       },
     }
+  },
+})
+
+// ---- Deletion (gated) ------------------------------------------------------------------------
+// Dependency and ownership rules live in categoryService. Describing a deletion runs the same
+// check, so a deletion that is already known to be blocked fails with the dependency reason and no
+// confirmation is shown. The display carries names only (no ids); approval re-checks the target.
+
+const DELETE_NOTE =
+  ' Fails if the category still has sub categories, activities or weekly targets (no cascade).' + CONFIRM_NOTE
+
+export const deleteMainCategoryTool = defineTool({
+  name: 'deleteMainCategory',
+  description: 'Delete a Main Category by mainCategoryId (look it up with getCategories).' + DELETE_NOTE,
+  schema: z.strictObject({ mainCategoryId: z.number().int().positive() }),
+  confirmation: {
+    kind: 'DELETE_MAIN_CATEGORY',
+    async describe(ctx, { mainCategoryId }) {
+      const main = await getDeletableMainCategory(ctx.userId, mainCategoryId)
+      return { summary: `Delete Main Category "${main.name}"`, name: main.name }
+    },
+    async verify(ctx, { mainCategoryId }, display) {
+      const main = await getDeletableMainCategory(ctx.userId, mainCategoryId)
+      if (main.name !== display.name) {
+        throw new ServiceError('ACTION_STALE', 'The category changed after it was proposed; nothing was deleted.', 409)
+      }
+    },
+  },
+  async handler(ctx, { mainCategoryId }) {
+    const { id } = await deleteMainCategory(ctx.userId, mainCategoryId)
+    return { deletedMainCategoryId: id }
+  },
+})
+
+export const deleteSubCategoryTool = defineTool({
+  name: 'deleteSubCategory',
+  description: 'Delete a Sub Category by subCategoryId (look it up with getCategories).' + DELETE_NOTE,
+  schema: z.strictObject({ subCategoryId: z.number().int().positive() }),
+  confirmation: {
+    kind: 'DELETE_SUB_CATEGORY',
+    async describe(ctx, { subCategoryId }) {
+      const sub = await getDeletableSubCategory(ctx.userId, subCategoryId)
+      return {
+        summary: `Delete Sub Category "${sub.name}" under Main Category "${sub.mainCategory.name}"`,
+        name: sub.name,
+        mainCategoryName: sub.mainCategory.name,
+      }
+    },
+    async verify(ctx, { subCategoryId }, display) {
+      const sub = await getDeletableSubCategory(ctx.userId, subCategoryId)
+      if (sub.name !== display.name || sub.mainCategory.name !== display.mainCategoryName) {
+        throw new ServiceError('ACTION_STALE', 'The category changed after it was proposed; nothing was deleted.', 409)
+      }
+    },
+  },
+  async handler(ctx, { subCategoryId }) {
+    const { id } = await deleteSubCategory(ctx.userId, subCategoryId)
+    return { deletedSubCategoryId: id }
   },
 })

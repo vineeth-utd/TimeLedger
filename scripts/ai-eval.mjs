@@ -572,6 +572,41 @@ const SCENARIOS = [
       return f
     },
   },
+  {
+    id: 30,
+    name: 'replies never show database ids',
+    turns: ['What did I do yesterday and which categories were they in?'],
+    async check({ turns }) {
+      const f = []
+      check(f, !/\bid\b\W{0,3}\d+|#\d{2,}|\(\s*\d{2,}\s*\)/i.test(lastReply(turns)), 'reply shows an internal id')
+      return f
+    },
+  },
+  // ---- Category deletion (confirmed, dependency-checked) ----
+  {
+    id: 31,
+    name: 'delete an empty sub category: confirmation, then deleted on approve',
+    turns: ['Delete the System Design sub category.', { decision: 'approve' }],
+    async check({ turns, userId, seed }) {
+      const f = []
+      check(f, turns[0].status === 'needs_confirmation', 'no confirmation raised')
+      check(f, !(await prisma.subCategory.findUnique({ where: { id: seed.subs['System Design'] } })), 'sub category still exists after approval')
+      check(f, !/\bid\b\W{0,3}\d+/i.test(lastReply(turns)), 'reply shows an id')
+      return f
+    },
+  },
+  {
+    id: 32,
+    name: 'delete a sub category that has activities: refused with the reason, no confirmation',
+    turns: ['Delete the Gym sub category.'],
+    async check({ turns, seed }) {
+      const f = []
+      check(f, turns[0].status === 'complete' && !turns[0].pendingAction, 'raised a confirmation for a blocked deletion')
+      check(f, Boolean(await prisma.subCategory.findUnique({ where: { id: seed.subs.Gym } })), 'Gym was deleted')
+      check(f, /activit/i.test(lastReply(turns)), 'reply does not explain the activity blocker')
+      return f
+    },
+  },
 ]
 
 // ---- Runner ---------------------------------------------------------------

@@ -112,7 +112,7 @@ export default function AssistantWidget() {
               <Sparkles className="w-4 h-4 text-blue-600" strokeWidth={2} />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-sm font-semibold text-gray-900">Assistant</h2>
+              <h2 className="text-sm font-semibold text-gray-900 truncate">TimeLedger Assistant</h2>
               <p className="text-xs text-gray-500 truncate">Log and review your time by chatting</p>
             </div>
             <button

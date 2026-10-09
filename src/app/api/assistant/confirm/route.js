@@ -42,7 +42,7 @@ export async function POST(request) {
     const ctx = createToolContext({ userId: user.id, timezone, now: new Date() })
     const result = await resumeAssistant({ ctx, threadId, actionId, decision })
 
-    return turnResponse(threadId, result)
+    return turnResponse(threadId, result, 'POST /api/assistant/confirm')
   } catch (error) {
     return assistantErrorResponse(error, 'POST /api/assistant/confirm')
   }

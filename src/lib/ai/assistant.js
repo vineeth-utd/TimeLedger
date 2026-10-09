@@ -3,7 +3,7 @@ import { HumanMessage, ToolMessage } from '@langchain/core/messages'
 import { createChatModel } from '@/lib/ai/llm'
 import { getCheckpointer } from '@/lib/ai/checkpointer'
 import { describePendingAction, isPendingExpired, toPublicPendingAction } from '@/lib/ai/confirmation'
-import { claimAction } from '@/lib/ai/actionClaims'
+import { claimAction, isActionClaimed } from '@/lib/ai/actionClaims'
 import { buildAssistantGraph } from '@/lib/ai/graph'
 import { getAssistantTools } from '@/lib/ai/tools'
 
@@ -46,6 +46,8 @@ const MUTATION_TYPES = {
   deleteActivity: 'activity_deleted',
   createMainCategory: 'category_created',
   createSubCategory: 'category_created',
+  deleteMainCategory: 'category_deleted',
+  deleteSubCategory: 'category_deleted',
 }
 
 function collectChanges(messages) {
@@ -113,14 +115,43 @@ function toTurnResult(state) {
   }
 }
 
-async function invokeGraph(graph, input, config) {
+// Only these run inside the tools node (gated tools execute in the confirm node instead).
+const DIRECT_MUTATIONS = new Set(['createActivity', 'updateActivity'])
+
+// After a graph failure, rebuilds what is definitely known from the checkpoint (completed nodes
+// are persisted, including their tool messages) instead of tracking mutations separately.
+//   changes  successful mutations in this invocation (messages after `baseline`)
+//   outcome  'applied' (>= 1 change confirmed), 'none' (nothing executed), or 'unknown' (a node
+//            that may have mutated did not complete, or the state can't be read)
+// `resolving` is the claimed decision when this invocation resumed a confirmation.
+async function recoverAfterFailure(graph, config, { baseline, resolving }) {
+  try {
+    const snapshot = await graph.getState(config)
+    const messages = (snapshot.values?.messages ?? []).slice(baseline)
+    const changes = collectChanges(messages)
+    // A node that failed midway can appear in `tasks` rather than `next` (e.g. an interrupted node).
+    const incomplete = new Set([...(snapshot.next ?? []), ...(snapshot.tasks ?? []).map((task) => task.name)])
+    const lastCalls = snapshot.values?.messages?.at(-1)?.tool_calls ?? []
+    const mutationMayHaveRun =
+      (resolving === 'approve' && incomplete.has('confirm')) ||
+      (incomplete.has('tools') && lastCalls.some((call) => DIRECT_MUTATIONS.has(call.name)))
+    return { changes, outcome: mutationMayHaveRun ? 'unknown' : changes.length ? 'applied' : 'none' }
+  } catch {
+    return { changes: [], outcome: 'unknown' }
+  }
+}
+
+// Failures are returned, not thrown, so the caller still gets the authoritative changes:
+// { status: 'failed', cause, changes, outcome }.
+async function invokeGraph(graph, input, config, { baseline = 0, resolving = null } = {}) {
   try {
     return toTurnResult(await graph.invoke(input, config))
   } catch (error) {
+    const recovery = await recoverAfterFailure(graph, config, { baseline, resolving })
     if (error instanceof GraphRecursionError) {
-      return { status: 'complete', reply: STEP_LIMIT_REPLY, pendingAction: null, choices: null, changes: [{ type: 'unknown' }], toolCalls: [], tokensUsed: 0, stepLimitReached: true }
+      return { status: 'complete', reply: STEP_LIMIT_REPLY, pendingAction: null, choices: null, changes: recovery.changes, toolCalls: [], tokensUsed: 0, stepLimitReached: true }
     }
-    throw error
+    return { status: 'failed', cause: error, ...recovery }
   }
 }
 
@@ -141,13 +172,18 @@ export async function runAssistant({
   const graph = buildGraph(ctx, tools, { model, checkpointer })
   const config = threadConfig(ctx, threadId, recursionLimit)
 
-  const { pending } = await readPending(graph, config)
+  const { snapshot, pending } = await readPending(graph, config)
   if (pending) {
+    // A claimed action can never be resolved again: don't offer it as an active confirmation.
+    if (await isActionClaimed({ userId: ctx.userId, threadId, actionId: pending.actionId })) {
+      return { status: 'outcome_unknown' }
+    }
     const pendingAction = toPublicPendingAction(pending)
     return { status: 'pending_action', reply: describePendingAction(pendingAction), pendingAction, toolCalls: [], tokensUsed: 0 }
   }
 
-  return invokeGraph(graph, { messages: [new HumanMessage(message)] }, config)
+  const baseline = snapshot.values?.messages?.length ?? 0
+  return invokeGraph(graph, { messages: [new HumanMessage(message)] }, config, { baseline })
 }
 
 // Resolves the pending confirmation. The client sends only { actionId, decision }; the executed
@@ -167,7 +203,7 @@ export async function resumeAssistant({
   const graph = buildGraph(ctx, tools, { model, checkpointer })
   const config = threadConfig(ctx, threadId, recursionLimit)
 
-  const { pending } = await readPending(graph, config)
+  const { snapshot, pending } = await readPending(graph, config)
   if (!pending) return { status: 'no_pending_action' }
   if (pending.actionId !== actionId) return { status: 'stale_action' }
 
@@ -179,6 +215,12 @@ export async function resumeAssistant({
   const claimed = await claimAction({ userId: ctx.userId, threadId, actionId, decision: resumeDecision })
   if (!claimed) return { status: 'outcome_unknown' }
 
-  const result = await invokeGraph(graph, new Command({ resume: { actionId, decision: resumeDecision } }), config)
-  return expired ? { ...result, status: 'expired' } : result
+  // From here the action is claimed: a failure is reported with what is definitely known and the
+  // confirmation is never offered again.
+  const baseline = snapshot.values?.messages?.length ?? 0
+  const result = await invokeGraph(graph, new Command({ resume: { actionId, decision: resumeDecision } }), config, {
+    baseline,
+    resolving: resumeDecision,
+  })
+  return expired && result.status === 'complete' ? { ...result, status: 'expired' } : result
 }

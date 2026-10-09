@@ -2,22 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { newThreadId, notifyDataChanged, sendChat, sendConfirm } from '@/lib/assistantClient'
+import { describeDecision, newThreadId, notifyDataChanged, planResult, sendChat, sendConfirm } from '@/lib/assistantClient'
 
 const STORAGE_KEY = 'timeledger.assistant.v1'
-
-const NOTICES = {
-  EXPIRED: 'That request expired and was cancelled. Nothing was changed.',
-  NOT_PENDING: 'That request is no longer pending. Nothing was changed by it.',
-  OUTCOME_UNKNOWN:
-    'That request was already submitted and its result cannot be confirmed. Check your Activities, then ask again if needed.',
-}
-
-// Chat failures can happen after an activity was already created or updated, so they are never
-// retried automatically and the user is told to check before trying again.
-const CHAT_FAILURE =
-  'The assistant could not finish that request. It may have been partly applied, so check your Activities before trying again.'
-const CONFIRM_FAILURE = 'The confirmation could not be completed. Please try again.'
 
 function loadStored() {
   try {
@@ -76,50 +63,19 @@ export function useAssistant() {
     saveStored(null)
   }, [reset])
 
+  // All decisions come from planResult (server-provided changes/outcome/code), never prose.
   const applyResult = useCallback(
     (result, kind) => {
-      if (result.unauthorized) {
+      const plan = planResult(result, kind)
+      if (plan.unauthorized) {
         router.replace('/login')
         return
       }
-      if (result.ok) {
-        // The server reports applied changes from tool results; pages then re-fetch their data.
-        if (result.changes?.length) notifyDataChanged()
-        if (result.pendingAction) setPendingAction(result.pendingAction)
-        else {
-          setPendingAction(null)
-          if (result.reply) addMessage('assistant', result.reply, result.choices)
-        }
-        return
-      }
-      switch (result.code) {
-        case 'PENDING_ACTION':
-          setPendingAction(result.pendingAction)
-          return
-        case 'ACTION_EXPIRED':
-          setPendingAction(null)
-          addMessage('notice', NOTICES.EXPIRED)
-          return
-        case 'STALE_ACTION':
-        case 'NO_PENDING_ACTION':
-          setPendingAction(null)
-          addMessage('notice', NOTICES.NOT_PENDING)
-          return
-        case 'ACTION_OUTCOME_UNKNOWN':
-          setPendingAction(null)
-          addMessage('notice', NOTICES.OUTCOME_UNKNOWN)
-          return
-        case 'RATE_LIMITED':
-          if (kind === 'chat') notifyDataChanged() // a step may have been applied before the failure
-          setError(result.message ?? 'The assistant is busy right now. Please try again in a moment.')
-          return
-        case 'BAD_REQUEST':
-          setError(result.message ?? 'That message could not be sent.')
-          return
-        default:
-          if (kind === 'chat') notifyDataChanged()
-          setError(kind === 'chat' ? CHAT_FAILURE : CONFIRM_FAILURE)
-      }
+      if (plan.refresh) notifyDataChanged()
+      if (plan.pending !== 'keep') setPendingAction(plan.pending === 'clear' ? null : plan.pending)
+      for (const message of plan.messages) addMessage(message.role, message.text, message.choices)
+      if (plan.error) setError(plan.error)
+      if (plan.resetThread) setThreadId(null)
     },
     [router, addMessage]
   )
@@ -154,8 +110,9 @@ export function useAssistant() {
       setStatus('resolving')
       try {
         const result = await sendConfirm(threadId, pendingAction.actionId, decision)
-        if (result.ok) {
-          addMessage('notice', decision === 'approve' ? 'Approved' : 'Rejected')
+        // Keep a record of what was decided, but only when the server actually resolved it.
+        if (result.ok || result.outcome === 'applied' || result.outcome === 'none') {
+          for (const record of describeDecision(pendingAction, decision)) addMessage(record.role, record.text)
         }
         applyResult(result, 'confirm')
       } finally {

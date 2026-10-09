@@ -247,7 +247,9 @@ Used on the Analytics page to wrap charts with a title and optional filter contr
 - Assistant replies render safe Markdown (bold, italic, inline code, lists, line breaks; no raw HTML, links or images). User messages stay plain text.
 - Clarification choices (`data.choices`) appear as optional buttons under the latest assistant message; the input stays enabled and typing a reply works as usual. This is separate from the Approve/Reject confirmation card, which blocks the input.
 - When a response reports `data.changes`, the assistant dispatches a `timeledger:data-changed` window event and Dashboard, Activities, Categories and Analytics re-fetch (`useAssistantRefreshKey` added to their existing fetch effects). A failed chat request also triggers a refresh because a step may have been applied.
-- Tool calls/results and internal values (such as `24:00`) are never displayed.
+- UI state after a failure comes only from the server's `changes`, `outcome` and `code` (`planResult` in `src/lib/assistantClient.js`), never from reply text. `applied`: refresh the page, clear any card and show what definitely changed plus that the assistant could not finish. `none`: show an error stating no changes were made. `unknown`: refresh, clear the card, start a new thread and tell the user to check Activities. A claimed confirmation never shows active Approve/Reject again. If the server never answered (network failure), nothing is assumed: chat shows a neutral error and a confirmation card stays so the user can retry by hand; the server's claim keeps that safe.
+- After Approve/Reject a compact record stays in the conversation, built from the server's confirmation summary: `✓ Approved: ...` / `✗ Rejected: ...` (only when the server resolved the decision).
+- Tool calls/results and internal values (such as `24:00` or database ids) are never displayed.
 
 ---
 
