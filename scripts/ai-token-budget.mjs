@@ -44,6 +44,12 @@ for (const definition of definitions) {
   const { name, description, parameters } = definition.function
   console.log(`  ${name.padEnd(20)} total ${String(count(definition)).padStart(4)}  (description ${count(description)}, schema ${count(parameters)})`)
 }
+const parts = definitions.reduce(
+  (sum, { function: fn }) => ({ description: sum.description + count(fn.description), schema: sum.schema + count(fn.parameters) }),
+  { description: 0, schema: 0 }
+)
+const instructions = count(systemPrompt.split('\n\nCurrent date and time')[0])
+console.log(`Breakdown: instructions ${instructions} + date/calendar tail ${prefix.prompt - instructions} | tool descriptions ${parts.description} + tool schemas ${parts.schema} + wrapper ${prefix.tools - parts.description - parts.schema}`)
 console.log(`Output cap per call (AI_MAX_OUTPUT_TOKENS): ${maxOutput} (before Batch 1: ${BEFORE_CAP}); reasoning effort: ${getReasoningEffort()} (not measurable offline)`)
 
 // ---- Representative tool results (real serializers on synthetic rows) -------------------------

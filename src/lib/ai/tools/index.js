@@ -47,13 +47,41 @@ export function requiresConfirmation(tool) {
   return Boolean(tool.confirmation)
 }
 
+// Machine-validation keywords removed from the schema sent to the model. They cost tokens and the
+// model gains little from them: Zod (the authoritative validator) still enforces every constraint in
+// `execute`, and a violation comes back as a structured tool error. Human-readable hints
+// (`.describe('YYYY-MM-DD')`, `'HH:mm'`, ...) stay as `description`. Removing the keywords also stops
+// the provider rejecting a call itself (a 400 that consumes tokens and fails the whole turn).
+const WIRE_VALIDATION_KEYWORDS = new Set([
+  '$schema',
+  'pattern',
+  'additionalProperties',
+  'minimum',
+  'maximum',
+  'exclusiveMinimum',
+  'exclusiveMaximum',
+  'minLength',
+  'maxLength',
+  'minItems',
+  'maxItems',
+])
+
+function toWireSchema(node) {
+  if (Array.isArray(node)) return node.map(toWireSchema)
+  if (node && typeof node === 'object') {
+    return Object.fromEntries(
+      Object.entries(node)
+        .filter(([key]) => !WIRE_VALIDATION_KEYWORDS.has(key))
+        .map(([key, value]) => [key, toWireSchema(value)])
+    )
+  }
+  return node
+}
+
 // Provider-neutral function-calling definitions generated from the same Zod schemas.
 export function getToolDefinitions(tools) {
-  return tools.map((tool) => {
-    const { $schema, ...parameters } = z.toJSONSchema(tool.schema)
-    return {
-      type: 'function',
-      function: { name: tool.name, description: tool.description, parameters },
-    }
-  })
+  return tools.map((tool) => ({
+    type: 'function',
+    function: { name: tool.name, description: tool.description, parameters: toWireSchema(z.toJSONSchema(tool.schema)) },
+  }))
 }

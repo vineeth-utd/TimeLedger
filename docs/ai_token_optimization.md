@@ -148,12 +148,82 @@ Two manual turns, `AI_LOG_USAGE=true`:
   same-titled activity). Asserts no `updateActivity`, exactly one `createActivity`, the existing
   activity unchanged, one new Token Optimization activity. Not yet run against Groq.
 
+## Batch 2: input-side compression (gpt-oss-120b, low, 512)
+Approved and implemented in two stages so the saving and any regression can be attributed.
+
+### Stage A: wire schema + tool descriptions
+- `getToolDefinitions` (`src/lib/ai/tools/index.js`) strips machine-validation keywords from the schema
+  sent to the model: `pattern`, `additionalProperties`, `minimum`/`maximum`/`exclusiveMinimum`,
+  `minLength`/`maxLength`, `minItems`/`maxItems`. Zod remains the authoritative validator (unchanged
+  `execute` path; a violation returns a structured tool error). Provider-side rejections of a call
+  (the earlier `presentChoices` 400) can no longer happen for these constraints.
+- Human-readable hints kept as `description` via `.describe()`: `YYYY-MM-DD`, `HH:mm`,
+  `HH:mm or 24:00` (end times), `limit` ranges (`1-50`, `1-20`).
+- Tool descriptions shortened; the repeated confirmation/cascade notes removed from the delete and
+  create-category tools (confirmation is enforced by the graph, and the prompt keeps one sentence).
+  `deleteSubCategory` now states only that it fails if it has activities (the old text wrongly listed
+  weekly targets and sub categories, which apply to Main Categories).
+
+### Stage B: prompt compression
+- Rules merged and reworded (category-resolution bullets 6 -> 4, search and ambiguity rules, confirmation
+  and rejection rule, cross-midnight rule, intro). Examples kept: "8-9 AM to 10 = 10 AM" and
+  "extend 8:14-8:34 PM to 8:59 PM sets endTime 20:59". Two clauses removed in the first draft were
+  restored after review ("or an update" crossing midnight; "prefer asking over miscategorizing"), as was
+  "related concepts or synonyms alone don't count".
+
+### Fixed-prefix tokens (system prompt incl. date/calendar tail + 11 tool definitions)
+| | Before Batch 2 | After Stage A | After Stage B (final) |
+|---|---|---|---|
+| Prompt instructions | 1,178 | 1,178 | 1,001 |
+| Date/calendar tail | 166 | 166 | 166 |
+| Tool descriptions | 671 | 312 | 312 |
+| Tool schemas | 899 | 512 | 512 |
+| Tool wrapper (name/type keys) | 184 | 176 | 176 |
+| **Fixed prefix** | **3,098** | **2,344** | **2,167** |
+Total saving 931 tokens per model call (30%): Stage A 754, Stage B 177.
+
+### Simulated totals (512 output cap; requested = input + cap, per call)
+| Flow | Calls | Input before -> A -> B | Requested before -> A -> B |
+|---|---|---|---|
+| Simple read (getActivities, 20 rows) | 2 | 7,592 -> 6,080 -> 5,726 | 8,616 -> 7,104 -> 6,750 |
+| getRecent -> update -> reply | 3 | 9,715 -> 7,447 -> 6,916 | 11,251 -> 8,983 -> 8,452 |
+| Category create + confirm + activity | 4 | 14,896 -> n/a -> 11,272 | 17,052 -> n/a -> 13,320 |
+Per-call requested for the 3-call flow is ~2.7-3.0k after Stage B. Actual `Used` counts real tokens
+(not the cap), so a 3-call turn of ~6.9k input plus ~0.3k completion can now fit an empty 8,000 TPM
+window; it did not fit before (the third call's `Used` + `Requested` exceeded 8,000). Turns that start
+with other usage in the window will still hit 429.
+
+### Behavioural information removed (not merely reworded)
+- Provider-visible constraints: regex patterns, positive-integer bounds on ids, string length limits
+  (question 300, label 80, message 200), option bounds (kept as "2-10" in the `presentChoices`
+  description) and "no extra properties". Enforced by Zod at runtime; a violation is now a tool error
+  the model can correct rather than a provider rejection.
+- Tool-description statements: "requires confirmation, call directly" (5 tools; the prompt keeps it
+  once), "no cascade" on the delete tools, "does not search" (`updateActivity`), "use for
+  latest/last/previous" (`getRecentActivities`; the prompt rule remains), "never ask the user for
+  24:00" (`createActivity`; the prompt rule remains), the `presentChoices` example message and
+  "with more than 10 ask in text" (prompt rule remains), "exactly identified", "(even if truncated)",
+  `getCategories` "retrieval only".
+- Prompt: "Tools take local HH:mm times and YYYY-MM-DD dates" (now carried by the schema hints), the
+  "message that identifies it" clause for choice options, "with that sub's id from the earlier result" in
+  the follow-up rule, and example wording. Nothing in the safety rules (confirmation enforcement,
+  rejection/expiry handling, no ids, 24:00 internal-only, category-deletion blockers, new vs update)
+  was removed.
+
+### Verification (no Groq)
+Offline budget script; wire-schema test (no validation keywords left, required/properties/hints kept,
+tool names unchanged) and 40+ invalid/valid argument cases proving Zod still rejects what the schema no
+longer states (bad/impossible dates, `25:00`, `24:00` as a start, `24:01`, ids 0/negative/fractional,
+`userId` or extra keys, limits, option counts and lengths); existing suites (verify, m3-m8 prompt and
+behaviour contracts, Batch 1 test), lint and build. Scratch prompt-wording assertions were updated to
+the new phrasing only where the same rule is still present.
+Pending: one targeted live run (#29-#33 plus M4/M5 category and confirmation scenarios).
+
 ## Deferred / open questions
 - Does Groq report or serve prompt-cache hits for this model and tier? Check `cached`/`cacheSource`.
 - Is the real `Requested` now ~prompt + 512, and is call `completion` now well under the cap?
 - Does `low` reasoning change behaviour on ambiguity / category-resolution scenarios?
-- Batch 2 (input side): prompt compression, tool description and wire-schema compression
-  (including dropping count limits from the wire schema), compact `getCategories` and activity
-  results. Re-evaluate history compaction and dynamic tool exposure after Batch 2.
+- Deferred after Batch 2: compact `getCategories` and activity result shapes (~200 tokens in category flows,
+  ~20 per activity), history compaction, dynamic tool exposure; `low` vs `medium` A/B.
 - Automatic retry honouring `retry-after`, and its interaction with deployment time limits.
 - Model choice (20b vs 120b) once the measurements are in.

@@ -24,8 +24,12 @@ const dateString = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD')
   .refine(isRealDate, 'Not a real calendar date')
+  .describe('YYYY-MM-DD')
 
-const timeString = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Expected HH:mm (00:00-23:59)')
+const timeString = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Expected HH:mm (00:00-23:59)')
+  .describe('HH:mm')
 
 // "24:00" = end of the calendar day (00:00 of the next day). Internal tool-contract value used
 // by the agent when splitting a cross-midnight activity (D 22:00-24:00 + D+1 00:00-01:00);
@@ -33,6 +37,7 @@ const timeString = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Expected HH:mm
 const endTimeString = z
   .string()
   .regex(/^(([01]\d|2[0-3]):[0-5]\d|24:00)$/, 'Expected HH:mm, or 24:00 for end of day')
+  .describe('HH:mm or 24:00')
 
 const entityId = z.number().int().positive()
 const title = z.string()
@@ -50,7 +55,7 @@ const getActivitiesSchema = z
     subCategoryId: entityId.optional(),
     timeFrom: timeString.optional(),
     timeTo: endTimeString.optional(),
-    limit: z.number().int().min(1).max(SEARCH_MAX_LIMIT).optional(),
+    limit: z.number().int().min(1).max(SEARCH_MAX_LIMIT).optional().describe(`1-${SEARCH_MAX_LIMIT}`),
   })
   .superRefine((input, ctx) => {
     const hasRange = input.startDate !== undefined || input.endDate !== undefined
@@ -65,11 +70,9 @@ const getActivitiesSchema = z
 export const getActivitiesTool = defineTool({
   name: 'getActivities',
   description:
-    "Search the authenticated user's activities. Filters are AND-combined: a single date (YYYY-MM-DD) or " +
-    'startDate+endDate, a case-insensitive text query over title/notes/category names, exact mainCategoryId or ' +
-    'subCategoryId, and an overlapping local time window (timeFrom/timeTo, HH:mm; requires a date or date range). ' +
-    'Prefer narrow filters. Results are chronological (oldest first), default 20, max 50. totalMinutes is the ' +
-    'authoritative total duration of ALL matches (even if truncated).',
+    "Search the user's activities; filters are AND-combined: date or startDate+endDate, text query over " +
+    'title/notes/category names, mainCategoryId, subCategoryId, local time window timeFrom/timeTo (needs a ' +
+    'date or range). Prefer narrow filters. Oldest first, default 20, max 50; totalMinutes covers ALL matches.',
   schema: getActivitiesSchema,
   async handler(ctx, input) {
     const { date, ...filters } = input
@@ -94,9 +97,10 @@ export const getActivitiesTool = defineTool({
 export const getRecentActivitiesTool = defineTool({
   name: 'getRecentActivities',
   description:
-    "Get the authenticated user's most recent activities, newest first (by date, then start time). " +
-    'Use for "latest/last/previous activity". Default 5, max 20.',
-  schema: z.strictObject({ limit: z.number().int().min(1).max(RECENT_MAX_LIMIT).optional() }),
+    'Most recent activities, newest first. Default 5, max 20.',
+  schema: z.strictObject({
+    limit: z.number().int().min(1).max(RECENT_MAX_LIMIT).optional().describe(`1-${RECENT_MAX_LIMIT}`),
+  }),
   async handler(ctx, { limit }) {
     const activities = await listRecentActivities(ctx.userId, limit)
     return {
@@ -111,9 +115,8 @@ export const getRecentActivitiesTool = defineTool({
 export const createActivityTool = defineTool({
   name: 'createActivity',
   description:
-    'Create a NEW activity (add/log/record) on one calendar date. startTime/endTime are local HH:mm on ' +
-    'activityDate; endTime may be "24:00" (internal end-of-day value for cross-midnight splits; never ask ' +
-    'the user for it). Duration is automatic.',
+    'Create a NEW activity (add/log/record) on one calendar date. endTime may be "24:00" (internal ' +
+    'end-of-day value for cross-midnight splits). Duration is automatic.',
   schema: z.strictObject({
     title,
     activityDate: dateString,
@@ -157,8 +160,7 @@ export const updateActivityTool = defineTool({
   name: 'updateActivity',
   description:
     'Change an EXISTING activity (update/extend/move/rename) by activityId; never use it to add a new activity. ' +
-    'Send ONLY the changed fields. Times are local HH:mm (endTime may be "24:00"); notes null/"" clears. ' +
-    'Does not search.',
+    'Send ONLY the changed fields; notes null/"" clears.',
   schema: updateActivitySchema,
   async handler(ctx, input) {
     const patch = {}
@@ -200,8 +202,7 @@ const SNAPSHOT_FIELDS = (activity) => [
 export const deleteActivityTool = defineTool({
   name: 'deleteActivity',
   description:
-    'Delete one exactly identified activity by activityId. Requires user confirmation: the system asks the ' +
-    'user automatically, so call this directly with the exact id (do not ask for confirmation in text).',
+    'Delete one activity by activityId.',
   schema: z.strictObject({ activityId: entityId }),
   confirmation: {
     kind: 'DELETE_ACTIVITY',

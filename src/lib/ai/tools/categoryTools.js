@@ -17,10 +17,8 @@ const categoryName = z.string()
 export const getCategoriesTool = defineTool({
   name: 'getCategories',
   description:
-    'Get the authenticated user\'s active Main Category / Sub Category taxonomy. Retrieval only; ' +
-    'choosing the best category is the caller\'s job. Call only when a category must be picked or changed; ' +
-    'ids from an earlier result in this conversation can be reused. Active categories only, unless ' +
-    'includeInactive is true (only when the user needs to manage/delete an inactive category).',
+    "Get the user's Main/Sub Category taxonomy (active only unless includeInactive is true). Call only " +
+    'when a category must be picked or changed; ids from earlier results can be reused.',
   schema: z.strictObject({ includeInactive: z.boolean().optional() }),
   async handler(ctx, { includeInactive = false }) {
     const mainCategories = await listTaxonomy(ctx.userId, { includeInactive })
@@ -36,12 +34,9 @@ export const getCategoriesTool = defineTool({
   },
 })
 
-const CONFIRM_NOTE =
-  ' Requires user confirmation: the system asks the user automatically, so call this directly (do not ask for confirmation in text).'
-
 export const createMainCategoryTool = defineTool({
   name: 'createMainCategory',
-  description: 'Create a new Main Category. Names must be unique per user.' + CONFIRM_NOTE,
+  description: 'Create a Main Category (unique name).',
   schema: z.strictObject({ name: categoryName }),
   confirmation: {
     kind: 'CREATE_MAIN_CATEGORY',
@@ -63,10 +58,7 @@ export const createMainCategoryTool = defineTool({
 
 export const createSubCategoryTool = defineTool({
   name: 'createSubCategory',
-  description:
-    'Create a new Sub Category under an existing Main Category (by mainCategoryId). ' +
-    'Names must be unique within the Main Category.' +
-    CONFIRM_NOTE,
+  description: 'Create a Sub Category under mainCategoryId (unique within it).',
   schema: z.strictObject({
     name: categoryName,
     mainCategoryId: z.number().int().positive(),
@@ -105,12 +97,9 @@ export const createSubCategoryTool = defineTool({
 // check, so a deletion that is already known to be blocked fails with the dependency reason and no
 // confirmation is shown. The display carries names only (no ids); approval re-checks the target.
 
-const DELETE_NOTE =
-  ' Fails if the category still has sub categories, activities or weekly targets (no cascade).' + CONFIRM_NOTE
-
 export const deleteMainCategoryTool = defineTool({
   name: 'deleteMainCategory',
-  description: 'Delete a Main Category by mainCategoryId (look it up with getCategories).' + DELETE_NOTE,
+  description: 'Delete a Main Category by mainCategoryId; fails if it has sub categories, activities or weekly targets.',
   schema: z.strictObject({ mainCategoryId: z.number().int().positive() }),
   confirmation: {
     kind: 'DELETE_MAIN_CATEGORY',
@@ -133,7 +122,7 @@ export const deleteMainCategoryTool = defineTool({
 
 export const deleteSubCategoryTool = defineTool({
   name: 'deleteSubCategory',
-  description: 'Delete a Sub Category by subCategoryId (look it up with getCategories).' + DELETE_NOTE,
+  description: 'Delete a Sub Category by subCategoryId; fails if it has activities.',
   schema: z.strictObject({ subCategoryId: z.number().int().positive() }),
   confirmation: {
     kind: 'DELETE_SUB_CATEGORY',

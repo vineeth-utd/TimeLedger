@@ -7,10 +7,9 @@ import { defineTool } from '@/lib/ai/results'
 export const presentChoicesTool = defineTool({
   name: 'presentChoices',
   description:
-    'Ask the user to choose between 2-10 specific options (e.g. several matching activities or plausible ' +
-    'categories); with more than 10, ask in text instead. Ends your turn; the user may pick one or type a different answer. `question` is the ' +
-    'question text; each option has a short display `label` and the `message` sent as the user\'s reply ' +
-    'when picked (it must make sense on its own, e.g. "The LeetCode activity at 9:00 AM").',
+    'Ask the user to pick among 2-10 specific options (matching activities, plausible categories). Ends your ' +
+    'turn; they may also type another answer. Each option has a short label and the message sent when picked ' +
+    '(must stand alone).',
   schema: z.strictObject({
     question: z.string().trim().min(1).max(300),
     options: z
