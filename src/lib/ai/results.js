@@ -25,23 +25,54 @@ function zodErrorToFailure(error) {
   return fail(code, message)
 }
 
+function toFailure(name, error) {
+  if (error instanceof ZodError) return zodErrorToFailure(error)
+  if (error instanceof ServiceError) return fail(error.code, error.message)
+  console.error(`AI tool ${name} error:`, error)
+  return fail('INTERNAL_ERROR', 'The operation could not be completed.')
+}
+
 // Defines a tool in a framework-neutral shape ({ name, description, schema, execute }).
 // `schema` is a Zod object, reusable later for LangChain/LangGraph tool definitions.
 // `execute(ctx, rawInput)` validates input, runs the handler, and never throws:
 // service errors become structured errors; unexpected errors are logged and hidden.
-export function defineTool({ name, description, schema, handler }) {
+//
+// `confirmation` ({ kind, describe(ctx, input), verify?(ctx, input, display) }) marks a tool that
+// must not run until the user approves. Such tools expose `prepareConfirmation` (validate + build
+// the server-side display, no side effects) and `executeApproved` (re-verify, then execute); the
+// graph runs them only after an approved interrupt.
+export function defineTool({ name, description, schema, handler, confirmation }) {
   async function execute(ctx, rawInput) {
     try {
       const input = schema.parse(rawInput ?? {})
       return ok(await handler(ctx, input))
     } catch (error) {
-      if (error instanceof ZodError) return zodErrorToFailure(error)
-      if (error instanceof ServiceError) return fail(error.code, error.message)
-      console.error(`AI tool ${name} error:`, error)
-      return fail('INTERNAL_ERROR', 'The operation could not be completed.')
+      return toFailure(name, error)
     }
   }
-  return { name, description, schema, execute }
+
+  const tool = { name, description, schema, execute }
+  if (confirmation) {
+    tool.confirmation = { kind: confirmation.kind }
+    tool.prepareConfirmation = async (ctx, rawInput) => {
+      try {
+        const input = schema.parse(rawInput ?? {})
+        const display = await confirmation.describe(ctx, input)
+        return { success: true, args: input, display }
+      } catch (error) {
+        return toFailure(name, error)
+      }
+    }
+    tool.executeApproved = async (ctx, input, display) => {
+      try {
+        await confirmation.verify?.(ctx, input, display)
+      } catch (error) {
+        return toFailure(name, error)
+      }
+      return execute(ctx, input)
+    }
+  }
+  return tool
 }
 
 // ---- Sanitized serializers (no raw Prisma records) -----------------------
@@ -70,6 +101,13 @@ export function serializeActivity(activity, timezone) {
       name: activity.subCategory.mainCategory.name,
     },
   }
+}
+
+// User-facing clock text: "07:00" -> "7:00 AM", end-of-day "24:00" -> "midnight".
+export function formatClock(time) {
+  if (time === '24:00') return 'midnight'
+  const [hour, minute] = time.split(':').map(Number)
+  return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`
 }
 
 export function serializeSubCategory(subCategory) {

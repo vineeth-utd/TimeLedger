@@ -417,8 +417,8 @@ Scope:
 **Status:** In progress — implementation done, live behavioral verification pending (Groq daily token quota)
 
 Implemented: `totalMinutes` (service-calculated total across all matches), compact workflow prompt, code-computed
-calendar block (today/yesterday/this & last week/last 7 days), delete intent resolved prompt-only (deletion stays
-unavailable until Milestone 5), opt-in behavioral evaluator `scripts/ai-eval.mjs`.
+calendar block (today/yesterday/this & last week/last 7 days), delete intent resolution (confirmation workflow added in
+Milestone 5), opt-in behavioral evaluator `scripts/ai-eval.mjs`.
 
 Live evaluation: run only the unresolved scenarios (#4, #6, #9, #10, #11, #12, #13, #16), one run each; fix and
 re-run only failures. The full suite is not required and is not run automatically.
@@ -469,7 +469,15 @@ Scope:
 - Safe cancellation
 - Handling conversation changes while confirmation is pending
 
-**Status:** Pending
+**Status:** In progress — implemented; deterministic checks pass (memory and PostgreSQL checkpointers); live behavioral verification pending (Groq quota)
+
+Implemented: three-node interrupt workflow (`agent` / `tools` / `confirm`), frozen pending action in graph state,
+server-generated confirmation display, `POST /api/assistant/confirm` (approve/reject by `actionId`), `PENDING_ACTION`
+response for chat while a confirmation is pending, 30-minute expiry, stale-target check for deletes, durable
+PostgreSQL checkpointer (schema `ai_checkpoints`, created by `scripts/ai-setup-checkpointer.mjs`), removal of the
+`AI_ENABLE_ACTIVITY_WRITES` flag, at-most-once action resolution via `assistant_action_claims` (migration applied
+manually, not yet in Prisma migration history; see docs/database.md). Out of scope (not designed yet): bulk
+update/delete confirmation, recovery of claimed-but-unresolved actions. Live eval scenarios #13, #23 (updated) and #26-#28 (new) run later with the targeted Groq pass.
 
 ---
 

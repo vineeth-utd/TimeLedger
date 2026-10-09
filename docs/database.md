@@ -202,6 +202,33 @@ Many weekly targets belong to one authenticated user.
 
 ---
 
+## 6. assistant_action_claims
+
+### Purpose
+
+AI assistant only. Guarantees a pending confirmation action (delete, category creation) is resolved at most once, even with concurrent or multi-instance confirm requests. A row is inserted atomically before the action is resolved; whoever loses the unique insert must not execute it. Claims are never released.
+
+### Columns
+
+* id
+* user_id
+* thread_id
+* action_id
+* decision
+* claimed_at
+
+### Constraints
+
+* Unique (user_id, thread_id, action_id)
+* RLS enabled with no policies (server-side access only)
+
+### Notes
+
+* **Applied manually.** The migration `20261008120000_add_assistant_action_claims` was applied directly with SQL, not through `prisma migrate deploy`, and is **not recorded in `_prisma_migrations`**. The older `20260708000000_enable_rls_user_owned_tables` migration is also applied but unrecorded. Reconciling Prisma migration history (and the transaction-pooler limitation with `prisma migrate`) is a separate maintenance task.
+* Conversation state lives in a separate Postgres schema, `ai_checkpoints`, created by `scripts/ai-setup-checkpointer.mjs`; it is not managed by Prisma.
+
+---
+
 # Application Rules
 
 ## Activity Creation

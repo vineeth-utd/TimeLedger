@@ -1,21 +1,45 @@
-import { END, MessagesAnnotation, START, StateGraph } from '@langchain/langgraph'
+import { Annotation, END, interrupt, MessagesAnnotation, START, StateGraph } from '@langchain/langgraph'
 import { SystemMessage, ToolMessage } from '@langchain/core/messages'
+import { buildPendingAction, isPendingExpired, toPublicPendingAction } from '@/lib/ai/confirmation'
 import { buildSystemPrompt } from '@/lib/ai/prompt'
 import { fail } from '@/lib/ai/results'
 import { getToolDefinitions } from '@/lib/ai/tools'
 
-// LangGraph handles orchestration only: LLM -> tools -> LLM loop and conversation state.
-// All TimeLedger behavior stays in the tools/services.
+// Conversation messages plus the frozen pending action awaiting user confirmation (or null).
+const AssistantState = Annotation.Root({
+  ...MessagesAnnotation.spec,
+  pending: Annotation({ reducer: (_current, update) => update, default: () => null }),
+})
+
+// LangGraph handles orchestration only: LLM -> tools -> (confirm) -> LLM loop and conversation
+// state. All TimeLedger behavior stays in the tools/services.
 //
-// The trusted tool context (`ctx`: userId, timezone, now) is captured by closure. It is
-// never part of graph state, never visible to the LLM, and never written to a checkpoint.
-// `tools` is the allowed set: it is both what the LLM is told about and all that can run.
+//   agent -> tools -> agent                 (reads, createActivity, updateActivity run directly)
+//   agent -> tools -> confirm -> agent      (a gated tool call: delete, category creation)
+//
+// Confirmation is enforced here, not by the prompt: the tools node never executes a gated tool.
+// It validates the call, builds a server-side display, and stores the frozen args in `pending`.
+// The confirm node raises ONE interrupt; only after an approving resume does it execute those
+// exact frozen args (no LLM call happens in between). Side effects occur only after interrupt(),
+// because LangGraph re-runs an interrupted node from its start when resuming.
+//
+// The trusted tool context (`ctx`: userId, timezone, now) is captured by closure. It is never
+// part of graph state, never visible to the LLM, and never written to a checkpoint.
+// `model` may be a chat model or a factory returning one (created lazily so state can be
+// inspected without a model/API key).
 export function buildAssistantGraph({ ctx, tools, model, checkpointer }) {
   const toolsByName = new Map(tools.map((tool) => [tool.name, tool]))
-  const modelWithTools = model.bindTools(getToolDefinitions(tools))
+  let modelWithTools = null
+  const getModelWithTools = () => {
+    modelWithTools ??= (typeof model === 'function' ? model() : model).bindTools(getToolDefinitions(tools))
+    return modelWithTools
+  }
+
+  const toolMessage = (call, result) =>
+    new ToolMessage({ content: JSON.stringify(result), tool_call_id: call.id, name: call.name })
 
   async function agentNode(state) {
-    const response = await modelWithTools.invoke([
+    const response = await getModelWithTools().invoke([
       new SystemMessage(buildSystemPrompt(ctx)),
       ...state.messages,
     ])
@@ -25,28 +49,82 @@ export function buildAssistantGraph({ ctx, tools, model, checkpointer }) {
   async function toolsNode(state) {
     const lastMessage = state.messages[state.messages.length - 1]
     const results = []
+    const gated = []
     for (const call of lastMessage.tool_calls ?? []) {
       const tool = toolsByName.get(call.name)
-      const result = tool
-        ? await tool.execute(ctx, call.args)
-        : fail('TOOL_NOT_AVAILABLE', `Tool "${call.name}" is not available.`)
-      results.push(
-        new ToolMessage({ content: JSON.stringify(result), tool_call_id: call.id, name: call.name })
-      )
+      if (!tool) {
+        results.push(toolMessage(call, fail('TOOL_NOT_AVAILABLE', `Tool "${call.name}" is not available.`)))
+      } else if (tool.confirmation) {
+        gated.push({ call, tool })
+      } else {
+        results.push(toolMessage(call, await tool.execute(ctx, call.args)))
+      }
     }
-    return { messages: results }
+
+    const actions = []
+    for (const { call, tool } of gated) {
+      const prepared = await tool.prepareConfirmation(ctx, call.args)
+      if (prepared.success === false) {
+        results.push(toolMessage(call, prepared)) // invalid/impossible: reported, never confirmed
+      } else {
+        actions.push({
+          toolCallId: call.id,
+          tool: tool.name,
+          kind: tool.confirmation.kind,
+          args: prepared.args,
+          display: prepared.display,
+        })
+      }
+    }
+
+    const update = { messages: results }
+    if (actions.length) update.pending = buildPendingAction(ctx, actions)
+    return update
   }
 
-  function routeAfterAgent(state) {
-    const lastMessage = state.messages[state.messages.length - 1]
-    return lastMessage.tool_calls?.length ? 'tools' : END
+  async function confirmNode(state) {
+    const pending = state.pending
+    const decision = interrupt(toPublicPendingAction(pending))
+
+    const approved =
+      decision?.actionId === pending.actionId &&
+      decision?.decision === 'approve' &&
+      !isPendingExpired(pending, ctx.now)
+
+    const results = []
+    for (const action of pending.actions) {
+      const call = { id: action.toolCallId, name: action.tool }
+      if (!approved) {
+        const expired = decision?.decision === 'expire' || isPendingExpired(pending, ctx.now)
+        results.push(
+          toolMessage(
+            call,
+            expired
+              ? fail('ACTION_EXPIRED', 'The confirmation expired. The action was not performed.')
+              : fail('USER_REJECTED', 'The user declined this action. It was not performed.')
+          )
+        )
+        continue
+      }
+      const tool = toolsByName.get(action.tool)
+      const result = tool
+        ? await tool.executeApproved(ctx, action.args, action.display)
+        : fail('TOOL_NOT_AVAILABLE', `Tool "${action.tool}" is not available.`)
+      results.push(toolMessage(call, result))
+    }
+    return { messages: results, pending: null }
   }
 
-  return new StateGraph(MessagesAnnotation)
+  const routeAfterAgent = (state) => (state.messages[state.messages.length - 1].tool_calls?.length ? 'tools' : END)
+  const routeAfterTools = (state) => (state.pending ? 'confirm' : 'agent')
+
+  return new StateGraph(AssistantState)
     .addNode('agent', agentNode)
     .addNode('tools', toolsNode)
+    .addNode('confirm', confirmNode)
     .addEdge(START, 'agent')
     .addConditionalEdges('agent', routeAfterAgent, ['tools', END])
-    .addEdge('tools', 'agent')
+    .addConditionalEdges('tools', routeAfterTools, ['confirm', 'agent'])
+    .addEdge('confirm', 'agent')
     .compile({ checkpointer })
 }

@@ -19,10 +19,13 @@ if (!process.env.GROQ_API_KEY) {
   process.exit(2)
 }
 
+// The eval uses an in-process checkpointer so it never writes conversation state to the database.
+process.env.AI_CHECKPOINTER ??= 'memory'
+
 register('./ai-eval-loader.mjs', import.meta.url)
 
 const { default: prisma } = await import('@/lib/prisma.js')
-const { runAssistant } = await import('@/lib/ai/assistant.js')
+const { runAssistant, resumeAssistant } = await import('@/lib/ai/assistant.js')
 const { createToolContext } = await import('@/lib/ai/context.js')
 const { getAssistantTools } = await import('@/lib/ai/tools/index.js')
 const { createMainCategory, createSubCategory } = await import('@/lib/services/categoryService.js')
@@ -39,7 +42,7 @@ const TPM_BUDGET = Number(process.env.AI_EVAL_TPM_BUDGET) || 6500 // Groq on-dem
 
 const TZ = 'America/Phoenix' // UTC-7, no DST
 const NOW = new Date('2026-10-08T16:45:00Z') // Thu 2026-10-08 09:45 Phoenix
-const WRITE_TOOLS = getAssistantTools({ enableActivityWrites: true })
+const TOOLS = getAssistantTools()
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -305,27 +308,26 @@ const SCENARIOS = [
   },
   {
     id: 12,
-    name: 'delete intent (ambiguous target) -> asks, no delete',
+    name: 'delete intent (ambiguous target) -> asks, nothing pending/deleted',
     turns: ['Delete my LeetCode activity from yesterday.'],
     async check({ turns, userId, seed }) {
       const f = []
-      check(f, !names(turns).includes('deleteActivity'), 'called deleteActivity')
       check(f, callsNamed(turns, 'getActivities').length >= 1, 'did not resolve the target')
-      check(f, !/\b(has been|was|i've|i have|successfully) deleted\b|\bdeleted (it|that|the)\b/i.test(lastReply(turns)), 'claims deletion happened')
+      check(f, turns[0].status === 'complete' && asks(lastReply(turns)), 'did not ask which one')
       check(f, await unchanged(userId, seed), 'data changed')
       return f
     },
   },
   {
     id: 13,
-    name: 'delete intent (unique target) -> names it, says unavailable',
+    name: 'delete intent (unique target) -> confirmation for the exact activity, nothing deleted yet',
     turns: ['Delete my latest activity.'],
     async check({ turns, userId, seed }) {
       const f = []
-      check(f, !names(turns).includes('deleteActivity'), 'called deleteActivity')
-      check(f, /cooking/i.test(lastReply(turns)), 'did not identify the target (Cooking breakfast)')
-      check(f, !/\b(has been|was|i've|i have|successfully) deleted\b|\bdeleted (it|that|the)\b/i.test(lastReply(turns)), 'claims deletion happened')
-      check(f, await unchanged(userId, seed), 'data changed')
+      const action = turns[0].pendingAction?.actions?.[0]
+      check(f, turns[0].status === 'needs_confirmation' && action?.kind === 'DELETE_ACTIVITY', `no delete confirmation (status ${turns[0].status})`)
+      check(f, /cooking/i.test(action?.display?.summary ?? ''), 'confirmation is not for Cooking breakfast')
+      check(f, await unchanged(userId, seed), 'data changed before approval')
       return f
     },
   },
@@ -464,14 +466,15 @@ const SCENARIOS = [
   },
   {
     id: 23,
-    name: 'category: no match -> proposes, no creation',
+    name: 'category: no match -> sub category confirmation, nothing created yet',
     turns: ['Add Kubernetes study today from 8 to 9 PM.'],
     async check({ turns, userId, seed }) {
       const f = []
-      check(f, callsNamed(turns, 'createActivity').length === 0, 'created an activity')
-      check(f, !names(turns).some((n) => /^create(Main|Sub)Category$/.test(n)), 'tried to create a category')
-      check(f, /kubernetes/i.test(lastReply(turns)) && /new|create/i.test(lastReply(turns)), 'did not propose a new category')
-      check(f, (await prisma.subCategory.count({ where: { userId } })) === Object.keys(seed.subs).length, 'taxonomy changed')
+      const action = turns[0].pendingAction?.actions?.[0]
+      check(f, turns[0].status === 'needs_confirmation' && action?.kind === 'CREATE_SUB_CATEGORY', `no sub-category confirmation (status ${turns[0].status})`)
+      check(f, /kubernetes/i.test(action?.display?.summary ?? ''), 'confirmation does not name Kubernetes')
+      check(f, callsNamed(turns, 'createActivity').length === 0, 'created an activity before the category existed')
+      check(f, (await prisma.subCategory.count({ where: { userId } })) === Object.keys(seed.subs).length, 'taxonomy changed before approval')
       check(f, await unchanged(userId, seed), 'data changed')
       return f
     },
@@ -497,6 +500,45 @@ const SCENARIOS = [
       const f = []
       const rows = await newRows(userId, seed)
       check(f, rows.length === 1 && rows[0].subCategoryId === seed.subs.Gym, 'not logged under Gym')
+      return f
+    },
+  },
+  // ---- Milestone 5: confirmation workflow ----
+  {
+    id: 26,
+    name: 'confirm: approve delete executes exactly the proposed activity',
+    turns: ['Delete my latest activity.', { decision: 'approve' }],
+    async check({ turns, userId, seed }) {
+      const f = []
+      check(f, turns[0].status === 'needs_confirmation', 'no confirmation raised')
+      check(f, !(await row(seed.ids['Cooking breakfast'])), 'Cooking breakfast not deleted after approval')
+      check(f, (await prisma.activity.count({ where: { userId } })) === SEED_ACTIVITIES.length - 1, 'wrong number of activities deleted')
+      check(f, turns[1].status === 'complete', 'did not complete after approval')
+      return f
+    },
+  },
+  {
+    id: 27,
+    name: 'confirm: approved sub category, then the original activity is created',
+    turns: ['Add Kubernetes study today from 8 to 9 PM.', { decision: 'approve' }],
+    async check({ turns, userId, seed }) {
+      const f = []
+      const sub = await prisma.subCategory.findFirst({ where: { userId, name: { equals: 'Kubernetes', mode: 'insensitive' } } })
+      check(f, Boolean(sub), 'Kubernetes sub category not created')
+      const rows = await newRows(userId, seed)
+      check(f, rows.length === 1 && sub && rows[0].subCategoryId === sub.id, 'activity not created under the new sub category')
+      if (rows[0]) check(f, localView(rows[0]).start === '20:00' && localView(rows[0]).end === '21:00', 'wrong times')
+      return f
+    },
+  },
+  {
+    id: 28,
+    name: 'confirm: reject -> nothing deleted, not retried',
+    turns: ['Delete my latest activity.', { decision: 'reject' }],
+    async check({ turns, userId, seed }) {
+      const f = []
+      check(f, turns[1].status === 'complete' && !turns[1].pendingAction, 'proposed the action again after rejection')
+      check(f, await unchanged(userId, seed), 'data changed')
       return f
     },
   },
@@ -529,22 +571,33 @@ function retryDelayMs(message) {
   return ((Number(match[1]) || 0) * 60 + (Number(match[2]) || 0)) * 1000 + 1000
 }
 
-async function runTurn(ctx, threadId, message) {
+async function runTurn(ctx, threadId, message, previous) {
   for (let attempt = 0; ; attempt++) {
     await waitForRateHeadroom()
     try {
       const startedAt = Date.now()
-      const result = await runAssistant({ ctx, threadId, message, tools: WRITE_TOOLS })
+      const result =
+        typeof message === 'string'
+          ? await runAssistant({ ctx, threadId, message, tools: TOOLS })
+          : await resumeAssistant({
+              ctx,
+              threadId,
+              actionId: previous?.pendingAction?.actionId,
+              decision: message.decision,
+              tools: TOOLS,
+            })
       const tokens = result.tokensUsed || estimatedTurnTokens // fall back if usage is not reported
       usageLog.push({ at: Date.now(), tokens })
       totalTokens += tokens
       estimatedTurnTokens = Math.max(estimatedTurnTokens, tokens)
       return {
-        message,
-        reply: result.reply,
+        message: typeof message === 'string' ? message : `[${message.decision}]`,
+        status: result.status,
+        pendingAction: result.pendingAction ?? null,
+        reply: result.reply ?? '',
         ms: Date.now() - startedAt,
         tokens,
-        calls: result.toolCalls.map((call) => ({ ...call, parsed: safeParse(call.result) })),
+        calls: (result.toolCalls ?? []).map((call) => ({ ...call, parsed: safeParse(call.result) })),
       }
     } catch (error) {
       if (error.status !== 429) throw error
@@ -577,9 +630,9 @@ async function runScenario(scenario, run, userId, seed) {
   const failures = []
   try {
     for (const message of scenario.turns) {
-      const turn = await runTurn(ctx, threadId, message)
+      const turn = await runTurn(ctx, threadId, message, turns[turns.length - 1])
       turns.push(turn)
-      console.log(`    > ${message}`)
+      console.log(`    > ${turn.message}  (${turn.status})`)
       console.log(`      tools: ${turn.calls.map((c) => `${c.name}${c.success === false ? '✗' : ''}${JSON.stringify(c.args)}`).join(' ; ') || '(none)'}  [${turn.ms}ms, ${turn.tokens} tok]`)
       console.log(`      reply: ${turn.reply.replace(/\s+/g, ' ').slice(0, 220)}`)
     }

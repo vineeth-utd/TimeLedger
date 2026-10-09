@@ -10,7 +10,8 @@ import {
   SEARCH_MAX_LIMIT,
   RECENT_MAX_LIMIT,
 } from '@/lib/services/activityService'
-import { defineTool, formatEndTime, serializeActivity } from '@/lib/ai/results'
+import { defineTool, formatClock, formatEndTime, serializeActivity } from '@/lib/ai/results'
+import { ServiceError } from '@/lib/errors'
 
 // ---- Shared field schemas ------------------------------------------------
 
@@ -184,10 +185,41 @@ export const updateActivityTool = defineTool({
 
 // ---- deleteActivity ------------------------------------------------------
 
+// Gated: runs only after the user approves the confirmation the workflow raises (see graph.js).
+const SNAPSHOT_FIELDS = (activity) => [
+  activity.title,
+  activity.activityDate,
+  activity.startTime,
+  activity.endTime,
+  activity.subCategory.id,
+]
+
 export const deleteActivityTool = defineTool({
   name: 'deleteActivity',
-  description: 'Delete one exactly identified activity by activityId.',
+  description:
+    'Delete one exactly identified activity by activityId. Requires user confirmation: the system asks the ' +
+    'user automatically, so call this directly with the exact id (do not ask for confirmation in text).',
   schema: z.strictObject({ activityId: entityId }),
+  confirmation: {
+    kind: 'DELETE_ACTIVITY',
+    async describe(ctx, { activityId }) {
+      const activity = serializeActivity(await getActivity(ctx.userId, activityId), ctx.timezone)
+      return {
+        summary:
+          `Delete activity "${activity.title}" on ${activity.activityDate}, ` +
+          `${formatClock(activity.startTime)}\u2013${formatClock(activity.endTime)} ` +
+          `(${activity.mainCategory.name} > ${activity.subCategory.name})`,
+        activity,
+      }
+    },
+    // The activity must still be what the user was shown.
+    async verify(ctx, { activityId }, display) {
+      const current = serializeActivity(await getActivity(ctx.userId, activityId), ctx.timezone)
+      if (JSON.stringify(SNAPSHOT_FIELDS(current)) !== JSON.stringify(SNAPSHOT_FIELDS(display.activity))) {
+        throw new ServiceError('ACTION_STALE', 'The activity changed after it was proposed; nothing was deleted.', 409)
+      }
+    },
+  },
   async handler(ctx, { activityId }) {
     const { id } = await deleteActivity(ctx.userId, activityId)
     return { deletedActivityId: id }

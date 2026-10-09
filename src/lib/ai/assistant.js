@@ -1,17 +1,15 @@
-import { GraphRecursionError } from '@langchain/langgraph'
+import { Command, GraphRecursionError, INTERRUPT } from '@langchain/langgraph'
 import { HumanMessage, ToolMessage } from '@langchain/core/messages'
 import { createChatModel } from '@/lib/ai/llm'
 import { getCheckpointer } from '@/lib/ai/checkpointer'
+import { describePendingAction, isPendingExpired, toPublicPendingAction } from '@/lib/ai/confirmation'
+import { claimAction } from '@/lib/ai/actionClaims'
 import { buildAssistantGraph } from '@/lib/ai/graph'
 import { getAssistantTools } from '@/lib/ai/tools'
 
 const DEFAULT_RECURSION_LIMIT = 12
 const STEP_LIMIT_REPLY =
   'I wasn\'t able to finish that request in a reasonable number of steps. Please try again with a simpler or more specific request.'
-
-function isEnabled(value) {
-  return String(value).toLowerCase() === 'true'
-}
 
 function messageText(message) {
   if (typeof message.content === 'string') return message.content
@@ -48,39 +46,114 @@ function collectTokenUsage(messages) {
     .reduce((total, message) => total + (message.usage_metadata?.total_tokens ?? 0), 0)
 }
 
-// Runs one user turn. Conversation state (user/assistant/tool messages) is owned by the
-// LangGraph checkpointer and keyed by user + client threadId, so threads can't cross users.
+// `model` and `checkpointer` are injectable for tests; production uses Groq + PostgreSQL.
+function buildGraph(ctx, tools, { model = createChatModel, checkpointer = getCheckpointer() } = {}) {
+  return buildAssistantGraph({ ctx, tools, model, checkpointer })
+}
+
+const threadConfig = (ctx, threadId, recursionLimit) => ({
+  configurable: { thread_id: `${ctx.userId}:${threadId}` },
+  ...(recursionLimit && { recursionLimit }),
+})
+
+// The pending confirmation (frozen args included, server-side only) for a thread, or null.
+async function readPending(graph, config) {
+  const snapshot = await graph.getState(config)
+  const hasInterrupt = snapshot.tasks?.some((task) => task.interrupts?.length)
+  return {
+    snapshot,
+    pending: hasInterrupt ? (snapshot.values?.pending ?? null) : null,
+  }
+}
+
+// Shapes a graph result: either a finished turn or one waiting for user confirmation.
+function toTurnResult(state) {
+  if (state[INTERRUPT]?.length) {
+    const pendingAction = state[INTERRUPT][0].value
+    return {
+      status: 'needs_confirmation',
+      reply: describePendingAction(pendingAction),
+      pendingAction,
+      toolCalls: collectToolCalls(state.messages),
+      tokensUsed: collectTokenUsage(state.messages),
+    }
+  }
+  const messages = state.messages
+  return {
+    status: 'complete',
+    reply: messageText(messages[messages.length - 1]),
+    pendingAction: null,
+    toolCalls: collectToolCalls(messages),
+    tokensUsed: collectTokenUsage(messages),
+  }
+}
+
+async function invokeGraph(graph, input, config) {
+  try {
+    return toTurnResult(await graph.invoke(input, config))
+  } catch (error) {
+    if (error instanceof GraphRecursionError) {
+      return { status: 'complete', reply: STEP_LIMIT_REPLY, pendingAction: null, toolCalls: [], tokensUsed: 0, stepLimitReached: true }
+    }
+    throw error
+  }
+}
+
+// Runs one user turn. Conversation state (user/assistant/tool messages and any pending
+// confirmation) is owned by the LangGraph checkpointer and keyed by user + client threadId, so
+// threads can't cross users. While a confirmation is pending the thread accepts only
+// resumeAssistant: a new message returns { status: 'pending_action' } without touching state.
+// Result: { status: 'complete' | 'needs_confirmation' | 'pending_action', reply, pendingAction, toolCalls }.
 export async function runAssistant({
   ctx,
   threadId,
   message,
-  tools = getAssistantTools({
-    enableActivityWrites: isEnabled(process.env.AI_ENABLE_ACTIVITY_WRITES),
-  }),
+  tools = getAssistantTools(),
   recursionLimit = DEFAULT_RECURSION_LIMIT,
+  model,
+  checkpointer,
 }) {
-  const graph = buildAssistantGraph({
-    ctx,
-    tools,
-    model: createChatModel(),
-    checkpointer: getCheckpointer(),
-  })
+  const graph = buildGraph(ctx, tools, { model, checkpointer })
+  const config = threadConfig(ctx, threadId, recursionLimit)
 
-  try {
-    const state = await graph.invoke(
-      { messages: [new HumanMessage(message)] },
-      { configurable: { thread_id: `${ctx.userId}:${threadId}` }, recursionLimit }
-    )
-    const messages = state.messages
-    return {
-      reply: messageText(messages[messages.length - 1]),
-      toolCalls: collectToolCalls(messages),
-      tokensUsed: collectTokenUsage(messages),
-    }
-  } catch (error) {
-    if (error instanceof GraphRecursionError) {
-      return { reply: STEP_LIMIT_REPLY, toolCalls: [], stepLimitReached: true }
-    }
-    throw error
+  const { pending } = await readPending(graph, config)
+  if (pending) {
+    const pendingAction = toPublicPendingAction(pending)
+    return { status: 'pending_action', reply: describePendingAction(pendingAction), pendingAction, toolCalls: [], tokensUsed: 0 }
   }
+
+  return invokeGraph(graph, { messages: [new HumanMessage(message)] }, config)
+}
+
+// Resolves the pending confirmation. The client sends only { actionId, decision }; the executed
+// action is the frozen one stored in graph state. Statuses besides the runAssistant ones:
+// 'no_pending_action', 'stale_action' (actionId mismatch), 'outcome_unknown' (already claimed),
+// 'expired' (cancelled, not executed).
+export async function resumeAssistant({
+  ctx,
+  threadId,
+  actionId,
+  decision,
+  tools = getAssistantTools(),
+  recursionLimit = DEFAULT_RECURSION_LIMIT,
+  model,
+  checkpointer,
+}) {
+  const graph = buildGraph(ctx, tools, { model, checkpointer })
+  const config = threadConfig(ctx, threadId, recursionLimit)
+
+  const { pending } = await readPending(graph, config)
+  if (!pending) return { status: 'no_pending_action' }
+  if (pending.actionId !== actionId) return { status: 'stale_action' }
+
+  const expired = isPendingExpired(pending, ctx.now)
+  const resumeDecision = expired ? 'expire' : decision
+
+  // At most once: claim before resuming. A conflict means the action was already submitted (still
+  // running, finished, or failed midway); it is never executed again through confirmation.
+  const claimed = await claimAction({ userId: ctx.userId, threadId, actionId, decision: resumeDecision })
+  if (!claimed) return { status: 'outcome_unknown' }
+
+  const result = await invokeGraph(graph, new Command({ resume: { actionId, decision: resumeDecision } }), config)
+  return expired ? { ...result, status: 'expired' } : result
 }

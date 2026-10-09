@@ -26,18 +26,15 @@ export function getAiTool(name) {
   return toolsByName.get(name) ?? null
 }
 
-// Tools the normal assistant may use before confirmation workflows exist (Milestone 5):
-// reads always; createActivity/updateActivity only for controlled testing; delete and
-// category creation never. The same list feeds LLM binding AND execution, so the
-// restriction is enforced in code rather than by the prompt.
-const READ_TOOL_NAMES = ['getCategories', 'getActivities', 'getRecentActivities']
-const ACTIVITY_WRITE_TOOL_NAMES = ['createActivity', 'updateActivity']
+// Tools exposed to the assistant. Reads and create/update activity execute directly. Delete and
+// category creation are bound too, but carry `confirmation`: the graph never calls their
+// `execute` from the model's tool call; they run only after the user approves a pending action.
+export function getAssistantTools() {
+  return aiTools
+}
 
-export function getAssistantTools({ enableActivityWrites = false } = {}) {
-  const allowed = new Set(
-    enableActivityWrites ? [...READ_TOOL_NAMES, ...ACTIVITY_WRITE_TOOL_NAMES] : READ_TOOL_NAMES
-  )
-  return aiTools.filter((tool) => allowed.has(tool.name))
+export function requiresConfirmation(tool) {
+  return Boolean(tool.confirmation)
 }
 
 // Provider-neutral function-calling definitions generated from the same Zod schemas.

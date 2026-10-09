@@ -1023,6 +1023,18 @@ Exact graph-state implementation should follow LangGraph conventions and the nee
 
 ---
 
+## 12.1 Implemented Confirmation Workflow (Milestone 5)
+
+- The graph has three nodes: `agent`, `tools`, `confirm`. The `tools` node executes reads and activity create/update directly. It never executes a gated tool (`deleteActivity`, `createMainCategory`, `createSubCategory`): it validates the call, builds a server-side display, and stores a frozen **pending action** (`actionId`, `expiresAt`, validated args, display) in graph state.
+- The `confirm` node raises one `interrupt()` with the user-facing payload (no tool arguments). Only after an approving resume does it execute the frozen args via the tool's normal validation/service path (delete additionally re-checks that the activity still matches what the user was shown). No LLM call occurs between approval and execution.
+- `POST /api/assistant/confirm` takes `{ threadId, actionId, decision: "approve" | "reject", timezone }` and never tool arguments. While an action is pending, `POST /api/assistant/chat` returns HTTP 409 `PENDING_ACTION`. Other conflicts: `NO_PENDING_ACTION`, `STALE_ACTION`, `ACTION_EXPIRED` (30 minutes).
+- Each pending action has a random server-generated `actionId`. Before resuming, the confirm flow atomically claims `(userId, threadId, actionId)` in `assistant_action_claims` (first decision wins, approve or reject). A claim conflict returns 409 `ACTION_OUTCOME_UNKNOWN` and the action is never executed again through confirmation, whether the first attempt is still running, finished, or failed midway. There is no automatic recovery: the user inspects their data and makes a fresh request.
+- Rejected, expired or stale actions return a structured error to the model, which must not retry them.
+- Conversation state and pending actions persist in a PostgreSQL checkpointer (schema `ai_checkpoints`).
+- Not designed yet: bulk-update/bulk-deletion confirmation, and recovery of claimed-but-unresolved actions.
+
+---
+
 # 13. Multi-Step Operations
 
 The assistant must support multiple sequential tool calls.

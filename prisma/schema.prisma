@@ -106,3 +106,15 @@ model WeeklyTarget {
   @@index([mainCategoryId])
   @@map("weekly_targets")
 }
+
+model AssistantActionClaim {
+  id        Int      @id @default(autoincrement())
+  userId    String   @db.Uuid @map("user_id")
+  threadId  String   @map("thread_id")
+  actionId  String   @map("action_id")
+  decision  String
+  claimedAt DateTime @default(now()) @db.Timestamptz @map("claimed_at")
+
+  @@unique([userId, threadId, actionId])
+  @@map("assistant_action_claims")
+}

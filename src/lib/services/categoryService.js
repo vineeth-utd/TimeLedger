@@ -1,5 +1,10 @@
 import prisma from '@/lib/prisma'
-import { ServiceError } from '@/lib/errors'
+import { ServiceError, isUniqueViolation } from '@/lib/errors'
+
+const duplicateMainCategory = () =>
+  new ServiceError('DUPLICATE_CATEGORY', 'A main category with that name already exists', 409)
+const duplicateSubCategory = () =>
+  new ServiceError('DUPLICATE_CATEGORY', 'A sub category with that name already exists in this main category', 409)
 
 // Active Main Categories with their active Sub Categories, ordered by name.
 export async function listActiveTaxonomy(userId) {
@@ -23,14 +28,15 @@ export async function createMainCategory(userId, { name }) {
     where: { userId_name: { userId, name: trimmedName } },
   })
   if (existing) {
-    throw new ServiceError(
-      'DUPLICATE_CATEGORY',
-      'A main category with that name already exists',
-      409
-    )
+    throw duplicateMainCategory()
   }
 
-  return prisma.mainCategory.create({ data: { userId, name: trimmedName } })
+  try {
+    return await prisma.mainCategory.create({ data: { userId, name: trimmedName } })
+  } catch (error) {
+    if (isUniqueViolation(error)) throw duplicateMainCategory()
+    throw error
+  }
 }
 
 export async function createSubCategory(userId, { mainCategoryId, name }) {
@@ -53,15 +59,16 @@ export async function createSubCategory(userId, { mainCategoryId, name }) {
     where: { mainCategoryId, name: trimmedName },
   })
   if (duplicate) {
-    throw new ServiceError(
-      'DUPLICATE_CATEGORY',
-      'A sub category with that name already exists in this main category',
-      409
-    )
+    throw duplicateSubCategory()
   }
 
-  return prisma.subCategory.create({
-    data: { userId, mainCategoryId, name: trimmedName },
-    include: { mainCategory: true },
-  })
+  try {
+    return await prisma.subCategory.create({
+      data: { userId, mainCategoryId, name: trimmedName },
+      include: { mainCategory: true },
+    })
+  } catch (error) {
+    if (isUniqueViolation(error)) throw duplicateSubCategory()
+    throw error
+  }
 }

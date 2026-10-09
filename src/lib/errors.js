@@ -17,3 +17,8 @@ export function handleRouteError(error, label) {
   console.error(`${label} error:`, error)
   return Response.json({ success: false, message: 'Internal server error' }, { status: 500 })
 }
+
+// Prisma unique-constraint violation (e.g. a duplicate created by a concurrent request).
+export function isUniqueViolation(error) {
+  return error?.code === 'P2002'
+}
