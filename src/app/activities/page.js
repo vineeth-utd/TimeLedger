@@ -8,6 +8,7 @@ import ActivityModal from '@/components/ActivityModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import DateRangeFilter from '@/components/DateRangeFilter'
 import ActivitiesTable from '@/components/activities/ActivitiesTable'
+import useAssistantRefreshKey from '@/lib/useAssistantRefreshKey'
 
 export default function ActivitiesPage() {
   const [startDate, setStartDate] = useState('')
@@ -21,6 +22,7 @@ export default function ActivitiesPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const assistantKey = useAssistantRefreshKey()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editingActivity, setEditingActivity] = useState(null)
@@ -38,7 +40,7 @@ export default function ActivitiesPage() {
         if (scRes.success) setSubCategories(scRes.data)
       })
       .catch(() => {})
-  }, [])
+  }, [assistantKey])
 
   // Fetch activities whenever filters or refreshKey change
   useEffect(() => {
@@ -56,7 +58,7 @@ export default function ActivitiesPage() {
       })
       .catch(() => setError('Network error. Please try again.'))
       .finally(() => setLoading(false))
-  }, [startDate, endDate, mainCategoryId, subCategoryId, refreshKey])
+  }, [startDate, endDate, mainCategoryId, subCategoryId, refreshKey, assistantKey])
 
   function refresh() {
     setRefreshKey((k) => k + 1)

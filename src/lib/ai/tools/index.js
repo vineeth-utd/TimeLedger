@@ -6,6 +6,7 @@ import {
   getRecentActivitiesTool,
   updateActivityTool,
 } from './activityTools'
+import { presentChoicesTool } from './choiceTools'
 import { createMainCategoryTool, createSubCategoryTool, getCategoriesTool } from './categoryTools'
 
 // Milestone 1 tool registry. Each tool: { name, description, schema (Zod), execute(ctx, input) }.
@@ -18,6 +19,7 @@ export const aiTools = [
   deleteActivityTool,
   createMainCategoryTool,
   createSubCategoryTool,
+  presentChoicesTool,
 ]
 
 const toolsByName = new Map(aiTools.map((tool) => [tool.name, tool]))

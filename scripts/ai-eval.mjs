@@ -542,6 +542,36 @@ const SCENARIOS = [
       return f
     },
   },
+  // ---- Milestone 6 manual-testing regression ----
+  {
+    id: 29,
+    name: 'extend current task to 8:59 PM (own end time is not a conflict; no 9:59 PM)',
+    // Found manually: with an existing 8:14-8:34 PM activity, the model claimed that extending it
+    // would overlap its own end time and suggested 9:59 PM.
+    async setup({ userId, seed }) {
+      const activity = await createActivity(userId, {
+        title: 'Assistant UI',
+        activityDate: '2026-10-08',
+        startTime: localDateTimeToUtc('2026-10-08', '20:14', TZ).toISOString(),
+        endTime: localDateTimeToUtc('2026-10-08', '20:34', TZ).toISOString(),
+        subCategoryId: seed.subs.Reading,
+      })
+      seed.ids['Assistant UI'] = activity.id
+    },
+    now: new Date('2026-10-09T03:40:00Z'), // Thu 2026-10-08 8:40 PM Phoenix
+    turns: ['Extend the current task to 8:59 PM'],
+    async check({ turns, seed }) {
+      const f = []
+      const updated = await row(seed.ids['Assistant UI'])
+      const v = updated && localView(updated)
+      check(f, v && v.start === '20:14' && v.end === '20:59', `wrong times ${JSON.stringify(v)}`)
+      check(f, callsNamed(turns, 'updateActivity').length === 1, 'expected exactly one updateActivity call')
+      const reply = lastReply(turns)
+      check(f, !/overlap|9:59|21:59/i.test(reply), 'claimed an overlap or mentioned 9:59 PM')
+      check(f, /8:59\s*PM/i.test(reply), 'reply does not state the new end time')
+      return f
+    },
+  },
 ]
 
 // ---- Runner ---------------------------------------------------------------
@@ -624,7 +654,8 @@ function safeParse(text) {
 
 async function runScenario(scenario, run, userId, seed) {
   await resetActivities(userId, seed)
-  const ctx = createToolContext({ userId, timezone: scenario.timezone ?? TZ, now: NOW })
+  if (scenario.setup) await scenario.setup({ userId, seed })
+  const ctx = createToolContext({ userId, timezone: scenario.timezone ?? TZ, now: scenario.now ?? NOW })
   const threadId = `eval-${scenario.id}-${run}-${randomUUID().slice(0, 8)}`
   const turns = []
   const failures = []

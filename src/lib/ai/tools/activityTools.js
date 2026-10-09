@@ -166,10 +166,13 @@ export const updateActivityTool = defineTool({
     if (input.subCategoryId !== undefined) patch.subCategoryId = input.subCategoryId
     if (input.notes !== undefined) patch.notes = input.notes
 
+    // The values before the change are returned so the reply can say exactly what changed.
+    const existing = await getActivity(ctx.userId, input.activityId)
+    const previous = serializeActivity(existing, ctx.timezone)
+
     // Date/time changes are re-derived together from the existing row so a partial
     // change (e.g. only endTime) is merged correctly in the user's timezone.
     if ([input.activityDate, input.startTime, input.endTime].some((value) => value !== undefined)) {
-      const existing = await getActivity(ctx.userId, input.activityId)
       const activityDate = input.activityDate ?? dateOnlyToString(existing.activityDate)
       const startTime = input.startTime ?? utcToLocalDateTime(existing.startTime, ctx.timezone).time
       const endTime = input.endTime ?? formatEndTime(existing, ctx.timezone)
@@ -179,7 +182,7 @@ export const updateActivityTool = defineTool({
     }
 
     const activity = await updateActivity(ctx.userId, input.activityId, patch)
-    return { activity: serializeActivity(activity, ctx.timezone) }
+    return { activity: serializeActivity(activity, ctx.timezone), previous }
   },
 })
 

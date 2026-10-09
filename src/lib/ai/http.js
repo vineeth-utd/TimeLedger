@@ -22,7 +22,13 @@ export function turnResponse(threadId, result) {
   }
   return Response.json({
     success: true,
-    data: { threadId, reply: result.reply, pendingAction: result.pendingAction ?? null },
+    data: {
+      threadId,
+      reply: result.reply,
+      pendingAction: result.pendingAction ?? null,
+      choices: result.choices ? { options: result.choices } : null,
+      changes: result.changes ?? [],
+    },
   })
 }
 

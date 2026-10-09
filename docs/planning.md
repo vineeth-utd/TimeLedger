@@ -496,7 +496,7 @@ Scope:
 - Mobile responsiveness
 - Streaming responses if appropriate
 
-**Status:** Pending
+**Status:** Implemented as a floating assistant (desktop/tablet right-side panel, mobile full-screen sheet), non-streaming. Manual browser verification pending.
 
 ---
 

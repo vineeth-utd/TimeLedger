@@ -1,5 +1,5 @@
 import { Annotation, END, interrupt, MessagesAnnotation, START, StateGraph } from '@langchain/langgraph'
-import { SystemMessage, ToolMessage } from '@langchain/core/messages'
+import { AIMessage, SystemMessage, ToolMessage } from '@langchain/core/messages'
 import { buildPendingAction, isPendingExpired, toPublicPendingAction } from '@/lib/ai/confirmation'
 import { buildSystemPrompt } from '@/lib/ai/prompt'
 import { fail } from '@/lib/ai/results'
@@ -16,6 +16,7 @@ const AssistantState = Annotation.Root({
 //
 //   agent -> tools -> agent                 (reads, createActivity, updateActivity run directly)
 //   agent -> tools -> confirm -> agent      (a gated tool call: delete, category creation)
+//   agent -> tools -> END                   (presentChoices: ask the user to pick; the turn ends)
 //
 // Confirmation is enforced here, not by the prompt: the tools node never executes a gated tool.
 // It validates the call, builds a server-side display, and stores the frozen args in `pending`.
@@ -78,7 +79,27 @@ export function buildAssistantGraph({ ctx, tools, model, checkpointer }) {
     }
 
     const update = { messages: results }
-    if (actions.length) update.pending = buildPendingAction(ctx, actions)
+    if (actions.length) {
+      update.pending = buildPendingAction(ctx, actions)
+    } else {
+      // presentChoices ends the turn: the question (with its structured options in metadata)
+      // becomes the assistant's final message and the user answers by click or free text.
+      const offered = results
+        .map((message) => {
+          try {
+            return message.name === 'presentChoices' ? JSON.parse(message.content) : null
+          } catch {
+            return null
+          }
+        })
+        .findLast((result) => result?.success)
+      if (offered) {
+        update.messages = [
+          ...results,
+          new AIMessage({ content: offered.question, response_metadata: { choices: offered.options } }),
+        ]
+      }
+    }
     return update
   }
 
@@ -116,7 +137,10 @@ export function buildAssistantGraph({ ctx, tools, model, checkpointer }) {
   }
 
   const routeAfterAgent = (state) => (state.messages[state.messages.length - 1].tool_calls?.length ? 'tools' : END)
-  const routeAfterTools = (state) => (state.pending ? 'confirm' : 'agent')
+  const routeAfterTools = (state) => {
+    if (state.pending) return 'confirm'
+    return state.messages[state.messages.length - 1].getType() === 'ai' ? END : 'agent'
+  }
 
   return new StateGraph(AssistantState)
     .addNode('agent', agentNode)
@@ -124,7 +148,7 @@ export function buildAssistantGraph({ ctx, tools, model, checkpointer }) {
     .addNode('confirm', confirmNode)
     .addEdge(START, 'agent')
     .addConditionalEdges('agent', routeAfterAgent, ['tools', END])
-    .addConditionalEdges('tools', routeAfterTools, ['confirm', 'agent'])
+    .addConditionalEdges('tools', routeAfterTools, ['confirm', 'agent', END])
     .addEdge('confirm', 'agent')
     .compile({ checkpointer })
 }

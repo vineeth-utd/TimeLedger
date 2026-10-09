@@ -236,6 +236,21 @@ Used on the Analytics page to wrap charts with a title and optional filter contr
 
 ---
 
+## Floating Assistant (Phase 10A, Milestone 6)
+
+- A floating "Assistant" launcher is mounted once in the root layout (`AssistantWidget`) and appears on all authenticated pages (hidden on `/login`). There is no Assistant nav item or dedicated page.
+- Desktop/tablet: a compact right-side panel. Mobile: a full-screen sheet. Both render the same state (`useAssistant`).
+- Non-streaming. Uses `POST /api/assistant/chat` and `POST /api/assistant/confirm`; the browser's IANA timezone is sent with every request.
+- Client state persisted in `sessionStorage`: only `threadId`, displayed messages and `pendingAction` (cleared on sign-out). There is no server-side history endpoint.
+- While a confirmation is pending, the input and "New conversation" are disabled until the user Approves or Rejects. The card shows only the server-built `display.summary`. An expired card (`expiresAt`) shows "Dismiss", which submits a reject so the server resolves the thread.
+- Failed chat requests are never retried automatically (an activity may already have been created or updated); the user is told to check Activities. Confirmation requests are never retried automatically. 401 redirects to `/login`; 409 codes clear or restore the card; 429/500 show a dismissible error banner.
+- Assistant replies render safe Markdown (bold, italic, inline code, lists, line breaks; no raw HTML, links or images). User messages stay plain text.
+- Clarification choices (`data.choices`) appear as optional buttons under the latest assistant message; the input stays enabled and typing a reply works as usual. This is separate from the Approve/Reject confirmation card, which blocks the input.
+- When a response reports `data.changes`, the assistant dispatches a `timeledger:data-changed` window event and Dashboard, Activities, Categories and Analytics re-fetch (`useAssistantRefreshKey` added to their existing fetch effects). A failed chat request also triggers a refresh because a step may have been applied.
+- Tool calls/results and internal values (such as `24:00`) are never displayed.
+
+---
+
 ## Page 1: Activities
 
 ### Purpose

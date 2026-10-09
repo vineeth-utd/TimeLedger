@@ -13,6 +13,7 @@ import TodaySummary from '@/components/dashboard/TodaySummary'
 import WeeklyProgress from '@/components/dashboard/WeeklyProgress'
 import TodayTimeline from '@/components/dashboard/TodayTimeline'
 import { addDays, getLocalToday, getWeekStartMonday, formatMinutes } from '@/lib/formatters'
+import useAssistantRefreshKey from '@/lib/useAssistantRefreshKey'
 
 export default function DashboardPage() {
   const [weekStartDate, setWeekStartDate] = useState(() => getWeekStartMonday())
@@ -20,6 +21,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const assistantKey = useAssistantRefreshKey()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editingActivity, setEditingActivity] = useState(null)
@@ -38,7 +40,7 @@ export default function DashboardPage() {
       })
       .catch(() => setError('Network error. Please try again.'))
       .finally(() => setLoading(false))
-  }, [weekStartDate, refreshKey])
+  }, [weekStartDate, refreshKey, assistantKey])
 
   function refresh() {
     setRefreshKey((k) => k + 1)

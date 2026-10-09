@@ -1,6 +1,7 @@
 import { Geist } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
+import AssistantWidget from "@/components/assistant/AssistantWidget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,6 +19,7 @@ export default function RootLayout({ children }) {
       <body className={`${geistSans.variable} min-h-full bg-gray-50 text-gray-900 font-sans`}>
         <Nav />
         <main>{children}</main>
+        <AssistantWidget />
       </body>
     </html>
   );

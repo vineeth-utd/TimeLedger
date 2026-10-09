@@ -38,6 +38,27 @@ function collectToolCalls(messages) {
     })
 }
 
+// Application changes applied during this turn, from successful mutating tool results (never from
+// the model's prose). Lets the client refresh what it displays. Deduplicated by type.
+const MUTATION_TYPES = {
+  createActivity: 'activity_created',
+  updateActivity: 'activity_updated',
+  deleteActivity: 'activity_deleted',
+  createMainCategory: 'category_created',
+  createSubCategory: 'category_created',
+}
+
+function collectChanges(messages) {
+  const types = new Set()
+  for (const call of collectToolCalls(messages)) {
+    if (call.success === true && MUTATION_TYPES[call.name]) types.add(MUTATION_TYPES[call.name])
+  }
+  return [...types].map((type) => ({ type }))
+}
+
+// Structured options from a presentChoices turn (the final message), or null.
+const collectChoices = (message) => message.response_metadata?.choices ?? null
+
 // Tokens the model consumed during this turn (for pacing/diagnostics). Internal only.
 function collectTokenUsage(messages) {
   const lastHumanIndex = messages.findLastIndex((message) => message.getType() === 'human')
@@ -74,6 +95,8 @@ function toTurnResult(state) {
       status: 'needs_confirmation',
       reply: describePendingAction(pendingAction),
       pendingAction,
+      choices: null,
+      changes: collectChanges(state.messages),
       toolCalls: collectToolCalls(state.messages),
       tokensUsed: collectTokenUsage(state.messages),
     }
@@ -83,6 +106,8 @@ function toTurnResult(state) {
     status: 'complete',
     reply: messageText(messages[messages.length - 1]),
     pendingAction: null,
+    choices: collectChoices(messages[messages.length - 1]),
+    changes: collectChanges(messages),
     toolCalls: collectToolCalls(messages),
     tokensUsed: collectTokenUsage(messages),
   }
@@ -93,7 +118,7 @@ async function invokeGraph(graph, input, config) {
     return toTurnResult(await graph.invoke(input, config))
   } catch (error) {
     if (error instanceof GraphRecursionError) {
-      return { status: 'complete', reply: STEP_LIMIT_REPLY, pendingAction: null, toolCalls: [], tokensUsed: 0, stepLimitReached: true }
+      return { status: 'complete', reply: STEP_LIMIT_REPLY, pendingAction: null, choices: null, changes: [{ type: 'unknown' }], toolCalls: [], tokensUsed: 0, stepLimitReached: true }
     }
     throw error
   }
