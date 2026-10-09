@@ -2,6 +2,14 @@ import { ZodError } from 'zod'
 import { ServiceError } from '@/lib/errors'
 import { addDaysToDateString, dateOnlyToString, utcToLocalDateTime } from '@/lib/timezone'
 
+// The model hit its output cap without producing a usable answer or a complete tool call.
+export class OutputTruncatedError extends Error {
+  constructor() {
+    super('The model response was truncated by the output token limit')
+    this.name = 'OutputTruncatedError'
+  }
+}
+
 // ---- Structured results -------------------------------------------------
 
 export function ok(data = {}) {

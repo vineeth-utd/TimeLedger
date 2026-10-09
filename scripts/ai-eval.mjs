@@ -607,6 +607,37 @@ const SCENARIOS = [
       return f
     },
   },
+  // ---- Create vs update (found manually with gpt-oss-120b, reasoningEffort low) ----
+  {
+    id: 33,
+    name: 'add a new activity with the same title as an existing one: creates, never updates',
+    // Found manually: after "What did I do today?", "Add Token Optimization ... from previous end
+    // time to current time" made the model call updateActivity on the earlier "Token Optimization"
+    // activity (extending its end time) instead of creating a new one.
+    async setup({ userId, seed }) {
+      const activity = await createActivity(userId, {
+        title: 'Token Optimization',
+        activityDate: '2026-10-09',
+        startTime: localDateTimeToUtc('2026-10-09', '00:30', TZ).toISOString(),
+        endTime: localDateTimeToUtc('2026-10-09', '00:50', TZ).toISOString(),
+        subCategoryId: seed.subs.Reading,
+      })
+      seed.ids['Token Optimization'] = activity.id
+    },
+    now: new Date('2026-10-09T15:35:00Z'), // Fri 2026-10-09 8:35 AM Phoenix
+    turns: ['What did I do today?', 'Add Token Optimization under Reading from previous end time to current time'],
+    async check({ turns, userId, seed }) {
+      const f = []
+      check(f, callsNamed(turns.slice(1), 'updateActivity').length === 0, 'called updateActivity for an "add" request')
+      check(f, callsNamed(turns.slice(1), 'createActivity').length === 1, 'expected exactly one createActivity call')
+      const original = await row(seed.ids['Token Optimization'])
+      const v = original && localView(original)
+      check(f, v && v.start === '00:30' && v.end === '00:50', `existing activity was modified ${JSON.stringify(v)}`)
+      const rows = await newRows(userId, seed) // excludes seeded rows, including the one from setup
+      check(f, rows.length === 1 && /token optimization/i.test(rows[0].title), `expected one new Token Optimization activity, got ${rows.length}`)
+      return f
+    },
+  },
 ]
 
 // ---- Runner ---------------------------------------------------------------

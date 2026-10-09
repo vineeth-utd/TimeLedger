@@ -30,6 +30,7 @@ export function interpretResponse(status, body) {
     pendingAction: body?.data?.pendingAction ?? null,
     changes: body?.data?.changes ?? [],
     outcome: body?.data?.outcome,
+    retryAfterSeconds: body?.data?.retryAfterSeconds ?? null,
   }
 }
 
@@ -92,6 +93,7 @@ const TEXT = {
     'A previous request in this conversation could not be confirmed, so a new conversation was started. Check your Activities, then send your message again.',
   busy: 'The assistant is busy right now. Please try again in a moment.',
   unavailable: 'The assistant is unavailable right now. Please try again.',
+  incomplete: "The assistant couldn't finish that response. Please try again or rephrase.",
   neutralChatFailure:
     'The assistant could not finish that request. Check your Activities to see whether anything changed before trying again.',
   neutralConfirmFailure: 'The confirmation could not be completed. Please try again.',
@@ -102,6 +104,12 @@ const TEXT = {
 export function describeDecision(pendingAction, decision) {
   const label = decision === 'approve' ? '✓ Approved' : '✗ Rejected'
   return pendingAction.actions.map((action) => ({ role: 'notice', text: `${label}: ${action.display.summary}` }))
+}
+
+// "...busy right now. Try again in about N seconds." when the server passed the provider's hint.
+function busyText(seconds) {
+  if (!seconds) return TEXT.busy
+  return `The assistant is busy right now. Please try again in about ${seconds} second${seconds === 1 ? '' : 's'}.`
 }
 
 export function planResult(result, kind) {
@@ -121,7 +129,12 @@ export function planResult(result, kind) {
     return plan
   }
 
-  const failureReason = result.code === 'RATE_LIMITED' ? TEXT.busy : TEXT.unavailable
+  const failureReason =
+    result.code === 'RATE_LIMITED'
+      ? busyText(result.retryAfterSeconds)
+      : result.code === 'ASSISTANT_INCOMPLETE'
+        ? TEXT.incomplete
+        : TEXT.unavailable
 
   switch (result.code) {
     case 'PENDING_ACTION':

@@ -2,7 +2,7 @@ import { Annotation, END, interrupt, MessagesAnnotation, START, StateGraph } fro
 import { AIMessage, SystemMessage, ToolMessage } from '@langchain/core/messages'
 import { buildPendingAction, isPendingExpired, toPublicPendingAction } from '@/lib/ai/confirmation'
 import { buildSystemPrompt } from '@/lib/ai/prompt'
-import { fail } from '@/lib/ai/results'
+import { fail, OutputTruncatedError } from '@/lib/ai/results'
 import { getToolDefinitions } from '@/lib/ai/tools'
 
 // Conversation messages plus the frozen pending action awaiting user confirmation (or null).
@@ -39,11 +39,26 @@ export function buildAssistantGraph({ ctx, tools, model, checkpointer }) {
   const toolMessage = (call, result) =>
     new ToolMessage({ content: JSON.stringify(result), tool_call_id: call.id, name: call.name })
 
+  // A length-limited response is kept when it still carries a complete tool call or some text;
+  // with neither it would be an empty assistant message, so the turn fails instead (the normal
+  // failure path then reports any earlier changes). Nothing is retried automatically.
+  function assertUsable(response) {
+    if (response.response_metadata?.finish_reason !== 'length') return
+    const hasToolCall = (response.tool_calls?.length ?? 0) > 0
+    const { content } = response
+    const hasText =
+      typeof content === 'string'
+        ? content.trim().length > 0
+        : content.some((block) => block.type === 'text' && block.text?.trim())
+    if (!hasToolCall && !hasText) throw new OutputTruncatedError()
+  }
+
   async function agentNode(state) {
     const response = await getModelWithTools().invoke([
       new SystemMessage(buildSystemPrompt(ctx)),
       ...state.messages,
     ])
+    assertUsable(response)
     return { messages: [response] }
   }
 

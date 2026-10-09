@@ -111,9 +111,9 @@ export const getRecentActivitiesTool = defineTool({
 export const createActivityTool = defineTool({
   name: 'createActivity',
   description:
-    'Create one activity on a single calendar date. startTime/endTime are local HH:mm on activityDate; ' +
-    'endTime may be "24:00" (internal end-of-day value for the first half of a cross-midnight split; ' +
-    'never ask the user for it). Duration is calculated automatically.',
+    'Create a NEW activity (add/log/record) on one calendar date. startTime/endTime are local HH:mm on ' +
+    'activityDate; endTime may be "24:00" (internal end-of-day value for cross-midnight splits; never ask ' +
+    'the user for it). Duration is automatic.',
   schema: z.strictObject({
     title,
     activityDate: dateString,
@@ -156,9 +156,9 @@ const updateActivitySchema = z
 export const updateActivityTool = defineTool({
   name: 'updateActivity',
   description:
-    'Update one exactly identified activity by activityId. Send ONLY the fields that change. Times are local HH:mm ' +
-    '(endTime may be the internal end-of-day value "24:00"); notes may be null/"" to clear. ' +
-    'Does not search for activities.',
+    'Change an EXISTING activity (update/extend/move/rename) by activityId; never use it to add a new activity. ' +
+    'Send ONLY the changed fields. Times are local HH:mm (endTime may be "24:00"); notes null/"" clears. ' +
+    'Does not search.',
   schema: updateActivitySchema,
   async handler(ctx, input) {
     const patch = {}
