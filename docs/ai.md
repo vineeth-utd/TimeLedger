@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-TimeLedger will include a conversational AI Assistant that allows users to interact with the application using natural language instead of manually filling forms for every operation.
+TimeLedger includes a conversational AI Assistant (text-based, implemented) that allows users to interact with the application using natural language instead of manually filling forms for every operation. Voice input and the AI Productivity Coach remain future work (sections 17 and 18).
 
 Example requests:
 
@@ -13,7 +13,7 @@ Example requests:
 - "Delete yesterday's gym activity."
 - "Add Kubernetes study from 8 PM to 9 PM."
 
-The assistant should understand the request, determine which TimeLedger operations are required, call controlled application tools, reason over tool results when necessary, and return a concise response.
+The assistant understands the request, determines which TimeLedger operations are required, calls controlled application tools, reasons over tool results when necessary, and returns a concise response.
 
 The LLM must never access Prisma or the database directly.
 
@@ -23,11 +23,11 @@ All TimeLedger operations must pass through controlled AI tools and the applicat
 
 # 2. Scope
 
-The AI Assistant will be developed in two major phases.
+The AI Assistant is developed in two major phases: Phase 1 (text) is implemented; Phase 2 (voice) is future work.
 
-## Phase 1 — Text-Based Assistant
+## Phase 1 — Text-Based Assistant (implemented)
 
-Phase 1 provides the complete conversational assistant using typed text.
+Phase 1 provides the complete conversational assistant using typed text, delivered as a floating assistant available across the authenticated application (`docs/ui.md`) and the `/api/assistant/chat` and `/api/assistant/confirm` endpoints (`docs/api.md`).
 
 It includes:
 
@@ -43,11 +43,11 @@ It includes:
 - Assistant chat UI
 - Validation, authorization, privacy, and reliability
 
-Detailed implementation milestones are tracked in `planning.md`.
+Detailed implementation milestones and status are tracked in `planning.md`; token and rate-limit work is recorded in `ai_token_optimization.md`.
 
-## Phase 2 — Voice Input
+## Phase 2 — Voice Input (future)
 
-Voice will be added after the text assistant is reliable.
+Voice will be added now that the text assistant is implemented.
 
 ```text
 Voice
@@ -308,7 +308,7 @@ The assistant must not blindly assume UTC for user-relative dates and times.
 
 # 7. Phase 1 Tool Inventory
 
-Initial Phase 1 exposes eight tools.
+Phase 1 exposes eleven tools: eight data tools plus two category-deletion tools and one structured-clarification tool.
 
 ```text
 TimeLedger AI Tools
@@ -325,12 +325,19 @@ TimeLedger AI Tools
 ├── Taxonomy Retrieval
 │   └── getCategories
 │
-└── Taxonomy Mutation
-    ├── createMainCategory
-    └── createSubCategory
+├── Taxonomy Mutation
+│   ├── createMainCategory
+│   ├── createSubCategory
+│   ├── deleteMainCategory
+│   └── deleteSubCategory
+│
+└── Clarification
+    └── presentChoices
 ```
 
-Analytics/coaching tools are outside the initial Phase 1 tool inventory.
+`presentChoices` has no side effects: it lets the model offer 2-10 selectable options. Category deletion is blocked by the existing dependency rules (no cascade). The contracts in sections 8.x cover the original eight data tools; `presentChoices` and the category-deletion tools are described in section 12.1.
+
+Analytics/coaching tools are outside the Phase 1 tool inventory.
 
 ---
 
@@ -934,7 +941,7 @@ Not every write operation requires confirmation.
 
 When the user clearly commands an operation and the target is unambiguous, the original request itself provides authorization.
 
-Initial policy:
+Policy (confirmation is enforced by the workflow; bulk operations are not designed yet):
 
 | Operation | Behavior |
 |---|---|
@@ -945,6 +952,8 @@ Initial policy:
 | Ambiguous category | Ask clarification |
 | Create Main Category | Confirm |
 | Create Sub Category | Confirm |
+| Delete Main Category | Confirm (blocked, with the reason, if dependent data exists) |
+| Delete Sub Category | Confirm (blocked, with the reason, if dependent data exists) |
 | Delete activity | Confirm |
 | Bulk modification | Confirm |
 | Bulk deletion | Confirm |

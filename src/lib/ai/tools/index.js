@@ -15,7 +15,7 @@ import {
   getCategoriesTool,
 } from './categoryTools'
 
-// Milestone 1 tool registry. Each tool: { name, description, schema (Zod), execute(ctx, input) }.
+// TimeLedger AI tool registry. Each tool: { name, description, schema (Zod), execute(ctx, input) }.
 export const aiTools = [
   getCategoriesTool,
   getActivitiesTool,

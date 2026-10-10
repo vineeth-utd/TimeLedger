@@ -85,7 +85,7 @@ Features:
 * Soft deactivation
 * Reactivation
 
-**Status:** Pending (Current APIs should be updated to support the new hierarchy.)
+**Status:** Completed (Main and Sub Category APIs implement the Main Category > Sub Category hierarchy; current behavior is documented in `api.md`.)
 
 ---
 
@@ -414,7 +414,7 @@ Scope:
 - Relative date/time interpretation
 - Multi-step activity operations
 
-**Status:** In progress — implementation done, live behavioral verification pending (Groq daily token quota)
+**Status:** Implemented — deterministic checks pass; targeted live-model regression evaluation pending (optional, Groq quota)
 
 Implemented: `totalMinutes` (service-calculated total across all matches), compact workflow prompt, code-computed
 calendar block (today/yesterday/this & last week/last 7 days), delete intent resolution (confirmation workflow added in
@@ -439,10 +439,10 @@ Scope:
 - Detect when no suitable category exists
 - Suggest new Main Categories/Sub Categories
 
-**Status:** In progress — implemented; deterministic checks pass; live behavioral verification pending (Groq quota)
+**Status:** Implemented — deterministic checks pass; targeted live-model regression evaluation pending (optional, Groq quota)
 
 Implemented: category-resolution rules in the system prompt (clear / explicit / ambiguous / no-match, thread
-taxonomy reuse, text-only proposals — category creation stays unavailable until Milestone 5), `getCategories`
+taxonomy reuse; creating categories was deferred to Milestone 5 and is now available there), `getCategories`
 description update (contract unchanged). Live scenarios #21-#25 in `scripts/ai-eval.mjs` run later together with
 the unresolved Milestone 3 scenarios (one run each, targeted).
 
@@ -469,7 +469,7 @@ Scope:
 - Safe cancellation
 - Handling conversation changes while confirmation is pending
 
-**Status:** In progress — implemented; deterministic checks pass (memory and PostgreSQL checkpointers); live behavioral verification pending (Groq quota)
+**Status:** Implemented — deterministic checks pass (memory and PostgreSQL checkpointers); targeted live-model regression evaluation pending (optional, Groq quota)
 
 Implemented: three-node interrupt workflow (`agent` / `tools` / `confirm`), frozen pending action in graph state,
 server-generated confirmation display, `POST /api/assistant/confirm` (approve/reject by `actionId`), `PENDING_ACTION`
@@ -494,9 +494,11 @@ Scope:
 - Error states
 - Appropriate retry behavior
 - Mobile responsiveness
-- Streaming responses if appropriate
+- Streaming responses if appropriate (not implemented by decision: non-streaming)
 
-**Status:** Implemented as a floating assistant (desktop/tablet right-side panel, mobile full-screen sheet), non-streaming. Manual browser verification pending.
+**Status:** Complete. Implemented as a floating assistant (desktop/tablet right-side panel, mobile full-screen sheet), non-streaming, and manually verified in the browser. Refinements made after manual testing: safe Markdown replies, structured clarification choices, mutation `changes` that refresh the visible page, resolved-confirmation records, authoritative partial-success/failure outcomes, no database ids in replies, and category deletion (confirmed, dependency-checked). Token and rate-limit optimization is recorded in `docs/ai_token_optimization.md`.
+
+**Remaining optional live-model regression evaluation (not part of implementation/UI completion):** a single targeted pass of `scripts/ai-eval.mjs` over the scenarios not yet run against Groq (M3 #4, #6, #9-#13, #16; M4 #21-#25; M5 #13, #23, #26-#28; M6 #29-#33), to be run only when quota is available and approved, fixing and re-running only failures.
 
 ---
 
