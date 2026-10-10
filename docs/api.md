@@ -644,29 +644,48 @@ Nothing is retried automatically, and a failed chat request must not be resent w
 
 ---
 
-## Planned Voice Transcription Endpoint (Phase 10B)
+## POST /api/assistant/transcribe
 
-Phase 10B will add an authenticated speech-to-text endpoint for transient voice transcription.
+Authenticated speech-to-text endpoint (Phase 10B, Milestone 1). Converts one recording to text and nothing else.
 
-Planned responsibility:
+It does not execute assistant tools, call LangGraph, modify TimeLedger data, submit anything to `/api/assistant/chat`, or persist audio. The audio exists only in memory for the duration of the request. The only user-related input is the authenticated session; no `userId`, thread or timezone is accepted.
 
-```text
-audio
-  ↓
-speech-to-text
-  ↓
-transcribed text
+### Request
+
+`multipart/form-data` with a single field:
+
+* `audio`: the recorded file (required).
+
+Accepted MIME types (parameters such as `;codecs=opus` are ignored): `audio/webm`, `video/webm`, `audio/ogg`, `audio/mp4`, `video/mp4`, `audio/x-m4a`, `audio/m4a`, `audio/mpeg`, `audio/mp3`, `audio/wav`, `audio/x-wav`, `audio/wave`, `audio/flac`, `audio/x-flac`. This covers MediaRecorder output on Chrome/Edge/Android (webm/opus), Firefox (ogg or webm/opus) and Safari/iOS (mp4/AAC). A lightweight container-signature check rejects mislabeled or garbage uploads; it does not prove the audio is decodable (the provider decides that).
+
+Limit: 2 MB per recording (`MAX_AUDIO_BYTES`). Duration is not parsed server-side; the size cap bounds it and the recording UI (Milestone 2) is expected to stop recording at about 60 seconds.
+
+Language is not a request field; the provider auto-detects it.
+
+### Success Response (200)
+
+```json
+{ "success": true, "data": { "text": "log two hours of deep work this morning" } }
 ```
 
-The endpoint will return transcription text only.
+### Error Responses
 
-It will not:
-- execute assistant tools;
-- modify TimeLedger data;
-- automatically submit the transcription to /api/assistant/chat;
-- persist recorded audio.
+All errors: `{ "success": false, "code": "…", "message": "…" }` (401 has no `code`).
 
-The exact route, multipart/request format, supported audio types, size/duration limits, provider errors and response contract will be documented when Milestone 1 is implemented.
+| Status | Code | Cause |
+|---|---|---|
+| 401 | none (`Unauthorized`) | Not signed in |
+| 400 | `INVALID_AUDIO` | Not multipart, missing/non-file `audio`, or empty recording |
+| 413 | `AUDIO_TOO_LARGE` | Over 2 MB |
+| 415 | `UNSUPPORTED_AUDIO_FORMAT` | MIME type not allowed or content signature does not match it |
+| 422 | `INVALID_AUDIO` | Provider could not read the audio |
+| 422 | `NO_SPEECH` | Transcription was empty |
+| 429 | `RATE_LIMITED` | Provider rate limit; `data.retryAfterSeconds` and `Retry-After` header when provided |
+| 504 | `TRANSCRIPTION_TIMEOUT` | Provider took longer than 25 seconds |
+| 502 | `TRANSCRIPTION_FAILED` | Other provider failure |
+| 500 | `TRANSCRIPTION_UNAVAILABLE` | `GROQ_API_KEY` not configured |
+
+Nothing is retried automatically. Provider error details are logged server-side only; audio and transcripts are never logged.
 
 ---
 

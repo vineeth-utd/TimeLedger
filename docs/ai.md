@@ -1398,6 +1398,8 @@ The initial implementation will evaluate Groq-hosted Whisper, with Whisper Large
 
 Provider-specific speech-to-text code should remain isolated so the transcription provider/model can be changed without affecting the existing assistant architecture.
 
+**Implemented (Milestone 1):** `src/lib/stt/groq.js` is the only provider-specific module. It calls Groq's OpenAI-compatible `/audio/transcriptions` endpoint with plain `fetch` + `FormData` (no SDK), using `GROQ_API_KEY` and `STT_MODEL` (default `whisper-large-v3-turbo`, independent of `AI_MODEL`). Validation lives in `src/lib/stt/audio.js` (2 MB cap, MIME allowlist, lightweight container-signature check) and the endpoint contract is in `docs/api.md`. Groq free-tier limits for both Whisper models are 20 requests/minute, 2,000 requests/day, 7,200 audio-seconds/hour and 28,800 audio-seconds/day, with a 10-second billing minimum per request. Whisper may hallucinate short phrases on silence, which the mandatory review-before-send step covers.
+
 ## 18.4 Language
 
 Initial testing focuses on English.
@@ -1405,6 +1407,8 @@ Initial testing focuses on English.
 The transcription layer should remain language-agnostic where practical and should not unnecessarily restrict the speech-to-text model's multilingual capabilities.
 
 No language-selection UI is required initially.
+
+The language is auto-detected by the provider: the endpoint does not accept a language field and no language env var exists. Adding one later is local to `src/lib/stt/groq.js`.
 
 ## 18.5 Privacy and Audio Lifecycle
 

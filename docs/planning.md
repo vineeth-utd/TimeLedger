@@ -573,7 +573,7 @@ Scope:
 - Do not execute assistant tools.
 - Do not persist audio.
 
-**Status:** Not started
+**Status:** Implemented — deterministic checks pass (`node scripts/stt-check.mjs`, lint, build, unauthenticated 401); live transcription verification pending (real-audio test to be approved separately)
 
 ---
 
