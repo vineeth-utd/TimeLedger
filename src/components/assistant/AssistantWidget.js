@@ -1,10 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Sparkles, SquarePen, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { useAssistant } from '@/components/assistant/useAssistant'
+import { useVoiceRecorder } from '@/components/assistant/useVoiceRecorder'
+import { appendToDraft } from '@/lib/voiceRecorder'
 import ChatMessage, { ThinkingIndicator } from '@/components/assistant/ChatMessage'
 import ConfirmationCard from '@/components/assistant/ConfirmationCard'
 import ChatInput from '@/components/assistant/ChatInput'
@@ -26,6 +28,16 @@ export default function AssistantWidget() {
   const assistant = useAssistant()
   const { clearForSignOut } = assistant
   const inputRef = useRef(null)
+  // Transcription only fills the editable draft; the user reviews it and presses Send.
+  // Focus and caret are restored by the effect below once the textarea is mounted again.
+  const [transcriptAdded, setTranscriptAdded] = useState(false)
+  const handleTranscript = useCallback((text) => {
+    setDraft((current) => appendToDraft(current, text))
+    setTranscriptAdded(true)
+  }, [])
+  const voice = useVoiceRecorder({ onTranscript: handleTranscript })
+  const cancelVoice = voice.cancel
+  const voiceBusy = voice.state !== 'idle'
   const endRef = useRef(null)
 
   useEffect(() => {
@@ -47,6 +59,7 @@ export default function AssistantWidget() {
       if (!signedIn) {
         setOpen(false)
         setDraft('')
+        cancelVoice()
         clearForSignOut()
       }
     })
@@ -54,7 +67,7 @@ export default function AssistantWidget() {
       ignore = true
       subscription.unsubscribe()
     }
-  }, [clearForSignOut])
+  }, [clearForSignOut, cancelVoice])
 
   const { messages, status, pendingAction, error } = assistant
   useEffect(() => {
@@ -64,23 +77,49 @@ export default function AssistantWidget() {
   useEffect(() => {
     if (!open) return
     function onKeyDown(e) {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') {
+        cancelVoice()
+        setOpen(false)
+      }
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [open])
+  }, [open, cancelVoice])
 
+  // Also runs when voice returns to idle: the textarea is unmounted while the voice bar shows.
   useEffect(() => {
-    if (open && !pendingAction) inputRef.current?.focus()
-  }, [open, pendingAction, status])
+    const input = inputRef.current
+    if (!open || pendingAction || voiceBusy || !input) return
+    input.focus()
+    input.setSelectionRange(input.value.length, input.value.length)
+  }, [open, pendingAction, status, voiceBusy])
 
   if (pathname === '/login' || !isAuthenticated) return null
 
   const busy = status !== 'idle'
   const locked = busy || Boolean(pendingAction)
 
+  const announcement = {
+    requesting: 'Waiting for microphone permission',
+    recording: 'Recording',
+    stopping: 'Transcribing',
+    transcribing: 'Transcribing',
+    idle: transcriptAdded ? 'Transcription added to the message box. Review it, then press Send.' : '',
+  }[voice.state]
+
+  function changeDraft(value) {
+    setTranscriptAdded(false)
+    setDraft(value)
+  }
+
+  function startVoice() {
+    setTranscriptAdded(false)
+    voice.start()
+  }
+
   async function submit() {
     const text = draft
+    setTranscriptAdded(false)
     setDraft('')
     const sent = await assistant.send(text)
     if (!sent) setDraft(text)
@@ -118,7 +157,7 @@ export default function AssistantWidget() {
             <button
               type="button"
               onClick={assistant.newConversation}
-              disabled={locked}
+              disabled={locked || voiceBusy}
               aria-label="New conversation"
               title={pendingAction ? 'Approve or reject the pending request first' : 'New conversation'}
               className="p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent"
@@ -127,7 +166,10 @@ export default function AssistantWidget() {
             </button>
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                cancelVoice()
+                setOpen(false)
+              }}
               aria-label="Close assistant"
               className="p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100"
             >
@@ -150,11 +192,12 @@ export default function AssistantWidget() {
                     <button
                       key={suggestion}
                       type="button"
+                      disabled={voiceBusy}
                       onClick={() => {
                         setDraft(suggestion)
                         inputRef.current?.focus()
                       }}
-                      className="text-left text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50"
+                      className="text-left text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 disabled:opacity-50"
                     >
                       {suggestion}
                     </button>
@@ -172,7 +215,7 @@ export default function AssistantWidget() {
                       role={message.role}
                       text={message.text}
                       choices={offerChoices ? message.choices : undefined}
-                      choicesDisabled={locked}
+                      choicesDisabled={locked || voiceBusy}
                       onChoose={assistant.send}
                     />
                   )
@@ -190,18 +233,21 @@ export default function AssistantWidget() {
             <div ref={endRef} />
           </div>
 
-          {error && (
-            <div className="px-3 pb-2">
-              <ErrorBanner message={error} onDismiss={assistant.dismissError} />
+          {(error || voice.error) && (
+            <div className="px-3 pb-2 space-y-2">
+              {error && <ErrorBanner message={error} onDismiss={assistant.dismissError} />}
+              {voice.error && <ErrorBanner message={voice.error} onDismiss={voice.dismissError} />}
             </div>
           )}
 
           <ChatInput
             ref={inputRef}
             value={draft}
-            onChange={setDraft}
+            onChange={changeDraft}
             onSubmit={submit}
             disabled={locked}
+            voice={{ ...voice, start: startVoice }}
+            announcement={announcement}
             placeholder={pendingAction ? 'Approve or reject the request above' : 'Message the assistant'}
           />
         </section>

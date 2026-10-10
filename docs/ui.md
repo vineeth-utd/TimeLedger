@@ -11,6 +11,8 @@ The UI should support:
 3. Daily and weekly time review
 4. Progress tracking against weekly targets
 5. Simple analytics and comparisons
+6. Conversational activity management through the AI Assistant
+7. Voice-assisted message composition (Phase 10B)
 
 The UI should remain clean, responsive, and easy to use on desktop and mobile.
 
@@ -250,6 +252,77 @@ Used on the Analytics page to wrap charts with a title and optional filter contr
 - UI state after a failure comes only from the server's `changes`, `outcome` and `code` (`planResult` in `src/lib/assistantClient.js`), never from reply text. `applied`: refresh the page, clear any card and show what definitely changed plus that the assistant could not finish. `none`: show an error stating no changes were made. `unknown`: refresh, clear the card, start a new thread and tell the user to check Activities. A claimed confirmation never shows active Approve/Reject again. If the server never answered (network failure), nothing is assumed: chat shows a neutral error and a confirmation card stays so the user can retry by hand; the server's claim keeps that safe.
 - After Approve/Reject a compact record stays in the conversation, built from the server's confirmation summary: `✓ Approved: ...` / `✗ Rejected: ...` (only when the server resolved the decision).
 - Tool calls/results and internal values (such as `24:00` or database ids) are never displayed.
+
+---
+
+### Voice Input (Phase 10B — Milestones 2-3 implemented)
+
+Voice input extends the existing assistant input rather than introducing a separate voice interface.
+
+#### Interaction
+
+1. The user taps the microphone control to start recording.
+2. The UI clearly indicates that recording is active.
+3. The user taps again to stop recording.
+4. The UI enters a transcribing state.
+5. The returned transcription is placed into the existing assistant text input.
+6. The user can review or edit the transcription.
+7. The user explicitly presses Send.
+
+Voice transcription must never automatically submit an assistant message in the initial implementation.
+
+#### As Built (Milestone 2)
+
+- A microphone button sits left of the text field in `ChatInput` (desktop panel and mobile sheet). It is **hidden** when the browser lacks `MediaRecorder`/`getUserMedia` (including non-HTTPS contexts) and disabled whenever the normal input is disabled.
+- While recording or transcribing, a status bar replaces the text field and Send: Cancel, `Recording 0:12 / 1:00`, Stop (or `Transcribing…` with Cancel).
+- Recording auto-stops at **60 seconds** and transcribes what was recorded. Recordings under 0.5 s or about 1 KB are discarded locally ("too short") without calling the API.
+- The recorder (`useVoiceRecorder`, native `MediaRecorder`) prefers `audio/webm;codecs=opus`, then `audio/mp4` (older Safari/iOS), then `audio/ogg;codecs=opus`, then the browser default. The upload is sent to `POST /api/assistant/transcribe` only.
+- A successful transcription is **appended to the existing editable draft** (`setDraft` via `appendToDraft`, capped at 4000 characters) and the input is focused. It is not a chat message, does not call `/api/assistant/chat`, and is never submitted automatically; the user reviews/edits it and presses Send.
+- Microphone tracks are stopped as soon as recording ends. Cancel, closing the panel (including Escape), sign-out, `pagehide` and unmount stop the recorder, release the microphone, abort any in-flight transcription and discard the audio. There is intentionally no automatic cancel on `visibilitychange`.
+- Once text is in the draft it is indistinguishable from typed text: Send, Enter and Shift+Enter use the normal path, and no voice metadata is stored or sent. Transcription appends to the draft (existing typed text is kept; a failed transcription never changes it) and an unsent draft survives "New conversation" and panel close/reopen but, like typed drafts, not a full reload.
+- When voice returns to idle (transcript ready, cancelled or failed) the textarea is focused with the caret at the end (iOS may not raise the keyboard after the async step). While voice is recording or transcribing, clarification choices, "New conversation" and the suggestion chips are disabled so nothing can be sent or replaced mid-dictation.
+- Accessibility: a persistent screen-reader-only live region announces "Waiting for microphone permission", "Recording", "Transcribing" and "Transcription added to the message box. Review it, then press Send." (cleared on edit, Send or a new recording). The Stop button takes keyboard focus when recording starts.
+- Voice errors (permission denied, no microphone, microphone in use, no speech, rate limit with retry seconds, network/server failures) appear in the existing error banner area; nothing is retried automatically. A 401 redirects to `/login`.
+
+#### Voice States
+
+The UI should support:
+
+- Idle
+- Requesting microphone permission
+- Recording
+- Stopping
+- Transcribing
+- Transcription ready for review
+- Permission denied
+- Recording/transcription error
+
+The user should be able to cancel an active recording without submitting audio for transcription.
+
+#### Responsive Behavior
+
+The same voice workflow should work in:
+
+- the desktop/tablet floating assistant panel;
+- the mobile full-screen assistant.
+
+Tap-to-start / tap-to-stop is the initial interaction on both desktop and mobile.
+
+The microphone control should be disabled whenever the normal assistant input is disabled, including while a confirmation action is pending.
+
+#### Review and Safety
+
+The transcription is draft input.
+
+It is not a user message and does not enter the assistant conversation or LangGraph workflow until the user explicitly presses Send.
+
+This gives the user an opportunity to correct speech-recognition errors, especially dates, times, titles, and category names.
+
+#### Audio
+
+Recorded audio is transient.
+
+It is not displayed as a conversation message and is not persisted or logged by TimeLedger. The transcription itself is only draft text until the user presses Send; after that it is a normal user message, stored like any typed message.
 
 ---
 

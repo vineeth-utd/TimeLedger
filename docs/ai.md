@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-TimeLedger includes a conversational AI Assistant (text-based, implemented) that allows users to interact with the application using natural language instead of manually filling forms for every operation. Voice input and the AI Productivity Coach remain future work (sections 17 and 18).
+TimeLedger includes a conversational AI Assistant (text-based, implemented) that allows users to interact with the application using natural language instead of manually filling forms for every operation. Voice input is the next planned phase, while the AI Productivity Coach remains future work (sections 17 and 18).
 
 Example requests:
 
@@ -23,7 +23,7 @@ All TimeLedger operations must pass through controlled AI tools and the applicat
 
 # 2. Scope
 
-The AI Assistant is developed in two major phases: Phase 1 (text) is implemented; Phase 2 (voice) is future work.
+The AI Assistant is developed in two major phases: Phase 1 (text) is implemented; Phase 2 (voice) is planned next.
 
 ## Phase 1 — Text-Based Assistant (implemented)
 
@@ -45,23 +45,29 @@ It includes:
 
 Detailed implementation milestones and status are tracked in `planning.md`; token and rate-limit work is recorded in `ai_token_optimization.md`.
 
-## Phase 2 — Voice Input (future)
+## Phase 2 — Voice Input (planned)
 
-Voice will be added now that the text assistant is implemented.
+Phase 2 adds speech-to-text as an additional input method for the existing TimeLedger Assistant.
 
 ```text
 Voice
   ↓
+Browser audio recording
+  ↓
 Speech-to-text
+  ↓
+Review / edit transcription
   ↓
 Existing AI Assistant
   ↓
 Existing LangGraph + Tool Pipeline
 ```
 
-Voice is another input method, not a separate agent.
+Voice is an input adapter, not a separate agent. It reuses the existing conversation, LangGraph workflow, tools, confirmation rules, authentication, and business logic.
 
-Detailed voice architecture will be designed when Phase 2 begins.
+The initial workflow requires the user to review the transcription and explicitly send it before any assistant operation can run.
+
+Detailed architecture and privacy rules are defined in Section 18. Implementation milestones are tracked in `docs/planning.md`.
 
 ---
 
@@ -1338,36 +1344,107 @@ The Analytics Engine remains a separate controlled application capability.
 
 ---
 
-# 18. Future — Voice Input
+# 18. Phase 2 — Voice Input
 
-Voice is intentionally deferred until the text assistant is stable.
+Voice input extends the existing TimeLedger Assistant with speech-to-text. It does not introduce a separate agent, tool set, conversation model, or execution pipeline.
 
-The architectural requirement is:
+## 18.1 Architecture
 
 ```text
-                Typed text
-                    │
-                    ▼
-              AI Assistant
-                    ▲
-                    │
-Voice → Speech-to-text
+User
+  ↓
+Tap microphone
+  ↓
+Browser audio recording
+  ↓
+POST /api/assistant/transcribe
+  ↓
+Speech-to-text provider
+  ↓
+Transcribed text
+  ↓
+Review / edit in existing assistant input
+  ↓
+Explicit Send
+  ↓
+POST /api/assistant/chat
+  ↓
+Existing LangGraph Assistant
+  ↓
+Existing TimeLedger Tools
 ```
 
-Speech-to-text may use Whisper or another appropriate transcription model.
+The transcription endpoint is responsible only for converting audio into text. It must never execute TimeLedger tools or modify application data.
 
-The resulting transcription enters the same assistant pipeline.
+## 18.2 Initial Interaction Model
 
-The following remain unchanged:
+The initial voice workflow is:
 
+1. User taps the microphone control to start recording.
+2. The UI clearly indicates that recording is active.
+3. User taps again to stop recording.
+4. The completed recording is sent for transcription.
+5. The returned transcription is placed into the existing assistant text input.
+6. The user may review or edit the transcription.
+7. The user explicitly presses Send.
+
+Transcription must never automatically submit a message in the initial implementation.
+
+Once the user presses Send, the text follows the normal chat path; the assistant, thread and checkpoints carry no voice-specific metadata.
+
+This keeps speech recognition separate from application execution and gives the user an opportunity to correct transcription errors before they reach the assistant.
+
+## 18.3 Speech-to-Text Provider
+
+The initial implementation will evaluate Groq-hosted Whisper, with Whisper Large V3 Turbo as the preferred starting model subject to implementation-time verification and provider availability.
+
+Provider-specific speech-to-text code should remain isolated so the transcription provider/model can be changed without affecting the existing assistant architecture.
+
+**Implemented (Milestone 1):** `src/lib/stt/groq.js` is the only provider-specific module. It calls Groq's OpenAI-compatible `/audio/transcriptions` endpoint with plain `fetch` + `FormData` (no SDK), using `GROQ_API_KEY` and `STT_MODEL` (default `whisper-large-v3-turbo`, independent of `AI_MODEL`). Validation lives in `src/lib/stt/audio.js` (2 MB cap, MIME allowlist, lightweight container-signature check) and the endpoint contract is in `docs/api.md`. Groq free-tier limits for both Whisper models are 20 requests/minute, 2,000 requests/day, 7,200 audio-seconds/hour and 28,800 audio-seconds/day, with a 10-second billing minimum per request. Whisper may hallucinate short phrases on silence, which the mandatory review-before-send step covers.
+
+## 18.4 Language
+
+Initial testing focuses on English.
+
+The transcription layer should remain language-agnostic where practical and should not unnecessarily restrict the speech-to-text model's multilingual capabilities.
+
+No language-selection UI is required initially.
+
+The language is auto-detected by the provider: the endpoint does not accept a language field and no language env var exists. Adding one later is local to `src/lib/stt/groq.js`.
+
+## 18.5 Privacy and Audio Lifecycle
+
+Audio is transient.
+- TimeLedger must not persist recordings in PostgreSQL or Supabase Storage.
+- Audio exists only as needed to complete the current transcription request.
+- The application does not maintain an audio history.
+- The speech-to-text layer (`/api/assistant/transcribe`, `src/lib/stt`) neither persists nor logs audio or transcription text; it logs only provider status and error text.
+- The transcription is not sent to the existing assistant until the user explicitly sends the reviewed text. After Send, that reviewed text is an ordinary user message and may be persisted in the existing conversation/checkpoint exactly like typed text; no voice marker is stored.
+- Existing authenticated-user isolation continues to apply.
+
+## 18.6 Existing Assistant Boundaries
+
+After the user sends the reviewed transcription, all existing assistant behavior remains unchanged:
 - LangGraph workflow
 - TimeLedger tools
-- Authentication
-- Confirmation rules
-- Validation
-- Business logic
+- Authentication and user isolation
+- Clarification handling
+- Confirmation-gated actions
+- Validation and ownership checks
+- Partial-success/failure handling
+- Conversation state
 
-Voice adds input convenience, not a second agent architecture.
+Voice therefore adds input convenience rather than a second assistant architecture.
+
+## 18.7 Initial Out of Scope
+
+The initial voice phase does not include:
+- Automatic submission after transcription
+- Always-listening or wake-word behavior
+- Real-time/streaming transcription
+- Assistant voice responses or text-to-speech
+- Persistent audio storage
+- A separate voice agent
 
 ---
 
