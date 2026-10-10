@@ -57,6 +57,19 @@ The application is designed with a strong focus on fast activity logging, meanin
 - Average Session Duration
 - Longest Session
 
+### AI Assistant
+
+- Conversational activity management using natural language
+- Create, update, find, and delete activities through chat
+- Intelligent Main Category and Sub Category resolution
+- Create and safely delete categories through conversational workflows
+- Clarification choices for ambiguous requests
+- Explicit confirmation before destructive or category-management actions
+- Multi-step tool-calling workflows
+- Floating assistant available across desktop and mobile
+- Automatic page refresh after successful assistant changes
+- Timezone-aware relative date and time interpretation
+
 ### Authentication
 
 - Google Sign-In with Supabase Auth
@@ -85,6 +98,13 @@ The application is designed with a strong focus on fast activity logging, meanin
 
 - PostgreSQL (Supabase)
 
+### AI
+
+- Groq (configurable model, GPT-OSS by default)
+- LangGraph (orchestration, confirmations, PostgreSQL-backed conversation state)
+- LangChain
+- Zod (tool input validation)
+
 ### Authentication
 
 - Supabase Auth
@@ -101,19 +121,33 @@ The application is designed with a strong focus on fast activity logging, meanin
 
 ```
 Browser
-    │
-    ▼
-Next.js (App Router)
-    │
-    ├── React UI
-    ├── API Routes
-    │
-    ▼
-Prisma ORM
-    │
-    ▼
+   │
+   ▼
+Next.js
+   ├── React UI
+   ├── REST APIs ────────────────┐
+   │                             │
+   └── AI Assistant              │
+        │                        │
+        ▼                        │
+      LangGraph                  │
+        │                        │
+        ├── Groq LLM             │
+        │                        │
+        ▼                        │
+   Controlled Tools              │
+        │                        │
+        ▼                        │
+   Shared Services ◄─────────────┘
+        │
+        ▼
+      Prisma
+        │
+        ▼
 Supabase PostgreSQL
 ```
+
+The AI model never accesses Prisma or the database directly, and it never supplies a trusted user identity: the user comes from the authenticated server-side session, and tool inputs cannot contain a `userId`. LangGraph orchestrates controlled TimeLedger tools, which reuse the same authenticated service layer as the application's APIs. Sensitive actions (deletions and category creation) run only after the user approves a server-built confirmation.
 
 ```
 Authentication
@@ -141,7 +175,7 @@ time-ledger/
 │
 ├── src/
 │   ├── app/
-│   │   ├── api/
+│   │   ├── api/              # REST APIs and assistant endpoints
 │   │   ├── analytics/
 │   │   ├── activities/
 │   │   ├── auth/
@@ -151,11 +185,14 @@ time-ledger/
 │   │
 │   ├── components/
 │   │   ├── activities/
+│   │   ├── assistant/        # Floating AI Assistant UI
 │   │   ├── categories/
 │   │   ├── dashboard/
 │   │   └── ...
 │   │
 │   ├── lib/
+│   │   ├── ai/               # Assistant: LangGraph, controlled tools, prompt, confirmations
+│   │   ├── services/         # Shared business logic (REST APIs and AI tools)
 │   │   ├── auth.js
 │   │   ├── prisma.js
 │   │   ├── formatters.js
@@ -163,10 +200,14 @@ time-ledger/
 │   │
 │   └── proxy.js
 │
+├── scripts/                  # AI setup, evaluation and token-budget tooling
+│
 ├── docs/
 │   ├── database.md
 │   ├── api.md
 │   ├── ui.md
+│   ├── ai.md
+│   ├── ai_token_optimization.md
 │   ├── planning.md
 │   ├── auth_phase_plan.md
 │   └── ui_refinement_plan.md
@@ -174,7 +215,7 @@ time-ledger/
 └── README.md
 ```
 
-The project follows a feature-oriented structure using the Next.js App Router. Shared components, utilities, authentication, and API routes are organized separately to keep the codebase modular and maintainable.
+The project follows a feature-oriented structure using the Next.js App Router. Shared components, utilities, authentication, services, the AI Assistant, and API routes are organized separately to keep the codebase modular and maintainable.
 
 ---
 
@@ -210,7 +251,7 @@ npm install
 
 ### Environment Variables
 
-Create a `.env` file in the project root.
+Create a `.env` file in the project root (see `.env.example`).
 
 Required variables:
 
@@ -218,6 +259,7 @@ Required variables:
 DATABASE_URL=
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+GROQ_API_KEY=
 ```
 
 Where:
@@ -225,6 +267,23 @@ Where:
 - `DATABASE_URL` → Supabase Session Pooler connection string
 - `NEXT_PUBLIC_SUPABASE_URL` → Supabase Project URL
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` → Supabase Publishable (Anon) Key
+- `GROQ_API_KEY` → Groq API key used by the AI Assistant (server-only; never exposed to the browser)
+
+Optional AI tuning and debug variables (all can be omitted):
+
+```env
+AI_MODEL=
+AI_MAX_OUTPUT_TOKENS=
+AI_REASONING_EFFORT=
+AI_CHECKPOINTER=
+AI_LOG_USAGE=
+```
+
+- `AI_MODEL` → Groq model used by the assistant (default `openai/gpt-oss-120b`)
+- `AI_MAX_OUTPUT_TOKENS` → Maximum output tokens per model call (default `512`)
+- `AI_REASONING_EFFORT` → `low`, `medium` or `high` (default `low`)
+- `AI_CHECKPOINTER` → set to `memory` to keep conversation state in-process (local testing only); by default state is stored in PostgreSQL
+- `AI_LOG_USAGE` → set to `true` to log per-call token usage and rate-limit headers while debugging (no message content)
 
 ---
 
@@ -240,6 +299,12 @@ Apply migrations:
 
 ```bash
 npx prisma migrate dev
+```
+
+Create the AI Assistant's conversation-state tables (one-time, idempotent):
+
+```bash
+node --env-file=.env scripts/ai-setup-checkpointer.mjs
 ```
 
 ---
@@ -279,10 +344,12 @@ Detailed design and implementation documents are available in the `docs/` direct
 
 | Document | Description |
 |----------|-------------|
-| `planning.md` | Original project planning and overall roadmap |
+| `planning.md` | Project planning, roadmap, and milestone status (including the AI Assistant phases) |
 | `database.md` | Database schema, relationships, and business rules |
 | `api.md` | REST API design and endpoint specifications |
-| `ui.md` | User interface design and application workflows |
+| `ui.md` | User interface design, application workflows, and the floating AI Assistant |
+| `ai.md` | AI Assistant architecture, controlled tools, confirmations, and safety boundaries |
+| `ai_token_optimization.md` | Token and rate-limit measurements and optimization decisions for the assistant |
 | `auth_phase_plan.md` | Authentication implementation plan and design decisions |
 | `ui_refinement_plan.md` | UI refinement history and implementation details |
 
@@ -301,6 +368,7 @@ TimeLedger is a fully functional, authenticated personal productivity applicatio
 - Categories
 - Weekly Targets
 - Analytics
+- Text-based AI Assistant
 
 ### Authentication & Security
 
@@ -308,6 +376,12 @@ TimeLedger is a fully functional, authenticated personal productivity applicatio
 - User-scoped data ownership
 - Protected pages
 - Protected APIs
+
+### AI Assistant
+
+- Natural-language activity and category management
+- Confirmation required for sensitive actions
+- Server-side, user-scoped tools (the LLM never accesses the database)
 
 ### User Experience
 
@@ -334,9 +408,13 @@ Future enhancements include:
 
 ### Analytics
 
-- LLM-powered productivity insights
 - Advanced analytics
 - Better trend analysis
+
+### AI
+
+- Voice input (Speech-to-Text) for the assistant
+- AI Productivity Coach and advanced AI analytics
 
 ### Integrations
 
@@ -355,7 +433,7 @@ Future enhancements include:
 
 - Email and Password authentication
 
-For the complete roadmap, refer to **Future Extensions** in `docs/ui.md`.
+For the complete roadmap, refer to **Future Extensions** in `docs/ui.md` and the AI phases in `docs/planning.md`.
 
 ---
 

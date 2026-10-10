@@ -115,18 +115,32 @@ Support both desktop and mobile browsers.
 
 Do not implement unless explicitly requested:
 
-* Authentication
-* User management
 * Notifications
 * Background jobs
 * Offline support
 * Calendar integrations
-* AI features
 * Theme customization
 * Complex animations
 * Over-engineered state management
+* Future AI/voice/productivity-coach functionality beyond the currently approved milestone
 
 ---
+
+# Documentation Sources of Truth
+
+Use project documentation according to the area being modified:
+
+* `docs/database.md` — database schema, relationships, and database business rules
+* `docs/api.md` — REST API contracts and backend behavior
+* `docs/ui.md` — UI behavior and application workflows
+* `docs/ai.md` — AI Assistant architecture, tool contracts, agent behavior, confirmation rules, privacy, and AI safety boundaries
+* `docs/planning.md` — project roadmap, implementation phases, milestone scope, and milestone status
+* `docs/auth_phase_plan.md` — authentication implementation history and design decisions
+* `docs/ui_refinement_plan.md` — UI refinement history and implementation decisions
+
+Read only the documentation relevant to the current task rather than loading all project documentation unnecessarily.
+
+===
 
 # Claude Workflow
 
@@ -153,6 +167,28 @@ Before implementing any feature:
 * Follow the API contracts in `docs/api.md`.
 * Follow the category filtering rules in `docs/api.md` and `docs/ui.md`.
 * If implementation differs from the documentation, explain why before making the change.
+
+---
+
+## AI Assistant Development
+
+When working on the AI Assistant:
+
+* Follow `docs/ai.md` as the source of truth for AI architecture, tool boundaries, agent behavior, confirmation rules, and safety requirements.
+* Follow `docs/planning.md` for the currently approved AI milestone and implementation order.
+* Before implementing a milestone, inspect only the existing code required to understand and implement that milestone.
+* Reuse existing TimeLedger application/service/business logic wherever possible.
+* Do not duplicate existing activity, category, authorization, or validation logic inside AI tools.
+* The LLM must never access Prisma or the database directly.
+* AI tool schemas must never accept `userId`; user identity must come from authenticated server-side context.
+* All tool operations must remain scoped to the authenticated user.
+* LangGraph is responsible for orchestration, state, branching, interrupts, and resumption. TimeLedger business logic must remain outside the graph.
+* Treat tool inputs and outputs as controlled application contracts rather than exposing raw database objects.
+* Implement only the currently approved AI milestone.
+* Do not implement future voice, analytics, or Productivity Coach functionality while working on the text assistant unless explicitly requested.
+* If the existing codebase requires a deviation from `docs/ai.md`, explain the conflict and proposed change before implementation.
+
+---
 
 ## Development Philosophy
 

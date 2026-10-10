@@ -13,6 +13,7 @@ import {
   LineChart,
   Line,
 } from 'recharts'
+import useAssistantRefreshKey from '@/lib/useAssistantRefreshKey'
 import PageHeader from '@/components/PageHeader'
 import DateRangeFilter from '@/components/DateRangeFilter'
 import SummaryCard from '@/components/SummaryCard'
@@ -140,6 +141,7 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(false)
   const [prevLoading, setPrevLoading] = useState(false)
   const [error, setError] = useState(null)
+  const assistantKey = useAssistantRefreshKey()
 
   useEffect(() => {
     if (!dateRange) return
@@ -186,7 +188,7 @@ export default function AnalyticsPage() {
         .catch(() => setError('Network error. Please try again.'))
         .finally(() => setLoading(false))
     }
-  }, [dateRange])
+  }, [dateRange, assistantKey])
 
   const rangeLength = dateRange
     ? differenceInCalendarDays(dateRange.endDate, dateRange.startDate)

@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma'
-import { calculateDurationMinutes, recalculateDailySummary } from '@/lib/activityHelpers'
 import { getAuthenticatedUser } from '@/lib/auth'
+import { handleRouteError } from '@/lib/errors'
+import { createActivity } from '@/lib/services/activityService'
 
 export async function GET(request) {
   try {
@@ -68,65 +69,12 @@ export async function POST(request) {
     if (!user) {
       return Response.json({ success: false, message: 'Unauthorized' }, { status: 401 })
     }
-    const userId = user.id
 
     const body = await request.json()
-    const { activityDate, title, subCategoryId, startTime, endTime, notes } = body
 
-    if (!title || !title.trim()) {
-      return Response.json(
-        { success: false, message: 'title is required' },
-        { status: 400 }
-      )
-    }
-
-    if (!activityDate || !subCategoryId || !startTime || !endTime) {
-      return Response.json(
-        { success: false, message: 'activityDate, subCategoryId, startTime, and endTime are required' },
-        { status: 400 }
-      )
-    }
-
-    if (new Date(endTime) <= new Date(startTime)) {
-      return Response.json(
-        { success: false, message: 'endTime must be later than startTime' },
-        { status: 400 }
-      )
-    }
-
-    const subCategory = await prisma.subCategory.findUnique({ where: { id: Number(subCategoryId) } })
-    if (!subCategory || subCategory.userId !== userId) {
-      return Response.json(
-        { success: false, message: 'Sub category not found' },
-        { status: 400 }
-      )
-    }
-
-    const durationMinutes = calculateDurationMinutes(startTime, endTime)
-    const parsedActivityDate = new Date(activityDate)
-
-    const activity = await prisma.activity.create({
-      data: {
-        userId,
-        activityDate: parsedActivityDate,
-        title: title.trim(),
-        subCategoryId: Number(subCategoryId),
-        startTime: new Date(startTime),
-        endTime: new Date(endTime),
-        durationMinutes,
-        notes: notes ?? null,
-      },
-      include: { subCategory: { include: { mainCategory: true } } },
-    })
-
-    await recalculateDailySummary(prisma, parsedActivityDate, Number(subCategoryId), userId)
-
+    const activity = await createActivity(user.id, body)
     return Response.json({ success: true, data: activity }, { status: 201 })
   } catch (error) {
-    console.error('POST /api/activities error:', error)
-    return Response.json(
-      { success: false, message: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'POST /api/activities')
   }
 }

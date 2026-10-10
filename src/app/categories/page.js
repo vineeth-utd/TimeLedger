@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/ConfirmDialog'
 import CategoryModal from '@/components/categories/CategoryModal'
 import MainCategorySection from '@/components/categories/MainCategorySection'
 import WeeklyTargetsSection from '@/components/categories/WeeklyTargetsSection'
+import useAssistantRefreshKey from '@/lib/useAssistantRefreshKey'
 
 const STATUS_FILTERS = [
   { key: 'all', label: 'All' },
@@ -23,6 +24,7 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const assistantKey = useAssistantRefreshKey()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState('add-main')
@@ -50,7 +52,7 @@ export default function CategoriesPage() {
       })
       .catch(() => setError('Network error. Please try again.'))
       .finally(() => setLoading(false))
-  }, [refreshKey])
+  }, [refreshKey, assistantKey])
 
   function refresh() {
     setRefreshKey((k) => k + 1)
