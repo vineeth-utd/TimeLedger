@@ -29,12 +29,15 @@ export default function AssistantWidget() {
   const { clearForSignOut } = assistant
   const inputRef = useRef(null)
   // Transcription only fills the editable draft; the user reviews it and presses Send.
+  // Focus and caret are restored by the effect below once the textarea is mounted again.
+  const [transcriptAdded, setTranscriptAdded] = useState(false)
   const handleTranscript = useCallback((text) => {
     setDraft((current) => appendToDraft(current, text))
-    inputRef.current?.focus()
+    setTranscriptAdded(true)
   }, [])
   const voice = useVoiceRecorder({ onTranscript: handleTranscript })
   const cancelVoice = voice.cancel
+  const voiceBusy = voice.state !== 'idle'
   const endRef = useRef(null)
 
   useEffect(() => {
@@ -83,17 +86,40 @@ export default function AssistantWidget() {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [open, cancelVoice])
 
+  // Also runs when voice returns to idle: the textarea is unmounted while the voice bar shows.
   useEffect(() => {
-    if (open && !pendingAction) inputRef.current?.focus()
-  }, [open, pendingAction, status])
+    const input = inputRef.current
+    if (!open || pendingAction || voiceBusy || !input) return
+    input.focus()
+    input.setSelectionRange(input.value.length, input.value.length)
+  }, [open, pendingAction, status, voiceBusy])
 
   if (pathname === '/login' || !isAuthenticated) return null
 
   const busy = status !== 'idle'
   const locked = busy || Boolean(pendingAction)
 
+  const announcement = {
+    requesting: 'Waiting for microphone permission',
+    recording: 'Recording',
+    stopping: 'Transcribing',
+    transcribing: 'Transcribing',
+    idle: transcriptAdded ? 'Transcription added to the message box. Review it, then press Send.' : '',
+  }[voice.state]
+
+  function changeDraft(value) {
+    setTranscriptAdded(false)
+    setDraft(value)
+  }
+
+  function startVoice() {
+    setTranscriptAdded(false)
+    voice.start()
+  }
+
   async function submit() {
     const text = draft
+    setTranscriptAdded(false)
     setDraft('')
     const sent = await assistant.send(text)
     if (!sent) setDraft(text)
@@ -131,7 +157,7 @@ export default function AssistantWidget() {
             <button
               type="button"
               onClick={assistant.newConversation}
-              disabled={locked}
+              disabled={locked || voiceBusy}
               aria-label="New conversation"
               title={pendingAction ? 'Approve or reject the pending request first' : 'New conversation'}
               className="p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent"
@@ -166,11 +192,12 @@ export default function AssistantWidget() {
                     <button
                       key={suggestion}
                       type="button"
+                      disabled={voiceBusy}
                       onClick={() => {
                         setDraft(suggestion)
                         inputRef.current?.focus()
                       }}
-                      className="text-left text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50"
+                      className="text-left text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 disabled:opacity-50"
                     >
                       {suggestion}
                     </button>
@@ -188,7 +215,7 @@ export default function AssistantWidget() {
                       role={message.role}
                       text={message.text}
                       choices={offerChoices ? message.choices : undefined}
-                      choicesDisabled={locked}
+                      choicesDisabled={locked || voiceBusy}
                       onChoose={assistant.send}
                     />
                   )
@@ -216,10 +243,11 @@ export default function AssistantWidget() {
           <ChatInput
             ref={inputRef}
             value={draft}
-            onChange={setDraft}
+            onChange={changeDraft}
             onSubmit={submit}
             disabled={locked}
-            voice={voice}
+            voice={{ ...voice, start: startVoice }}
+            announcement={announcement}
             placeholder={pendingAction ? 'Approve or reject the request above' : 'Message the assistant'}
           />
         </section>

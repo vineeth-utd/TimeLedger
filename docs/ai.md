@@ -1390,6 +1390,8 @@ The initial voice workflow is:
 
 Transcription must never automatically submit a message in the initial implementation.
 
+Once the user presses Send, the text follows the normal chat path; the assistant, thread and checkpoints carry no voice-specific metadata.
+
 This keeps speech recognition separate from application execution and gives the user an opportunity to correct transcription errors before they reach the assistant.
 
 ## 18.3 Speech-to-Text Provider

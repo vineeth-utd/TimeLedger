@@ -11,7 +11,7 @@ function VoiceBar({ voice }) {
   const { state, elapsed } = voice
   const recording = state === 'recording'
   return (
-    <div className="flex-1 flex items-center gap-2 min-w-0" role="status" aria-live="polite">
+    <div className="flex-1 flex items-center gap-2 min-w-0">
       <button
         type="button"
         onClick={voice.cancel}
@@ -47,6 +47,7 @@ function VoiceBar({ voice }) {
         <button
           type="button"
           onClick={voice.stop}
+          autoFocus
           aria-label="Stop recording"
           title="Stop"
           className="shrink-0 w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-600 text-white hover:bg-red-700 active:bg-red-800"
@@ -58,7 +59,7 @@ function VoiceBar({ voice }) {
   )
 }
 
-const ChatInput = forwardRef(function ChatInput({ value, onChange, onSubmit, disabled, placeholder, voice }, ref) {
+const ChatInput = forwardRef(function ChatInput({ value, onChange, onSubmit, disabled, placeholder, voice, announcement }, ref) {
   const voiceActive = Boolean(voice) && voice.state !== 'idle'
 
   function handleKeyDown(e) {
@@ -76,6 +77,9 @@ const ChatInput = forwardRef(function ChatInput({ value, onChange, onSubmit, dis
       }}
       className="flex items-end gap-2 border-t border-gray-200 bg-white p-3"
     >
+      <div role="status" aria-live="polite" className="sr-only">
+        {announcement}
+      </div>
       {voiceActive ? (
         <VoiceBar voice={voice} />
       ) : (

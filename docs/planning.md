@@ -611,7 +611,7 @@ Scope:
 - Handle transcription errors without modifying conversation/application state.
 - Test English first while keeping the implementation language-agnostic where practical.
 
-**Status:** Not started
+**Status:** Implemented — the draft/Send flow was delivered in M2; M3 added post-transcription focus/caret, locking of choices/New conversation/suggestions during voice, and screen-reader announcements. Deterministic checks, lint and build pass; manual verification pending. No voice metadata, separate send path or server changes.
 
 ---
 

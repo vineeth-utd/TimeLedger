@@ -255,7 +255,7 @@ Used on the Analytics page to wrap charts with a title and optional filter contr
 
 ---
 
-### Voice Input (Phase 10B — Milestone 2 implemented; Milestone 3 review/chat polish planned)
+### Voice Input (Phase 10B — Milestones 2-3 implemented)
 
 Voice input extends the existing assistant input rather than introducing a separate voice interface.
 
@@ -279,6 +279,9 @@ Voice transcription must never automatically submit an assistant message in the 
 - The recorder (`useVoiceRecorder`, native `MediaRecorder`) prefers `audio/webm;codecs=opus`, then `audio/mp4` (older Safari/iOS), then `audio/ogg;codecs=opus`, then the browser default. The upload is sent to `POST /api/assistant/transcribe` only.
 - A successful transcription is **appended to the existing editable draft** (`setDraft` via `appendToDraft`, capped at 4000 characters) and the input is focused. It is not a chat message, does not call `/api/assistant/chat`, and is never submitted automatically; the user reviews/edits it and presses Send.
 - Microphone tracks are stopped as soon as recording ends. Cancel, closing the panel (including Escape), sign-out, `pagehide` and unmount stop the recorder, release the microphone, abort any in-flight transcription and discard the audio. There is intentionally no automatic cancel on `visibilitychange`.
+- Once text is in the draft it is indistinguishable from typed text: Send, Enter and Shift+Enter use the normal path, and no voice metadata is stored or sent. Transcription appends to the draft (existing typed text is kept; a failed transcription never changes it) and an unsent draft survives "New conversation" and panel close/reopen but, like typed drafts, not a full reload.
+- When voice returns to idle (transcript ready, cancelled or failed) the textarea is focused with the caret at the end (iOS may not raise the keyboard after the async step). While voice is recording or transcribing, clarification choices, "New conversation" and the suggestion chips are disabled so nothing can be sent or replaced mid-dictation.
+- Accessibility: a persistent screen-reader-only live region announces "Waiting for microphone permission", "Recording", "Transcribing" and "Transcription added to the message box. Review it, then press Send." (cleared on edit, Send or a new recording). The Stop button takes keyboard focus when recording starts.
 - Voice errors (permission denied, no microphone, microphone in use, no speech, rate limit with retry seconds, network/server failures) appear in the existing error banner area; nothing is retried automatically. A 401 redirects to `/login`.
 
 #### Voice States
