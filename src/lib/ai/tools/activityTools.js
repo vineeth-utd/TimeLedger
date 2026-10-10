@@ -10,7 +10,14 @@ import {
   SEARCH_MAX_LIMIT,
   RECENT_MAX_LIMIT,
 } from '@/lib/services/activityService'
-import { defineTool, formatClock, formatEndTime, serializeActivity } from '@/lib/ai/results'
+import {
+  defineTool,
+  formatClock,
+  formatEndTime,
+  serializeActivity,
+  toModelActivity,
+  toModelPrevious,
+} from '@/lib/ai/results'
 import { ServiceError } from '@/lib/errors'
 
 // ---- Shared field schemas ------------------------------------------------
@@ -83,11 +90,10 @@ export const getActivitiesTool = defineTool({
       timezone: ctx.timezone,
     })
     return {
-      activities: activities.map((activity) => serializeActivity(activity, ctx.timezone)),
+      activities: activities.map((activity) => toModelActivity(serializeActivity(activity, ctx.timezone))),
       totalMatches,
       totalMinutes,
-      returned: activities.length,
-      truncated: totalMatches > activities.length,
+      ...(totalMatches > activities.length ? { truncated: true } : {}),
     }
   },
 })
@@ -103,10 +109,7 @@ export const getRecentActivitiesTool = defineTool({
   }),
   async handler(ctx, { limit }) {
     const activities = await listRecentActivities(ctx.userId, limit)
-    return {
-      activities: activities.map((activity) => serializeActivity(activity, ctx.timezone)),
-      returned: activities.length,
-    }
+    return { activities: activities.map((activity) => toModelActivity(serializeActivity(activity, ctx.timezone))) }
   },
 })
 
@@ -134,7 +137,7 @@ export const createActivityTool = defineTool({
       endTime: localDateTimeToUtc(input.activityDate, input.endTime, ctx.timezone).toISOString(),
       notes: input.notes,
     })
-    return { activity: serializeActivity(activity, ctx.timezone) }
+    return { activity: toModelActivity(serializeActivity(activity, ctx.timezone)) }
   },
 })
 
@@ -160,7 +163,7 @@ export const updateActivityTool = defineTool({
   name: 'updateActivity',
   description:
     'Change an EXISTING activity (update/extend/move/rename) by activityId; never use it to add a new activity. ' +
-    'Send ONLY the changed fields; notes null/"" clears.',
+    'Send ONLY the changed fields; notes null/"" clears. Result `previous` = old values of changed fields.',
   schema: updateActivitySchema,
   async handler(ctx, input) {
     const patch = {}
@@ -184,7 +187,8 @@ export const updateActivityTool = defineTool({
     }
 
     const activity = await updateActivity(ctx.userId, input.activityId, patch)
-    return { activity: serializeActivity(activity, ctx.timezone), previous }
+    const current = serializeActivity(activity, ctx.timezone)
+    return { activity: toModelActivity(current), previous: toModelPrevious(previous, current) }
   },
 })
 

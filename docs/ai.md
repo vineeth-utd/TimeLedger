@@ -560,41 +560,44 @@ Example:
 {
   "activities": [],
   "totalMatches": 84,
-  "returned": 20,
+  "totalMinutes": 5040,
   "truncated": true
 }
 ```
+
+`truncated` is present (as `true`) only when there are more matches than returned rows; the row count is the length of `activities`.
 
 If a search is too broad, the assistant should narrow it or ask the user for clarification rather than paging through large amounts of history.
 
 ### Conceptual Result
 
+The model-facing form is compact, because tool results stay in the conversation and are re-sent on every later model call (see `docs/ai_token_optimization.md`):
+
 ```json
 {
+  "success": true,
   "activities": [
     {
-      "id": "act_123",
+      "id": 123,
       "title": "LeetCode",
       "activityDate": "2026-10-07",
       "startTime": "09:15",
       "endTime": "10:40",
       "durationMinutes": 85,
-      "notes": null,
-      "subCategory": {
-        "id": "sub_123",
-        "name": "LeetCode Problems"
-      },
-      "mainCategory": {
-        "id": "cat_123",
-        "name": "Career Growth"
-      }
+      "subCategory": "LeetCode Problems",
+      "subCategoryId": 45,
+      "mainCategory": "Career Growth"
     }
   ],
   "totalMatches": 1,
-  "returned": 1,
-  "truncated": false
+  "totalMinutes": 85
 }
 ```
+
+- `notes` appears only when non-empty. The nested `{id, name}` category objects are flattened to names plus `subCategoryId`; `mainCategory.id` is omitted (main category ids come from `getCategories`). `durationMinutes` and `totalMinutes` remain the authoritative values; `endTime` may be the internal `24:00`.
+- `getRecentActivities` returns `{ success, activities }`.
+- `updateActivity` returns `{ success, activity, previous }` where `previous` holds only the OLD values of the fields that changed (a null note means it was empty; `{}` if nothing changed).
+- This is a view over the tool result only. Service results, REST responses and the confirmation snapshots (which keep the full activity with category ids) are unchanged.
 
 Raw Prisma objects should not be returned unnecessarily.
 
@@ -1034,7 +1037,7 @@ Exact graph-state implementation should follow LangGraph conventions and the nee
 - Chat/confirm success responses also carry `data.choices` (`{ options: [{ label, message }] }` or `null`) and `data.changes` (`[{ type }]`, type in `activity_created`, `activity_updated`, `activity_deleted`, `category_created`, `category_deleted`, or `unknown` when a turn hit the step limit). `changes` is derived server-side from successful mutating tool results, never from model prose. The UI uses it to refresh visible pages.
 - Clarification vs confirmation: `presentChoices` (no side effects, no confirmation) lets the model offer 2-10 selectable options for ambiguous activities/categories (with more than 10 the assistant lists them in text and asks). The graph ends the turn after it; the options arrive as `data.choices` and the normal input stays enabled. Picking an option sends its `message` as an ordinary user message. A gated confirmation takes precedence if both occur in one step. `updateActivity` results include `previous` so replies can state exact old -> new values.
 - Failure handling: a graph failure after a turn started (for example a Groq 429 after a tool ran) is returned, not thrown, with an authoritative `outcome`, derived from the thread's checkpoint (completed nodes and their tool messages are persisted, so no separate mutation tracking exists): `applied` (`changes` definitely happened, only the assistant's continuation failed; HTTP 429 `RATE_LIMITED` or 500 `ASSISTANT_UNAVAILABLE` with `data.changes`), `none` (nothing executed), or `unknown` (a node that may have mutated did not complete, or state can't be read; HTTP 409 `ACTION_OUTCOME_UNKNOWN`). Changes are counted only from messages produced by that invocation. A claimed action is never offered again: chat on a thread whose pending action was already claimed returns `ACTION_OUTCOME_UNKNOWN`, and the UI starts a new thread. Errors before anything ran (for example before the claim) keep the plain 429/500 response without `data.outcome`, and the pending confirmation stays available.
-- Output limits: `AI_MAX_OUTPUT_TOKENS` (default 512) and `AI_REASONING_EFFORT` (`low` | `medium` | `high`, default `low`) configure the model call. Groq counts the output cap against the TPM pre-check, so it is kept near real usage (see `docs/ai_token_optimization.md`). A response cut off by the cap (`finish_reason: length`) that still contains a valid tool call or some text is used normally; with neither, the turn fails as `ASSISTANT_INCOMPLETE` (HTTP 500) through the normal failure path, so `changes`/`outcome` are preserved. On a 429 the provider's `Retry-After` (integer seconds, clamped to 120) is returned as `data.retryAfterSeconds` and a `Retry-After` header when present; the UI shows it, and nothing is retried automatically. `AI_LOG_USAGE=true` logs one `[ai-usage]` line per model call (token counts, cache fields, rate-limit headers; no content).
+- Output limits: `AI_MAX_OUTPUT_TOKENS` (default 512) and `AI_REASONING_EFFORT` (`low` | `medium` | `high`, default `low`) configure the model call. The cap is kept near real usage; Groq's TPM pre-check ("Requested") appears to include only part of it, and the exact accounting is unverified (see `docs/ai_token_optimization.md`). A response cut off by the cap (`finish_reason: length`) that still contains a valid tool call or some text is used normally; with neither, the turn fails as `ASSISTANT_INCOMPLETE` (HTTP 500) through the normal failure path, so `changes`/`outcome` are preserved. On a 429 the provider's `Retry-After` (integer seconds, clamped to 120) is returned as `data.retryAfterSeconds` and a `Retry-After` header when present; the UI shows it, and nothing is retried automatically. `AI_LOG_USAGE=true` logs one `[ai-usage]` line per model call (token counts, cache fields, rate-limit headers; no content).
 - Category deletion: `deleteMainCategory` and `deleteSubCategory` are gated like `deleteActivity`. The dependency/ownership rules live in `categoryService` (shared with the REST routes): a Main Category with sub categories, activities or weekly targets, or a Sub Category with activities or daily summaries, cannot be deleted (no cascade). Describing the action runs the same check, so a blocked deletion fails with the dependency reason and no confirmation is shown; approval re-validates the target (name must still match, dependencies re-checked). `getCategories` accepts `includeInactive` (default false) for finding inactive categories to manage.
 - The confirmation payload sent to clients carries only the server-built `display.summary` per action (no ids, snapshots or arguments). Assistant replies and choice labels must never show internal ids.
 - Not designed yet: bulk-update/bulk-deletion confirmation, and recovery of claimed-but-unresolved actions.
@@ -1211,14 +1214,9 @@ Example successful activity result:
     "startTime": "09:15",
     "endTime": "10:40",
     "durationMinutes": 85,
-    "subCategory": {
-      "id": "sub_123",
-      "name": "LeetCode Problems"
-    },
-    "mainCategory": {
-      "id": "cat_123",
-      "name": "Career Growth"
-    }
+    "subCategory": "LeetCode Problems",
+    "subCategoryId": 45,
+    "mainCategory": "Career Growth"
   }
 }
 ```

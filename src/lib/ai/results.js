@@ -111,6 +111,41 @@ export function serializeActivity(activity, timezone) {
   }
 }
 
+// ---- Model-facing views ---------------------------------------------------
+// The LLM sees a compact form of tool results: they stay in the thread and are re-sent on every
+// later model call. These views only reshape what the tool returns to the model. Services and the
+// full `serializeActivity` form (used for confirmation snapshots) are unchanged.
+// Omitted: null/empty notes, the nested {id,name} category objects, and mainCategory.id (main
+// category ids come from getCategories). Kept: id, title, date/times (incl. internal "24:00"),
+// the authoritative durationMinutes, the sub category name and id, and the main category name.
+export function toModelActivity(activity) {
+  return {
+    id: activity.id,
+    title: activity.title,
+    activityDate: activity.activityDate,
+    startTime: activity.startTime,
+    endTime: activity.endTime,
+    durationMinutes: activity.durationMinutes,
+    ...(activity.notes ? { notes: activity.notes } : {}),
+    subCategory: activity.subCategory.name,
+    subCategoryId: activity.subCategory.id,
+    mainCategory: activity.mainCategory.name,
+  }
+}
+
+// What an update changed: ONLY the changed fields, with their OLD values (a null note means it was
+// empty). `durationMinutes` appears when the times changed. An update that changed nothing gives {}.
+export function toModelPrevious(previous, current) {
+  const before = toModelActivity(previous)
+  const after = toModelActivity(current)
+  const changed = {}
+  for (const field of ['title', 'activityDate', 'startTime', 'endTime', 'durationMinutes', 'subCategory', 'mainCategory']) {
+    if (before[field] !== after[field]) changed[field] = before[field]
+  }
+  if ((previous.notes || null) !== (current.notes || null)) changed.notes = previous.notes || null
+  return changed
+}
+
 // User-facing clock text: "07:00" -> "7:00 AM", end-of-day "24:00" -> "midnight".
 export function formatClock(time) {
   if (time === '24:00') return 'midnight'

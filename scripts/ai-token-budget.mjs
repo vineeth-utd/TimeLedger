@@ -12,7 +12,7 @@ register('./ai-eval-loader.mjs', import.meta.url)
 
 const { buildSystemPrompt } = await import('@/lib/ai/prompt.js')
 const { getAssistantTools, getToolDefinitions } = await import('@/lib/ai/tools/index.js')
-const { ok, serializeActivity } = await import('@/lib/ai/results.js')
+const { ok, serializeActivity, toModelActivity, toModelPrevious } = await import('@/lib/ai/results.js')
 
 let countText
 try {
@@ -65,7 +65,8 @@ const row = (id, start, end) => ({
   notes: null,
   subCategory: { id: 12, name: 'Projects', mainCategory: { id: 3, name: 'Work' } },
 })
-const activities = (n) => Array.from({ length: n }, (_, i) => serializeActivity(row(400 + i, '03:14', '03:34'), ctx.timezone))
+const fullActivities = (n) => Array.from({ length: n }, (_, i) => serializeActivity(row(400 + i, '03:14', '03:34'), ctx.timezone))
+const activities = (n) => fullActivities(n).map(toModelActivity) // what the model sees
 const taxonomy = (mains, subs) =>
   Array.from({ length: mains }, (_, m) => ({
     id: m + 1,
@@ -73,16 +74,29 @@ const taxonomy = (mains, subs) =>
     subCategories: Array.from({ length: subs }, (_, s) => ({ id: m * 10 + s + 1, name: `Sub category ${s + 1}` })),
   }))
 
+// Legacy (pre-compaction) shapes are kept here only to report the per-result saving.
 const results = {
-  recent5: ok({ activities: activities(5), returned: 5 }),
-  recent1: ok({ activities: activities(1), returned: 1 }),
-  search20: ok({ activities: activities(20), totalMatches: 20, totalMinutes: 400, returned: 20, truncated: false }),
-  update: ok({ activity: activities(1)[0], previous: activities(1)[0] }),
+  recent5: ok({ activities: activities(5) }),
+  recent1: ok({ activities: activities(1) }),
+  search20: ok({ activities: activities(20), totalMatches: 20, totalMinutes: 400 }),
+  update: ok({ activity: activities(1)[0], previous: toModelPrevious(fullActivities(1)[0], { ...fullActivities(1)[0], endTime: '04:05', durationMinutes: 51 }) }),
   categories: ok({ categories: taxonomy(10, 5) }),
   createdSub: ok({ subCategory: { id: 99, name: 'Sample', mainCategory: { id: 3, name: 'Work' } } }),
 }
-console.log('\nTool results (tokens):')
-for (const [name, result] of Object.entries(results)) console.log(`  ${name.padEnd(12)} ${count(result)}`)
+const legacy = {
+  recent5: ok({ activities: fullActivities(5), returned: 5 }),
+  recent1: ok({ activities: fullActivities(1), returned: 1 }),
+  search20: ok({ activities: fullActivities(20), totalMatches: 20, totalMinutes: 400, returned: 20, truncated: false }),
+  update: ok({ activity: fullActivities(1)[0], previous: fullActivities(1)[0] }),
+  categories: results.categories,
+  createdSub: results.createdSub,
+}
+console.log('\nTool results (tokens, legacy -> current model-facing shape):')
+for (const [name, result] of Object.entries(results)) {
+  const before = count(legacy[name])
+  const after = count(result)
+  console.log(`  ${name.padEnd(12)} ${String(before).padStart(5)} -> ${String(after).padStart(5)}  (${before ? Math.round((100 * (after - before)) / before) : 0}%)`)
+}
 
 // ---- Flows: input tokens of each LLM invocation -----------------------------------------------
 

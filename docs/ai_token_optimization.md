@@ -31,7 +31,8 @@ measurements only. `docs/ai.md` remains the source of truth for architecture and
 
 ## Observed in manual runs (AI_LOG_USAGE)
 - First-call prompt ~3.06k tokens; ~3.9k after getCategories is in the history.
-- Groq's 429 `Requested` ~= prompt tokens + `max_tokens` (e.g. 4,930 and 5,083 with 1,024 cap).
+- Early 20b runs: 429 `Requested` 4,930 and 5,083 with a 1,024 cap looked like prompt + cap, but the
+  actual prompts for those calls were not logged. Later data contradicts that (see "Raw 429 forensics").
   `Used` reflects actual tokens in the sliding minute.
 - Typical completions 131-248 tokens (reasoning 107-194); the 1,024 cap was mostly unused
   reservation.
@@ -219,11 +220,145 @@ behaviour contracts, Batch 1 test), lint and build. Scratch prompt-wording asser
 the new phrasing only where the same rule is still present.
 Pending: one targeted live run (#29-#33 plus M4/M5 category and confirmation scenarios).
 
+## Batch 2 live measurements (gpt-oss-120b, low, 512)
+Manual runs after Batch 2 (prompt tokens as reported by Groq):
+
+| Turn / call | Before Batch 2 | After Batch 2 |
+|---|---|---|
+| "What did I do today?" call 1 | 3,081 | 1,945 (-1,136, -37%) |
+| same turn, call 2 | 3,432 | 2,368 (-1,064, -31%) |
+| Same-thread update, call 1 -> call 2 | n/a | 2,599 -> 2,786 |
+| Same-thread update, third (final) call | n/a | 429, Requested 3,155 (after the update had already succeeded) |
+| Later question, 11 messages | n/a | prompt 2,989 |
+
+- The fixed prefix reduction is confirmed live. Groq's counts are ~10% below the offline estimate
+  (offline 2,177 / 2,625 for the two Q1 calls vs 1,945 / 2,368 actual), so offline numbers are
+  conservative for the current schema format.
+- History is now the next growing cost: Q1 left ~630 tokens in later calls and by the third turn
+  (11 messages) history is ~1,040 of the 2,989-token prompt (~35%).
+- The third call of the update turn produced only wording ("Updated ...") and was the call that hit the
+  429 after the mutation had succeeded.
+- Open: for that 429, Requested 3,155 minus the 512 cap is 2,643, below the previous call's prompt
+  (2,786). Either Groq's pre-count uses its own estimator or the figures belong to different calls; the
+  raw `[ai-usage]` line is needed before treating `Requested = prompt + cap` as exact.
+
+## Raw 429 forensics (post-Batch 2 update turn)
+`inv 3, messages 10: Used 5189, Requested 3155, Limit 8000`, `remainingTokens 2811`, `retry-after 3`.
+- Used + Requested = 8,344, over the limit by 344.
+- `Used` 5,189 matches the first two calls' real tokens (~2.65k + ~2.87k, minus a few seconds of window
+  refill): full prompts are charged on every call (consistent with `cached: null`).
+- `Requested` 3,155 is not prompt + 512: the previous call's prompt was 2,786 and history only grows, so
+  the third prompt was ~2.95-3.0k, leaving at most ~150-200 tokens of output allowance in the figure. The
+  earlier assumption "Requested = prompt + max_tokens" is unverified and probably wrong for this setup;
+  lowering the cap was likely a smaller lever than assumed. The binding term is cumulative real usage in
+  the sliding minute. A 3 s wait would have succeeded; automatic retry remains a separate, undecided item.
+
+## Deterministic final responses: deferred (not implemented)
+Idea: end a turn with a server-built confirmation from authoritative tool results after a single
+successful `createActivity`/`updateActivity`, skipping the wording-only final model call (saves ~2.9-3.0k
+input tokens per eligible turn, 3 calls -> 2, and removes the "429 after the mutation succeeded"
+window). Designed behind `AI_SERVER_FINAL`: an optional per-call `remaining` argument ("none" only),
+eligibility guards (exactly one mutation call in the batch, no earlier mutation in the turn, no gated
+tools, no narrative text beside the call, call succeeded), appended `AIMessage` routed to END like
+`presentChoices`, ~+75-85 tokens/call overhead.
+Decision: deferred. It changes agent-loop semantics and adds a model-controlled early-termination
+path; no mechanism can prove completion without the model's signal or parsing user text, and a false
+"none" on a chained request would silently skip the remaining work. The reliable
+LLM -> tool -> LLM loop is preferred over optimizing around the free-tier TPM limit. Reopen if the
+deployment stays on a hard TPM limit and chained-request error rates can be measured as zero.
+
+## Next-stage analysis (history, deterministic finals, tool exposure)
+Offline simulation (`3`-turn conversation: read 6 rows -> getRecent + update -> read 6 rows; offline
+tokenizer, ~10% above Groq actuals). Conversation total, current: 19,869 input tokens over 7 calls.
+
+| Approach | Conversation input | Saved | LLM calls | Notes |
+|---|---|---|---|---|
+| History: stub tool results older than the last 1 turn | 19,043 | 826 (4%) | 0 saved | Only affects turn 3+; ~413/call |
+| History: keep last 2 turns whole | 19,869 | 0 | 0 | Nothing to compact until turn 4 |
+| Compact read-result shape (66 -> 48 tokens/activity, getActivities 427 -> 299) | 18,901 | 968 (5%) | 0 | Helps in-turn and in history |
+| Deterministic final after create/update (model-declared completion) | 16,885 | 2,984 (15%); the update turn 8,557 -> 5,559 (-35%) | 1 saved per eligible turn | Removes the post-success 429 window |
+| Deterministic final + compact results | 16,063 | 3,806 (19%) | 1 saved per eligible turn | Compose |
+| Hide category mutation tools until needed | ~18.3-18.6k | ~1.25-1.57k (6-8%) | 0 saved; +1 on every miss | 179-224 tokens/call; see risks |
+| Expose names only, fetch schema on demand | net ~0 or worse | | +1 per use | Extra round costs ~2.5k vs ~0.7k saved per turn |
+
+Findings:
+- History: stubbing is only valuable from turn 3-4. It removes ids a later reference ("the second one",
+  "update that one") needs; one forced re-fetch (~2.5-3k) costs more than the stub saves over 6+ calls.
+  Pending confirmations live in `state.pending` (not messages), choices are an AI message plus the
+  user's reply, and `getCategories` must stay verbatim ("reuse its ids"), so safe stubbing is limited
+  to read results of turns before the previous one. Checkpoint stays complete (view-only change).
+  Compacting the result shape captures about as much without losing ids.
+- Deterministic finals: the graph cannot know whether a successful mutation completes a chained request
+  ("end my latest activity and start Cooking") without another model call or prose parsing. The only
+  no-extra-call signal is one the model emits with the mutation. Failure modes are asymmetric: a missing
+  or false flag costs one call (status quo); a wrongly true flag on a chain drops remaining steps.
+- Tool exposure: category mutation tools are 224 tokens (createMainCategory 45, createSubCategory 63,
+  deleteMainCategory 61, deleteSubCategory 55); `getCategories`, `presentChoices` and the activity tools
+  are needed in most turns. A call to a tool absent from the bound list may be rejected by the provider
+  (400, tokens still consumed), and earlier tool calls remain in the history. Names-only discovery needs
+  an extra model round (~2.5k) and only breaks even when fewer than ~1 in 4 turns need it.
+
+## Tier 1: compact model-facing tool results (implemented)
+View-only change: tool handlers return a compact form to the model; services, REST responses and the
+confirmation snapshots (`serializeActivity`, full activity with category ids) are unchanged. Approved scope:
+keyed compact activity, null notes omitted, `mainCategory.id` omitted, `subCategoryId` kept, redundant
+wrapper fields removed, `totalMatches`/`totalMinutes`/`truncated:true` kept, `previous` = old values of
+changed fields only.
+
+### getCategories decision
+Measured keyed objects against `[id, "name"]` pairs (offline tokens):
+
+| Taxonomy | Current keyed `{id,name}` | Rename `subs` only | `[id,name]` pairs |
+|---|---|---|---|
+| 8 mains x 5 subs | 479 | 471 (-2%) | 344 (-28%, -135) |
+| 12 x 6 | 803 | 791 (-1%) | 564 (-30%, -239) |
+| 12 x 8 | 1,007 | 995 (-1%) | 696 (-31%, -311) |
+
+Pairs would save 135-311 tokens on every call after `getCategories`. Decision: keep the keyed
+`{id, name}` objects (unchanged). Category ids feed later write operations and readability/reliability
+outweighs the extra saving; the pair form stays a deferred option, to be reconsidered only if live runs
+show a need.
+
+### Per-result savings (offline tokens, legacy -> compact)
+| Result | Before | After | Change |
+|---|---|---|---|
+| getActivities 20 rows | 1,347 | 1,099 | -18% |
+| getRecentActivities(5) | 342 | 279 | -18% |
+| getRecentActivities(1) | 78 | 63 | -19% |
+| updateActivity (with previous) | 141 | 76 | -46% |
+| getCategories | 728 | 728 | 0% (unchanged) |
+(Earlier fixture measurements, 1-6-20 rows: -22% / -19% / -18%; createActivity 73 -> 61, -16%.)
+The fixed prefix is 2,178 (+11: the `previous` note in the updateActivity description), instructions
+1,001, tool descriptions 323, schemas 512.
+
+### Representative flows (offline input tokens)
+| Flow | Before | After | Saved |
+|---|---|---|---|
+| 3-turn conversation (read 6 -> getRecent + update -> read 6) | 19,995 | 19,180 | 815 (4.1%) |
+| Simple read, 20 rows (2 calls) | 5,726 | 5,508 | 218 (net of +11/call prefix) |
+| getRecent -> update -> reply (3 calls) | 6,916 | 6,866 | 50 (small results; prefix +11/call) |
+| Later turn in a conversation | 5,307 | 5,146 | 161 |
+Savings are small on single-row flows and grow with list size and with history, because each result is
+re-sent on every later call.
+
+### Not implemented (explicitly out of scope)
+Tier 2 date hoisting (`date` at the top, omit per-row `activityDate`: ~ -11% more on single-date lists),
+tabular activity rows (-55% on lists but positional ids), history stubbing, dynamic tool exposure and
+deterministic finals.
+
+### Verification (no Groq)
+Shape tests per tool (exact key sets; notes only when non-empty; flattened categories with `subCategoryId`;
+no main id, no `returned`; `truncated` only when true), `previous` cases (single, multiple, time change
+with duration, category change, notes set/cleared, no-op, internal `24:00`), id round trips through a
+scripted graph (getRecent -> updateActivity, choices built from a compact list, "the second one" follow-up),
+confirmation snapshot still the full activity with category ids and stale detection intact, service
+results unchanged, getCategories unchanged, plus all existing suites, lint and build.
+
 ## Deferred / open questions
 - Does Groq report or serve prompt-cache hits for this model and tier? Check `cached`/`cacheSource`.
 - Is the real `Requested` now ~prompt + 512, and is call `completion` now well under the cap?
 - Does `low` reasoning change behaviour on ambiguity / category-resolution scenarios?
-- Deferred after Batch 2: compact `getCategories` and activity result shapes (~200 tokens in category flows,
+- Deferred: deterministic final responses (see above). Deferred after Batch 2: compact `getCategories` and activity result shapes (~200 tokens in category flows,
   ~20 per activity), history compaction, dynamic tool exposure; `low` vs `medium` A/B.
 - Automatic retry honouring `retry-after`, and its interaction with deployment time limits.
 - Model choice (20b vs 120b) once the measurements are in.
