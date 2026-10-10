@@ -12,7 +12,7 @@ The UI should support:
 4. Progress tracking against weekly targets
 5. Simple analytics and comparisons
 6. Conversational activity management through the AI Assistant
-7. Voice-assisted message composition (Phase 10B)
+7. Voice input for the assistant (speech-to-text feeding the editable draft)
 
 The UI should remain clean, responsive, and easy to use on desktop and mobile.
 
@@ -255,7 +255,19 @@ Used on the Analytics page to wrap charts with a title and optional filter contr
 
 ---
 
-### Voice Input (Phase 10B — Milestones 2-3 implemented)
+### Voice Input (Phase 10B — Complete)
+
+**Verified platforms:**
+
+| Platform | Result |
+|---|---|
+| Desktop Chrome (production) | Passed |
+| Android mobile browser | Passed |
+| Android home-screen shortcut (normal mobile usage) | Passed |
+| iPhone/iOS Safari and macOS Safari | **Not tested** (no device available). Unverified platform, not a known defect |
+
+Known limitations: Whisper can hallucinate short phrases on silence (the review step covers this); iOS may not raise the keyboard after dictation.
+
 
 Voice input extends the existing assistant input rather than introducing a separate voice interface.
 

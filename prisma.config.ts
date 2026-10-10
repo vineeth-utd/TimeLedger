@@ -9,6 +9,9 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Prisma CLI (migrate deploy/dev/status/resolve/diff) needs a direct or session-mode
+    // connection, not the transaction pooler used at runtime. DATABASE_URL is only a
+    // fallback so `prisma generate` still works where DIRECT_URL is not set (e.g. the Vercel build).
+    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"],
   },
 });

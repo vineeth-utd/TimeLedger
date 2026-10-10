@@ -87,7 +87,7 @@ export default function DashboardPage() {
   const weekProgress = weekTarget > 0 ? Math.round((weekSpent / weekTarget) * 100) : null
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 py-6 max-md:pb-[calc(5rem+env(safe-area-inset-bottom))] space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <PageHeader title="Dashboard" subtitle="Your daily and weekly overview" />
         <button

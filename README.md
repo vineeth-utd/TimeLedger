@@ -1,11 +1,10 @@
 # TimeLedger
 
-A private, authenticated web application for tracking, organizing, and analyzing personal time.
+A personal time-tracking and productivity application with analytics and a conversational AI assistant for managing and understanding how time is spent.
 
-TimeLedger was originally built to replace my Google Sheets based time tracking workflow and has evolved into a full-stack application that I use daily to log activities, manage categories, set weekly targets, and analyze how my time is spent.
+TimeLedger was originally built to replace my Google Sheets-based time-tracking workflow and has evolved into a full-stack application that I use daily to log activities, manage categories, set weekly targets, analyze how my time is spent, and manage my time records through natural-language text and voice input.
 
-The application is designed with a strong focus on fast activity logging, meaningful analytics, and a clean user experience across desktop and mobile.
-
+The application is designed with a strong focus on fast activity logging, meaningful analytics, safe AI-assisted workflows, and a clean user experience across desktop and mobile.
 ---
 
 ## Live Demo
@@ -60,7 +59,7 @@ The application is designed with a strong focus on fast activity logging, meanin
 ### AI Assistant
 
 - Conversational activity management using natural language
-- Create, update, find, and delete activities through chat
+- Create, update, find, and delete activities through natural-language requests
 - Intelligent Main Category and Sub Category resolution
 - Create and safely delete categories through conversational workflows
 - Clarification choices for ambiguous requests
@@ -69,6 +68,14 @@ The application is designed with a strong focus on fast activity logging, meanin
 - Floating assistant available across desktop and mobile
 - Automatic page refresh after successful assistant changes
 - Timezone-aware relative date and time interpretation
+
+### Voice Input
+
+- Tap-to-record voice input with Groq-hosted Whisper speech-to-text
+- Transcription appears as editable text for review and is never submitted automatically
+- Voice messages enter the same clarification, confirmation, and tool workflow as typed input
+- Audio is transient and never persisted by TimeLedger
+- Verified on desktop Chrome and Android/mobile home-screen usage; Safari/iOS remains unverified
 
 ### Authentication
 
@@ -101,6 +108,7 @@ The application is designed with a strong focus on fast activity logging, meanin
 ### AI
 
 - Groq (configurable model, GPT-OSS by default)
+- Groq-hosted Whisper for speech-to-text (voice input)
 - LangGraph (orchestration, confirmations, PostgreSQL-backed conversation state)
 - LangChain
 - Zod (tool input validation)
@@ -120,34 +128,42 @@ The application is designed with a strong focus on fast activity logging, meanin
 ## Architecture
 
 ```
-Browser
-   │
-   ▼
-Next.js
-   ├── React UI
-   ├── REST APIs ────────────────┐
-   │                             │
-   └── AI Assistant              │
-        │                        │
-        ▼                        │
-      LangGraph                  │
-        │                        │
-        ├── Groq LLM             │
-        │                        │
-        ▼                        │
-   Controlled Tools              │
-        │                        │
-        ▼                        │
-   Shared Services ◄─────────────┘
-        │
-        ▼
-      Prisma
-        │
-        ▼
-Supabase PostgreSQL
+                               Browser
+                                  │
+               ┌──────────────────┴──────────────────┐
+               │                                     │
+          Standard UI                          AI Assistant
+               │                                     │
+               ▼                         ┌───────────┴───────────┐
+           REST APIs                     │                       │
+               │                     Text Input             Voice Input
+               │                         │                       │
+               │                         │                  Groq Whisper
+               │                         │                       │
+               │                         │                 Review / Edit
+               │                         │                       │
+               │                         └───────────┬───────────┘
+               │                                     │
+               │                                   Send
+               │                                     │
+               │                                     ▼
+               │                             LangGraph Assistant
+               │                                     │
+               │                                  Groq LLM
+               │                                     │
+               │                                     ▼
+               │                              Controlled Tools
+               │                                     │
+               └──────────────────────► Shared Services
+                                                     │
+                                                     ▼
+                                                   Prisma
+                                                     │
+                                                     ▼
+                                            Supabase PostgreSQL
 ```
 
-The AI model never accesses Prisma or the database directly, and it never supplies a trusted user identity: the user comes from the authenticated server-side session, and tool inputs cannot contain a `userId`. LangGraph orchestrates controlled TimeLedger tools, which reuse the same authenticated service layer as the application's APIs. Sensitive actions (deletions and category creation) run only after the user approves a server-built confirmation.
+Text input enters the assistant directly, while voice input is first transcribed with Groq-hosted Whisper and reviewed by the user; after Send, both follow the same LangGraph assistant pipeline. The AI model never accesses Prisma or the database directly, and it never supplies a trusted user identity: the user comes from the authenticated server-side session, and tool inputs cannot contain a `userId`. LangGraph orchestrates controlled TimeLedger tools, which reuse the same authenticated service layer as the application's APIs. Sensitive actions (deletions and category creation) run only after the user approves a server-built confirmation. 
 
 ```
 Authentication
@@ -185,13 +201,14 @@ time-ledger/
 │   │
 │   ├── components/
 │   │   ├── activities/
-│   │   ├── assistant/        # Floating AI Assistant UI
+│   │   ├── assistant/        # Floating AI Assistant UI (including voice recording)
 │   │   ├── categories/
 │   │   ├── dashboard/
 │   │   └── ...
 │   │
 │   ├── lib/
 │   │   ├── ai/               # Assistant: LangGraph, controlled tools, prompt, confirmations
+│   │   ├── stt/              # Speech-to-text: audio validation and Groq Whisper provider
 │   │   ├── services/         # Shared business logic (REST APIs and AI tools)
 │   │   ├── auth.js
 │   │   ├── prisma.js
@@ -257,6 +274,7 @@ Required variables:
 
 ```env
 DATABASE_URL=
+DIRECT_URL=
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 GROQ_API_KEY=
@@ -264,10 +282,11 @@ GROQ_API_KEY=
 
 Where:
 
-- `DATABASE_URL` → Supabase Session Pooler connection string
+- `DATABASE_URL` → Supabase Transaction Pooler connection string (port 6543) used by the application at runtime
+- `DIRECT_URL` → Supabase direct connection string (port 5432) used only by Prisma CLI commands such as `migrate deploy`. If your network has no IPv6, use the Supabase Session Pooler string (pooler host, port 5432) instead. Never use the Transaction Pooler for migrations.
 - `NEXT_PUBLIC_SUPABASE_URL` → Supabase Project URL
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` → Supabase Publishable (Anon) Key
-- `GROQ_API_KEY` → Groq API key used by the AI Assistant (server-only; never exposed to the browser)
+- `GROQ_API_KEY` → Groq API key used by the AI Assistant and by voice transcription (server-only; never exposed to the browser)
 
 Optional AI tuning and debug variables (all can be omitted):
 
@@ -277,6 +296,7 @@ AI_MAX_OUTPUT_TOKENS=
 AI_REASONING_EFFORT=
 AI_CHECKPOINTER=
 AI_LOG_USAGE=
+STT_MODEL=
 ```
 
 - `AI_MODEL` → Groq model used by the assistant (default `openai/gpt-oss-120b`)
@@ -284,6 +304,7 @@ AI_LOG_USAGE=
 - `AI_REASONING_EFFORT` → `low`, `medium` or `high` (default `low`)
 - `AI_CHECKPOINTER` → set to `memory` to keep conversation state in-process (local testing only); by default state is stored in PostgreSQL
 - `AI_LOG_USAGE` → set to `true` to log per-call token usage and rate-limit headers while debugging (no message content)
+- `STT_MODEL` → Groq Whisper model used for voice transcription (default `whisper-large-v3-turbo`; independent of `AI_MODEL`)
 
 ---
 
@@ -295,11 +316,21 @@ Generate the Prisma client:
 npx prisma generate
 ```
 
-Apply migrations:
+TimeLedger requires **Supabase PostgreSQL**: the row-level-security migration depends on Supabase Auth's `auth.uid()`, so it intentionally fails on plain PostgreSQL rather than silently omitting the security policies.
+
+Apply the committed migrations to a new database (uses `DIRECT_URL`):
 
 ```bash
-npx prisma migrate dev
+npx prisma migrate deploy
 ```
+
+Check migration state at any time:
+
+```bash
+npx prisma migrate status
+```
+
+Creating a new migration (`npx prisma migrate dev --name <name>`) requires a Supabase-compatible development environment, because Prisma replays all migrations in a temporary shadow database that must provide `auth.uid()` (for example a local Supabase stack). Commit the generated folder under `prisma/migrations/`, then apply it to production with `npx prisma migrate deploy` run as an explicit step against `DIRECT_URL`; it is not part of the Vercel build.
 
 Create the AI Assistant's conversation-state tables (one-time, idempotent):
 
@@ -344,11 +375,11 @@ Detailed design and implementation documents are available in the `docs/` direct
 
 | Document | Description |
 |----------|-------------|
-| `planning.md` | Project planning, roadmap, and milestone status (including the AI Assistant phases) |
+| `planning.md` | Project planning, roadmap, and milestone status (including the AI Assistant and Voice Input phases) |
 | `database.md` | Database schema, relationships, and business rules |
 | `api.md` | REST API design and endpoint specifications |
 | `ui.md` | User interface design, application workflows, and the floating AI Assistant |
-| `ai.md` | AI Assistant architecture, controlled tools, confirmations, and safety boundaries |
+| `ai.md` | AI Assistant architecture, controlled tools, confirmations, voice input, and safety boundaries |
 | `ai_token_optimization.md` | Token and rate-limit measurements and optimization decisions for the assistant |
 | `auth_phase_plan.md` | Authentication implementation plan and design decisions |
 | `ui_refinement_plan.md` | UI refinement history and implementation details |
@@ -357,9 +388,7 @@ Detailed design and implementation documents are available in the `docs/` direct
 
 ## Current Status
 
-**Version:** 1.0
-
-TimeLedger is a fully functional, authenticated personal productivity application that is actively used for daily time tracking.
+TimeLedger is a production-deployed personal application actively used for daily time tracking. Core activity management, categories, weekly targets, analytics, Google authentication, and the AI Assistant with text and voice input are implemented.
 
 ### Core Features
 
@@ -368,7 +397,7 @@ TimeLedger is a fully functional, authenticated personal productivity applicatio
 - Categories
 - Weekly Targets
 - Analytics
-- Text-based AI Assistant
+- AI Assistant with text and voice input
 
 ### Authentication & Security
 
@@ -382,6 +411,7 @@ TimeLedger is a fully functional, authenticated personal productivity applicatio
 - Natural-language activity and category management
 - Confirmation required for sensitive actions
 - Server-side, user-scoped tools (the LLM never accesses the database)
+- Voice input via speech-to-text, reviewed and sent explicitly by the user
 
 ### User Experience
 
@@ -413,8 +443,8 @@ Future enhancements include:
 
 ### AI
 
-- Voice input (Speech-to-Text) for the assistant
 - AI Productivity Coach and advanced AI analytics
+- Possible later voice extensions (not planned): text-to-speech replies, streaming transcription and automatic submission of transcriptions
 
 ### Integrations
 

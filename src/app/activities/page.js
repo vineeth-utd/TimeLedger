@@ -96,7 +96,7 @@ export default function ActivitiesPage() {
     : subCategories
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-6xl mx-auto px-4 py-6 max-md:pb-[calc(5rem+env(safe-area-inset-bottom))] space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <PageHeader title="Activities" subtitle="Browse and manage your logged activities" />
         <button

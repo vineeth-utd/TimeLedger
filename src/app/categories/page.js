@@ -175,7 +175,7 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 py-6 max-md:pb-[calc(5rem+env(safe-area-inset-bottom))] space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <PageHeader title="Categories" subtitle="Manage your main categories and sub categories" />
         <button

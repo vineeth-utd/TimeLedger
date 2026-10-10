@@ -220,7 +220,7 @@ export default function AnalyticsPage() {
   const tooltipStyle = { fontSize: 12, border: '1px solid #e4e4e7', borderRadius: 6 }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-5xl mx-auto px-4 py-6 max-md:pb-[calc(5rem+env(safe-area-inset-bottom))] space-y-6">
       <PageHeader
         title="Analytics"
         subtitle="Understand how your time is distributed across categories"
