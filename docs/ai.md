@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-TimeLedger includes a conversational AI Assistant (text-based, implemented) that allows users to interact with the application using natural language instead of manually filling forms for every operation. Voice input is the next planned phase, while the AI Productivity Coach remains future work (sections 17 and 18).
+TimeLedger includes a conversational AI Assistant (text-based, implemented) that allows users to interact with the application using natural language instead of manually filling forms for every operation. Voice input (speech-to-text) is implemented as an input adapter, while the AI Productivity Coach remains future work (sections 17 and 18).
 
 Example requests:
 
@@ -23,7 +23,7 @@ All TimeLedger operations must pass through controlled AI tools and the applicat
 
 # 2. Scope
 
-The AI Assistant is developed in two major phases: Phase 1 (text) is implemented; Phase 2 (voice) is planned next.
+The AI Assistant is developed in two major phases: Phase 1 (text) and Phase 2 (voice input) are implemented.
 
 ## Phase 1 — Text-Based Assistant (implemented)
 
@@ -45,7 +45,7 @@ It includes:
 
 Detailed implementation milestones and status are tracked in `planning.md`; token and rate-limit work is recorded in `ai_token_optimization.md`.
 
-## Phase 2 — Voice Input (planned)
+## Phase 2 — Voice Input (implemented)
 
 Phase 2 adds speech-to-text as an additional input method for the existing TimeLedger Assistant.
 
@@ -1344,7 +1344,9 @@ The Analytics Engine remains a separate controlled application capability.
 
 ---
 
-# 18. Phase 2 — Voice Input
+# 18. Phase 2 — Voice Input (implemented)
+
+**Status:** Complete (Phase 10B, Milestones 1–4). Verified in production on desktop Chrome, Android mobile and the Android home-screen shortcut. **iOS/Safari was not tested** (no device): unverified, not a known defect. Known limitations: Whisper can hallucinate short phrases on silence (hence the mandatory review before Send), there is no per-user transcription rate limit beyond Groq's, and the Safari recording container (WebM vs MP4/AAC) is unverified.
 
 Voice input extends the existing TimeLedger Assistant with speech-to-text. It does not introduce a separate agent, tool set, conversation model, or execution pipeline.
 
@@ -1396,7 +1398,7 @@ This keeps speech recognition separate from application execution and gives the 
 
 ## 18.3 Speech-to-Text Provider
 
-The initial implementation will evaluate Groq-hosted Whisper, with Whisper Large V3 Turbo as the preferred starting model subject to implementation-time verification and provider availability.
+Speech-to-text uses Groq-hosted Whisper, defaulting to Whisper Large V3 Turbo (`whisper-large-v3-turbo`, configurable with `STT_MODEL`).
 
 Provider-specific speech-to-text code should remain isolated so the transcription provider/model can be changed without affecting the existing assistant architecture.
 

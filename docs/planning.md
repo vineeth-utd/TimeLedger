@@ -554,7 +554,7 @@ Initial decisions:
 - Do not persist recorded audio.
 - Do not create separate voice-agent logic.
 
-**Status:** Planned
+**Status:** Complete — Milestones 1–4 complete; verified on desktop Chrome, Android mobile and the Android home-screen shortcut. iOS/Safari was not tested (see Milestone 4).
 
 ### Milestone 1 - Speech-to-Text Foundation
 
@@ -573,7 +573,7 @@ Scope:
 - Do not execute assistant tools.
 - Do not persist audio.
 
-**Status:** Implemented — deterministic checks pass (`node scripts/stt-check.mjs`, lint, build, unauthenticated 401); live transcription verification pending (real-audio test to be approved separately)
+**Status:** Complete — deterministic checks pass (`node scripts/stt-check.mjs`, lint, build, unauthenticated 401); live Groq transcription verified through real microphone recordings in production.
 
 ---
 
@@ -593,7 +593,7 @@ Scope:
 - Support desktop panel and mobile full-screen assistant.
 - Disable voice recording whenever normal assistant input is disabled.
 
-**Status:** Implemented — recording UI and draft population built; deterministic checks pass (`scripts/voice-check.mjs`, lint, build). Manual microphone verification (desktop Chrome/Safari, iPhone Safari on a Vercel preview) and the live Groq transcription test are pending. Transcription populates the editable draft; nothing is auto-submitted.
+**Status:** Complete — recording UI and draft population; deterministic checks pass (`scripts/voice-check.mjs`, lint, build); verified with real microphones on desktop Chrome, Android mobile and the Android home-screen shortcut. Transcription populates the editable draft; nothing is auto-submitted.
 
 ---
 
@@ -611,7 +611,7 @@ Scope:
 - Handle transcription errors without modifying conversation/application state.
 - Test English first while keeping the implementation language-agnostic where practical.
 
-**Status:** Implemented — the draft/Send flow was delivered in M2; M3 added post-transcription focus/caret, locking of choices/New conversation/suggestions during voice, and screen-reader announcements. Deterministic checks, lint and build pass; manual verification pending. No voice metadata, separate send path or server changes.
+**Status:** Complete — the draft/Send flow was delivered in M2; M3 added post-transcription focus/caret, locking of choices/New conversation/suggestions during voice, and screen-reader announcements. Deterministic checks, lint and build pass; verified in production (review/edit, explicit Send, existing assistant flow). No voice metadata, separate send path or server changes.
 
 ---
 
@@ -637,5 +637,20 @@ Scope:
 
 **Completion criteria:** deterministic checks pass on the deployed commit; the live flows above pass on the Preview/Production URL; no audio persisted or logged by the speech-to-text layer; microphone released on every exit path; production env confirmed; README/docs updated.
 
-**Status:** In progress — deterministic hardening complete; live Preview/iPhone verification pending
+**Result:** Voice input was verified on the deployed main build.
+
+| Platform | Result |
+|---|---|
+| Desktop Chrome (production) | Passed |
+| Android mobile browser | Passed |
+| Android home-screen shortcut (normal mobile usage) | Passed |
+| iPhone/iOS Safari and macOS Safari | **Not tested** (no device available). Unverified platform, not a known defect |
+
+Verified in production (deployed main build): real microphone recording, Stop, Groq Whisper transcription with good accuracy; the transcription appears as an editable draft and is never sent automatically; the microphone is released after Stop and Cancel; review/edit, Send and the existing assistant flow; confirmation, mutation and automatic page refresh.
+
+Deterministic checks (`scripts/stt-check.mjs`: 9 checks incl. provider/HTTP error mapping with a stubbed provider; `scripts/voice-check.mjs`: 6 checks), lint of the voice/STT files and the production build pass. Cancel, too-short recordings, permission denial, the 60 s auto-stop and provider rate-limit/error mapping are covered by the deterministic checks and implementation review rather than separate recorded device tests.
+
+**Known limitations / unverified:** iOS/macOS Safari is untested, so the MP4/AAC recording path (and Safari's WebM support) is unverified on real devices; if WebM proves problematic on Safari, prefer MP4 first for Safari only. Whisper can hallucinate short phrases on silence (mitigated by the mandatory review before Send). Transcription has no per-user rate limit beyond Groq's own. iOS may not raise the keyboard after dictation.
+
+**Status:** Complete
 

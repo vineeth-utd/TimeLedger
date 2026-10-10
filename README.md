@@ -70,6 +70,15 @@ The application is designed with a strong focus on fast activity logging, meanin
 - Automatic page refresh after successful assistant changes
 - Timezone-aware relative date and time interpretation
 
+### Voice Input
+
+- Voice input for the assistant: tap the microphone to record, tap again to stop (60-second limit)
+- Speech-to-text with Groq-hosted Whisper (`whisper-large-v3-turbo` by default)
+- The transcription is placed in the editable message box for review; it is never sent automatically
+- After you press Send it follows the same path as typed text (clarifications, confirmations, page refresh)
+- Audio is transient: it is never stored or logged by TimeLedger
+- Works in desktop and mobile browsers where the browser supports recording (verified on Chrome and Android; Safari/iOS not yet tested)
+
 ### Authentication
 
 - Google Sign-In with Supabase Auth
@@ -101,6 +110,7 @@ The application is designed with a strong focus on fast activity logging, meanin
 ### AI
 
 - Groq (configurable model, GPT-OSS by default)
+- Groq-hosted Whisper for speech-to-text (voice input)
 - LangGraph (orchestration, confirmations, PostgreSQL-backed conversation state)
 - LangChain
 - Zod (tool input validation)
@@ -185,13 +195,14 @@ time-ledger/
 │   │
 │   ├── components/
 │   │   ├── activities/
-│   │   ├── assistant/        # Floating AI Assistant UI
+│   │   ├── assistant/        # Floating AI Assistant UI (including voice recording)
 │   │   ├── categories/
 │   │   ├── dashboard/
 │   │   └── ...
 │   │
 │   ├── lib/
 │   │   ├── ai/               # Assistant: LangGraph, controlled tools, prompt, confirmations
+│   │   ├── stt/              # Speech-to-text: audio validation and Groq Whisper provider
 │   │   ├── services/         # Shared business logic (REST APIs and AI tools)
 │   │   ├── auth.js
 │   │   ├── prisma.js
@@ -267,7 +278,7 @@ Where:
 - `DATABASE_URL` → Supabase Session Pooler connection string
 - `NEXT_PUBLIC_SUPABASE_URL` → Supabase Project URL
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` → Supabase Publishable (Anon) Key
-- `GROQ_API_KEY` → Groq API key used by the AI Assistant (server-only; never exposed to the browser)
+- `GROQ_API_KEY` → Groq API key used by the AI Assistant and by voice transcription (server-only; never exposed to the browser)
 
 Optional AI tuning and debug variables (all can be omitted):
 
@@ -277,6 +288,7 @@ AI_MAX_OUTPUT_TOKENS=
 AI_REASONING_EFFORT=
 AI_CHECKPOINTER=
 AI_LOG_USAGE=
+STT_MODEL=
 ```
 
 - `AI_MODEL` → Groq model used by the assistant (default `openai/gpt-oss-120b`)
@@ -284,6 +296,7 @@ AI_LOG_USAGE=
 - `AI_REASONING_EFFORT` → `low`, `medium` or `high` (default `low`)
 - `AI_CHECKPOINTER` → set to `memory` to keep conversation state in-process (local testing only); by default state is stored in PostgreSQL
 - `AI_LOG_USAGE` → set to `true` to log per-call token usage and rate-limit headers while debugging (no message content)
+- `STT_MODEL` → Groq Whisper model used for voice transcription (default `whisper-large-v3-turbo`; independent of `AI_MODEL`)
 
 ---
 
@@ -344,11 +357,11 @@ Detailed design and implementation documents are available in the `docs/` direct
 
 | Document | Description |
 |----------|-------------|
-| `planning.md` | Project planning, roadmap, and milestone status (including the AI Assistant phases) |
+| `planning.md` | Project planning, roadmap, and milestone status (including the AI Assistant and Voice Input phases) |
 | `database.md` | Database schema, relationships, and business rules |
 | `api.md` | REST API design and endpoint specifications |
 | `ui.md` | User interface design, application workflows, and the floating AI Assistant |
-| `ai.md` | AI Assistant architecture, controlled tools, confirmations, and safety boundaries |
+| `ai.md` | AI Assistant architecture, controlled tools, confirmations, voice input, and safety boundaries |
 | `ai_token_optimization.md` | Token and rate-limit measurements and optimization decisions for the assistant |
 | `auth_phase_plan.md` | Authentication implementation plan and design decisions |
 | `ui_refinement_plan.md` | UI refinement history and implementation details |
@@ -368,7 +381,7 @@ TimeLedger is a fully functional, authenticated personal productivity applicatio
 - Categories
 - Weekly Targets
 - Analytics
-- Text-based AI Assistant
+- AI Assistant with text and voice input
 
 ### Authentication & Security
 
@@ -382,6 +395,7 @@ TimeLedger is a fully functional, authenticated personal productivity applicatio
 - Natural-language activity and category management
 - Confirmation required for sensitive actions
 - Server-side, user-scoped tools (the LLM never accesses the database)
+- Voice input via speech-to-text, reviewed and sent explicitly by the user
 
 ### User Experience
 
@@ -413,8 +427,8 @@ Future enhancements include:
 
 ### AI
 
-- Voice input (Speech-to-Text) for the assistant
 - AI Productivity Coach and advanced AI analytics
+- Possible later voice extensions (not planned): text-to-speech replies, streaming transcription and automatic submission of transcriptions
 
 ### Integrations
 

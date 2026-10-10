@@ -646,7 +646,7 @@ Nothing is retried automatically, and a failed chat request must not be resent w
 
 ## POST /api/assistant/transcribe
 
-Authenticated speech-to-text endpoint (Phase 10B, Milestone 1). Converts one recording to text and nothing else.
+Authenticated speech-to-text endpoint (Phase 10B, complete and verified in production). Converts one recording to text and nothing else.
 
 It does not execute assistant tools, call LangGraph, modify TimeLedger data, submit anything to `/api/assistant/chat`, or persist audio. The audio exists only in memory for the duration of the request. The only user-related input is the authenticated session; no `userId`, thread or timezone is accepted.
 
