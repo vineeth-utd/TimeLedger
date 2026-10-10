@@ -527,20 +527,111 @@ Scope:
 
 ## Phase 10B - Voice Input
 
-Add voice as an alternative input method after the text assistant is stable.
+Add speech-to-text as an alternative input method for the existing TimeLedger Assistant.
+
+Voice reuses the complete Phase 10A assistant architecture:
 
 ```text
 Voice
   ↓
+Browser Recording
+  ↓
 Speech-to-text
   ↓
-Existing AI Assistant
+Review / Edit
+  ↓
+Existing Text Assistant
   ↓
 Existing LangGraph + Tool Pipeline
 ```
 
-Voice should reuse the complete Phase 10A assistant architecture.
+Initial decisions:
 
-Detailed voice implementation will be planned when Phase 10A is complete.
+- Tap to start recording; tap again to stop.
+- Always show the transcription for review/editing before Send.
+- Never automatically submit a transcription.
+- Test English first while keeping the transcription layer language-agnostic where practical.
+- Do not persist recorded audio.
+- Do not create separate voice-agent logic.
 
-**Status:** Future
+**Status:** Planned
+
+### Milestone 1 - Speech-to-Text Foundation
+
+Build the server-side transcription capability independently of the assistant UI.
+
+Scope:
+- Select and configure the speech-to-text provider/model.
+- Start with Groq-hosted Whisper Large V3 Turbo, subject to implementation-time verification.
+- Isolate provider-specific transcription code.
+- Add an authenticated transcription endpoint.
+- Accept supported audio input safely.
+- Validate request/audio type and size.
+- Define reasonable recording/request limits.
+- Transcribe audio and return text only.
+- Handle provider errors and rate limits.
+- Do not execute assistant tools.
+- Do not persist audio.
+
+**Status:** Not started
+
+---
+
+### Milestone 2 - Voice Recording UI
+
+Add audio recording to the existing floating assistant.
+
+Scope:
+- Add a microphone control to the existing assistant input.
+- Tap once to start recording.
+- Tap again to stop.
+- Show clear recording state.
+- Handle microphone permission request/denial.
+- Allow recording cancellation.
+- Show stopping/transcribing states.
+- Keep the existing text input and assistant layout.
+- Support desktop panel and mobile full-screen assistant.
+- Disable voice recording whenever normal assistant input is disabled.
+
+**Status:** Not started
+
+---
+
+### Milestone 3 - Transcription Review and Chat Integration
+
+Connect voice transcription to the existing text-assistant workflow.
+
+Scope:
+- Send completed recordings to the transcription endpoint.
+- Place returned transcription into the existing chat input.
+- Allow the user to review and edit the transcription.
+- Require explicit Send before the transcription enters the assistant pipeline.
+- Reuse the current thread and existing /api/assistant/chat flow.
+- Preserve clarification and confirmation behavior.
+- Handle transcription errors without modifying conversation/application state.
+- Test English first while keeping the implementation language-agnostic where practical.
+
+**Status:** Not started
+
+---
+
+### Milestone 4 - Voice Verification and Production Readiness
+Validate voice input across real TimeLedger usage.
+
+Scope:
+- Test desktop browser recording.
+- Test mobile browser / installed shortcut experience.
+- Test microphone permission flows.
+- Test cancellation and transcription failures.
+- Test common TimeLedger terminology and category names.
+- Test dates, times and relative-time phrases.
+- Test multi-action spoken requests.
+- Verify transcription review prevents unintended execution.
+- Verify audio is not persisted.
+- Verify authentication and request limits.
+- Verify provider rate-limit/error handling.
+- Configure production environment variables.
+- Update README and final documentation after deployment.
+
+**Status:** Not started
+

@@ -11,6 +11,8 @@ The UI should support:
 3. Daily and weekly time review
 4. Progress tracking against weekly targets
 5. Simple analytics and comparisons
+6. Conversational activity management through the AI Assistant
+7. Voice-assisted message composition (Phase 10B, planned)
 
 The UI should remain clean, responsive, and easy to use on desktop and mobile.
 
@@ -250,6 +252,64 @@ Used on the Analytics page to wrap charts with a title and optional filter contr
 - UI state after a failure comes only from the server's `changes`, `outcome` and `code` (`planResult` in `src/lib/assistantClient.js`), never from reply text. `applied`: refresh the page, clear any card and show what definitely changed plus that the assistant could not finish. `none`: show an error stating no changes were made. `unknown`: refresh, clear the card, start a new thread and tell the user to check Activities. A claimed confirmation never shows active Approve/Reject again. If the server never answered (network failure), nothing is assumed: chat shows a neutral error and a confirmation card stays so the user can retry by hand; the server's claim keeps that safe.
 - After Approve/Reject a compact record stays in the conversation, built from the server's confirmation summary: `✓ Approved: ...` / `✗ Rejected: ...` (only when the server resolved the decision).
 - Tool calls/results and internal values (such as `24:00` or database ids) are never displayed.
+
+---
+
+### Voice Input (Phase 10B — Planned)
+
+Voice input extends the existing assistant input rather than introducing a separate voice interface.
+
+#### Interaction
+
+1. The user taps the microphone control to start recording.
+2. The UI clearly indicates that recording is active.
+3. The user taps again to stop recording.
+4. The UI enters a transcribing state.
+5. The returned transcription is placed into the existing assistant text input.
+6. The user can review or edit the transcription.
+7. The user explicitly presses Send.
+
+Voice transcription must never automatically submit an assistant message in the initial implementation.
+
+#### Voice States
+
+The UI should support:
+
+- Idle
+- Requesting microphone permission
+- Recording
+- Stopping
+- Transcribing
+- Transcription ready for review
+- Permission denied
+- Recording/transcription error
+
+The user should be able to cancel an active recording without submitting audio for transcription.
+
+#### Responsive Behavior
+
+The same voice workflow should work in:
+
+- the desktop/tablet floating assistant panel;
+- the mobile full-screen assistant.
+
+Tap-to-start / tap-to-stop is the initial interaction on both desktop and mobile.
+
+The microphone control should be disabled whenever the normal assistant input is disabled, including while a confirmation action is pending.
+
+#### Review and Safety
+
+The transcription is draft input.
+
+It is not a user message and does not enter the assistant conversation or LangGraph workflow until the user explicitly presses Send.
+
+This gives the user an opportunity to correct speech-recognition errors, especially dates, times, titles, and category names.
+
+#### Audio
+
+Recorded audio is transient.
+
+It is not displayed as a conversation message and is not persisted by TimeLedger.
 
 ---
 

@@ -185,8 +185,15 @@ When working on the AI Assistant:
 * LangGraph is responsible for orchestration, state, branching, interrupts, and resumption. TimeLedger business logic must remain outside the graph.
 * Treat tool inputs and outputs as controlled application contracts rather than exposing raw database objects.
 * Implement only the currently approved AI milestone.
-* Do not implement future voice, analytics, or Productivity Coach functionality while working on the text assistant unless explicitly requested.
+* Implement only the currently approved AI phase and milestone. Do not pull functionality from later Voice, Analytics, or Productivity Coach milestones into the current task unless explicitly approved.
 * If the existing codebase requires a deviation from `docs/ai.md`, explain the conflict and proposed change before implementation.
+* For Phase 10B Voice work, read the current Voice milestone in `docs/planning.md` and the Voice Input section of `docs/ai.md`; read `docs/ui.md` when the milestone affects recording/UI behavior.
+* Voice must reuse the existing text-assistant pipeline. Do not create a separate LangGraph agent, tool set, conversation system, or TimeLedger execution path for voice.
+* Initial voice UX is: tap to record → tap to stop → transcribe → review/edit → explicit Send.
+* Speech-to-text must never directly execute TimeLedger tools or modify application data.
+* Recorded audio is transient and must not be persisted by TimeLedger.
+* Keep speech-to-text provider-specific code isolated from the existing assistant orchestration.
+* Initial verification focuses on English, but avoid unnecessary architecture restrictions that would prevent multilingual transcription later.
 
 ---
 

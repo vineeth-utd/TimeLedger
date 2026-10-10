@@ -644,6 +644,32 @@ Nothing is retried automatically, and a failed chat request must not be resent w
 
 ---
 
+## Planned Voice Transcription Endpoint (Phase 10B)
+
+Phase 10B will add an authenticated speech-to-text endpoint for transient voice transcription.
+
+Planned responsibility:
+
+```text
+audio
+  ↓
+speech-to-text
+  ↓
+transcribed text
+```
+
+The endpoint will return transcription text only.
+
+It will not:
+- execute assistant tools;
+- modify TimeLedger data;
+- automatically submit the transcription to /api/assistant/chat;
+- persist recorded audio.
+
+The exact route, multipart/request format, supported audio types, size/duration limits, provider errors and response contract will be documented when Milestone 1 is implemented.
+
+---
+
 # Validation Rules
 
 ## Activities
