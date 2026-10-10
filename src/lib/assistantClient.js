@@ -53,6 +53,34 @@ export const sendChat = (threadId, message) => post('/api/assistant/chat', { thr
 export const sendConfirm = (threadId, actionId, decision) =>
   post('/api/assistant/confirm', { threadId, actionId, decision })
 
+// Result: { ok, text } or { ok: false, unauthorized | code, message, retryAfterSeconds }.
+export function interpretTranscription(status, body) {
+  if (status === 401) return { ok: false, unauthorized: true, code: 'UNAUTHORIZED' }
+  if (status >= 200 && status < 300 && body?.success && typeof body.data?.text === 'string') {
+    return { ok: true, text: body.data.text }
+  }
+  return {
+    ok: false,
+    code: body?.code ?? 'ERROR',
+    message: body?.message,
+    retryAfterSeconds: body?.data?.retryAfterSeconds ?? null,
+  }
+}
+
+// Speech-to-text only: uploads one recording and returns text. Never touches the chat endpoints.
+export async function sendTranscription(file, signal) {
+  try {
+    const form = new FormData()
+    form.append('audio', file)
+    const response = await fetch('/api/assistant/transcribe', { method: 'POST', body: form, signal })
+    const body = await response.json().catch(() => null)
+    return interpretTranscription(response.status, body)
+  } catch (error) {
+    if (error?.name === 'AbortError') return { ok: false, aborted: true }
+    return { ok: false, code: 'NETWORK' }
+  }
+}
+
 // Data refresh: after the assistant changes TimeLedger data, pages re-fetch what they display.
 // See useAssistantRefreshKey (used by the pages' existing refreshKey fetch effects).
 export const DATA_CHANGED_EVENT = 'timeledger:data-changed'

@@ -593,7 +593,7 @@ Scope:
 - Support desktop panel and mobile full-screen assistant.
 - Disable voice recording whenever normal assistant input is disabled.
 
-**Status:** Not started
+**Status:** Implemented — recording UI and draft population built; deterministic checks pass (`scripts/voice-check.mjs`, lint, build). Manual microphone verification (desktop Chrome/Safari, iPhone Safari on a Vercel preview) and the live Groq transcription test are pending. Transcription populates the editable draft; nothing is auto-submitted.
 
 ---
 

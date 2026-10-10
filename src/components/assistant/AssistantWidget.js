@@ -1,10 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Sparkles, SquarePen, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { useAssistant } from '@/components/assistant/useAssistant'
+import { useVoiceRecorder } from '@/components/assistant/useVoiceRecorder'
+import { appendToDraft } from '@/lib/voiceRecorder'
 import ChatMessage, { ThinkingIndicator } from '@/components/assistant/ChatMessage'
 import ConfirmationCard from '@/components/assistant/ConfirmationCard'
 import ChatInput from '@/components/assistant/ChatInput'
@@ -26,6 +28,13 @@ export default function AssistantWidget() {
   const assistant = useAssistant()
   const { clearForSignOut } = assistant
   const inputRef = useRef(null)
+  // Transcription only fills the editable draft; the user reviews it and presses Send.
+  const handleTranscript = useCallback((text) => {
+    setDraft((current) => appendToDraft(current, text))
+    inputRef.current?.focus()
+  }, [])
+  const voice = useVoiceRecorder({ onTranscript: handleTranscript })
+  const cancelVoice = voice.cancel
   const endRef = useRef(null)
 
   useEffect(() => {
@@ -47,6 +56,7 @@ export default function AssistantWidget() {
       if (!signedIn) {
         setOpen(false)
         setDraft('')
+        cancelVoice()
         clearForSignOut()
       }
     })
@@ -54,7 +64,7 @@ export default function AssistantWidget() {
       ignore = true
       subscription.unsubscribe()
     }
-  }, [clearForSignOut])
+  }, [clearForSignOut, cancelVoice])
 
   const { messages, status, pendingAction, error } = assistant
   useEffect(() => {
@@ -64,11 +74,14 @@ export default function AssistantWidget() {
   useEffect(() => {
     if (!open) return
     function onKeyDown(e) {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') {
+        cancelVoice()
+        setOpen(false)
+      }
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [open])
+  }, [open, cancelVoice])
 
   useEffect(() => {
     if (open && !pendingAction) inputRef.current?.focus()
@@ -127,7 +140,10 @@ export default function AssistantWidget() {
             </button>
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                cancelVoice()
+                setOpen(false)
+              }}
               aria-label="Close assistant"
               className="p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100"
             >
@@ -190,9 +206,10 @@ export default function AssistantWidget() {
             <div ref={endRef} />
           </div>
 
-          {error && (
-            <div className="px-3 pb-2">
-              <ErrorBanner message={error} onDismiss={assistant.dismissError} />
+          {(error || voice.error) && (
+            <div className="px-3 pb-2 space-y-2">
+              {error && <ErrorBanner message={error} onDismiss={assistant.dismissError} />}
+              {voice.error && <ErrorBanner message={voice.error} onDismiss={voice.dismissError} />}
             </div>
           )}
 
@@ -202,6 +219,7 @@ export default function AssistantWidget() {
             onChange={setDraft}
             onSubmit={submit}
             disabled={locked}
+            voice={voice}
             placeholder={pendingAction ? 'Approve or reject the request above' : 'Message the assistant'}
           />
         </section>

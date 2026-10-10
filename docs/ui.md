@@ -12,7 +12,7 @@ The UI should support:
 4. Progress tracking against weekly targets
 5. Simple analytics and comparisons
 6. Conversational activity management through the AI Assistant
-7. Voice-assisted message composition (Phase 10B, planned)
+7. Voice-assisted message composition (Phase 10B)
 
 The UI should remain clean, responsive, and easy to use on desktop and mobile.
 
@@ -255,7 +255,7 @@ Used on the Analytics page to wrap charts with a title and optional filter contr
 
 ---
 
-### Voice Input (Phase 10B — Planned)
+### Voice Input (Phase 10B — Milestone 2 implemented; Milestone 3 review/chat polish planned)
 
 Voice input extends the existing assistant input rather than introducing a separate voice interface.
 
@@ -270,6 +270,16 @@ Voice input extends the existing assistant input rather than introducing a separ
 7. The user explicitly presses Send.
 
 Voice transcription must never automatically submit an assistant message in the initial implementation.
+
+#### As Built (Milestone 2)
+
+- A microphone button sits left of the text field in `ChatInput` (desktop panel and mobile sheet). It is **hidden** when the browser lacks `MediaRecorder`/`getUserMedia` (including non-HTTPS contexts) and disabled whenever the normal input is disabled.
+- While recording or transcribing, a status bar replaces the text field and Send: Cancel, `Recording 0:12 / 1:00`, Stop (or `Transcribing…` with Cancel).
+- Recording auto-stops at **60 seconds** and transcribes what was recorded. Recordings under 0.5 s or about 1 KB are discarded locally ("too short") without calling the API.
+- The recorder (`useVoiceRecorder`, native `MediaRecorder`) prefers `audio/webm;codecs=opus`, then `audio/mp4` (older Safari/iOS), then `audio/ogg;codecs=opus`, then the browser default. The upload is sent to `POST /api/assistant/transcribe` only.
+- A successful transcription is **appended to the existing editable draft** (`setDraft` via `appendToDraft`, capped at 4000 characters) and the input is focused. It is not a chat message, does not call `/api/assistant/chat`, and is never submitted automatically; the user reviews/edits it and presses Send.
+- Microphone tracks are stopped as soon as recording ends. Cancel, closing the panel (including Escape), sign-out, `pagehide` and unmount stop the recorder, release the microphone, abort any in-flight transcription and discard the audio. There is intentionally no automatic cancel on `visibilitychange`.
+- Voice errors (permission denied, no microphone, microphone in use, no speech, rate limit with retry seconds, network/server failures) appear in the existing error banner area; nothing is retried automatically. A 401 redirects to `/login`.
 
 #### Voice States
 
