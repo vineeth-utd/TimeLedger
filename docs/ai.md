@@ -1418,7 +1418,8 @@ Audio is transient.
 - TimeLedger must not persist recordings in PostgreSQL or Supabase Storage.
 - Audio exists only as needed to complete the current transcription request.
 - The application does not maintain an audio history.
-- The transcription is not sent to the existing assistant until the user explicitly sends the reviewed text.
+- The speech-to-text layer (`/api/assistant/transcribe`, `src/lib/stt`) neither persists nor logs audio or transcription text; it logs only provider status and error text.
+- The transcription is not sent to the existing assistant until the user explicitly sends the reviewed text. After Send, that reviewed text is an ordinary user message and may be persisted in the existing conversation/checkpoint exactly like typed text; no voice marker is stored.
 - Existing authenticated-user isolation continues to apply.
 
 ## 18.6 Existing Assistant Boundaries

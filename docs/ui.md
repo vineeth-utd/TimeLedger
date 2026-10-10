@@ -322,7 +322,7 @@ This gives the user an opportunity to correct speech-recognition errors, especia
 
 Recorded audio is transient.
 
-It is not displayed as a conversation message and is not persisted by TimeLedger.
+It is not displayed as a conversation message and is not persisted or logged by TimeLedger. The transcription itself is only draft text until the user presses Send; after that it is a normal user message, stored like any typed message.
 
 ---
 

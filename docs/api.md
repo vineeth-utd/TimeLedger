@@ -685,7 +685,7 @@ All errors: `{ "success": false, "code": "…", "message": "…" }` (401 has no 
 | 502 | `TRANSCRIPTION_FAILED` | Other provider failure |
 | 500 | `TRANSCRIPTION_UNAVAILABLE` | `GROQ_API_KEY` not configured |
 
-Nothing is retried automatically. Provider error details are logged server-side only; audio and transcripts are never logged.
+Nothing is retried automatically. Provider error details are logged server-side only; the transcription endpoint never logs or stores audio or transcript text (once a reviewed transcript is sent through `/api/assistant/chat` it is a normal message).
 
 ---
 

@@ -627,11 +627,15 @@ Scope:
 - Test dates, times and relative-time phrases.
 - Test multi-action spoken requests.
 - Verify transcription review prevents unintended execution.
-- Verify audio is not persisted.
+- Verify audio is not persisted or logged by the speech-to-text layer (the reviewed text, once sent, is a normal assistant message).
 - Verify authentication and request limits.
 - Verify provider rate-limit/error handling.
 - Configure production environment variables.
 - Update README and final documentation after deployment.
 
-**Status:** Not started
+**Reduced verification plan:** deterministic checks (`scripts/stt-check.mjs` incl. provider/HTTP error mapping, `scripts/voice-check.mjs`, lint, build); cancel, too-short, panel-close, permission-denied and the 60 s auto-stop (browser offline, no Groq call) checked manually without transcription; real voice flows: one desktop Chrome, one iPhone Safari on a Vercel Preview (through confirmation, mutation and page refresh; record the MIME/container produced), one iPhone home-screen-shortcut transcription, plus one optional clarification/multi-action case. If WebM proves problematic on Safari, prefer MP4 first for Safari only.
+
+**Completion criteria:** deterministic checks pass on the deployed commit; the live flows above pass on the Preview/Production URL; no audio persisted or logged by the speech-to-text layer; microphone released on every exit path; production env confirmed; README/docs updated.
+
+**Status:** In progress — deterministic hardening complete; live Preview/iPhone verification pending
 
