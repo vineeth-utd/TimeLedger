@@ -224,7 +224,7 @@ AI assistant only. Guarantees a pending confirmation action (delete, category cr
 
 ### Notes
 
-* **Applied manually.** The migration `20261008120000_add_assistant_action_claims` was applied directly with SQL, not through `prisma migrate deploy`, and is **not recorded in `_prisma_migrations`**. The older `20260708000000_enable_rls_user_owned_tables` migration is also applied but unrecorded. Reconciling Prisma migration history (and the transaction-pooler limitation with `prisma migrate`) is a separate maintenance task.
+* **Migration history.** The migrations `20260708000000_enable_rls_user_owned_tables` and `20261008120000_add_assistant_action_claims` were applied to the production database directly with SQL, so they are not yet recorded in its `_prisma_migrations` table. Their effects are verified present, and the live schema has no drift from `schema.prisma`. They are reconciled with `prisma migrate resolve --applied` (metadata only, no SQL re-run).
 * Conversation state lives in a separate Postgres schema, `ai_checkpoints`, created by `scripts/ai-setup-checkpointer.mjs`; it is not managed by Prisma.
 
 ---
@@ -336,3 +336,15 @@ The current implementation also includes:
 * Protected application pages
 
 No additional database tables are required beyond the current schema.
+
+---
+
+# Migrations Workflow
+
+* **Platform:** TimeLedger targets Supabase PostgreSQL. `20260708000000_enable_rls_user_owned_tables` uses Supabase Auth's `auth.uid()` and intentionally fails on plain PostgreSQL; it must not be edited to skip policies.
+* **Connections:** `DATABASE_URL` is the runtime Transaction Pooler (port 6543). `DIRECT_URL` is used by the Prisma CLI via `prisma.config.ts` (direct connection on port 5432, or the Session Pooler on port 5432 when direct/IPv6 is unavailable). Prisma migration commands hang through the Transaction Pooler.
+* **New database:** `npx prisma migrate deploy`, then `npx prisma generate`, then `node --env-file=.env scripts/ai-setup-checkpointer.mjs` (the `ai_checkpoints` schema is not managed by Prisma).
+* **Authoring a migration:** `npx prisma migrate dev --name <name>` needs a Supabase-compatible development environment (the shadow database must provide `auth.uid()`). Commit the generated folder.
+* **Production:** run `npx prisma migrate deploy` explicitly against `DIRECT_URL`; never during the Vercel build.
+* **Drift check:** `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code` (read-only).
+* **Optional onboarding verification (not yet performed):** on a throwaway Supabase project, confirm `migrate deploy` applies all five migrations from an empty database, `migrate diff` reports no drift, 20 RLS policies exist, `assistant_action_claims` has RLS enabled with its unique index, and `scripts/ai-setup-checkpointer.mjs` succeeds.
