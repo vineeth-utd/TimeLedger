@@ -122,6 +122,7 @@ const TEXT = {
   busy: 'The assistant is busy right now. Please try again in a moment.',
   unavailable: 'The assistant is unavailable right now. Please try again.',
   incomplete: "The assistant couldn't finish that response. Please try again or rephrase.",
+  invalidReply: "The assistant's response couldn't be displayed correctly. Please try again.",
   neutralChatFailure:
     'The assistant could not finish that request. Check your Activities to see whether anything changed before trying again.',
   neutralConfirmFailure: 'The confirmation could not be completed. Please try again.',
@@ -162,7 +163,9 @@ export function planResult(result, kind) {
       ? busyText(result.retryAfterSeconds)
       : result.code === 'ASSISTANT_INCOMPLETE'
         ? TEXT.incomplete
-        : TEXT.unavailable
+        : result.code === 'ASSISTANT_INVALID_REPLY'
+          ? TEXT.invalidReply
+          : TEXT.unavailable
 
   switch (result.code) {
     case 'PENDING_ACTION':
@@ -193,6 +196,10 @@ export function planResult(result, kind) {
   if (result.outcome === 'applied') {
     plan.pending = 'clear'
     plan.refresh = true
+    if (result.code === 'ASSISTANT_INVALID_REPLY') {
+      notice(`${describeChanges(changes).replace(/\.$/, '')}, but the assistant's response couldn't be displayed correctly. Please try again if you need anything else.`)
+      return plan
+    }
     notice(`${describeChanges(changes)} The assistant then could not finish its reply. ${failureReason}`)
     return plan
   }

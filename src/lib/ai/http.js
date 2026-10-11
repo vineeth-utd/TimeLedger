@@ -1,4 +1,4 @@
-import { OutputTruncatedError } from '@/lib/ai/results'
+import { InvalidAssistantReplyError, OutputTruncatedError } from '@/lib/ai/results'
 
 // Shared HTTP mapping for the assistant endpoints (chat and confirm).
 
@@ -46,6 +46,17 @@ function failedTurnResponse(threadId, result, label) {
   if (result.outcome === 'unknown') {
     const [code, message] = CONFLICTS.outcome_unknown
     return Response.json({ success: false, code, message, data }, { status: 409 })
+  }
+  if (result.cause instanceof InvalidAssistantReplyError) {
+    return Response.json(
+      {
+        success: false,
+        code: 'ASSISTANT_INVALID_REPLY',
+        message: "The assistant's response couldn't be displayed correctly. Please try again.",
+        data,
+      },
+      { status: 500 }
+    )
   }
   if (result.cause instanceof OutputTruncatedError) {
     return Response.json(

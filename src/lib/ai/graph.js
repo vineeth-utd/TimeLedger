@@ -2,7 +2,8 @@ import { Annotation, END, interrupt, MessagesAnnotation, START, StateGraph } fro
 import { AIMessage, SystemMessage, ToolMessage } from '@langchain/core/messages'
 import { buildPendingAction, isPendingExpired, toPublicPendingAction } from '@/lib/ai/confirmation'
 import { buildSystemPrompt } from '@/lib/ai/prompt'
-import { fail, OutputTruncatedError } from '@/lib/ai/results'
+import { contentText, hasDegenerateWhitespaceRun } from '@/lib/ai/replyGuard'
+import { fail, InvalidAssistantReplyError, OutputTruncatedError } from '@/lib/ai/results'
 import { getToolDefinitions } from '@/lib/ai/tools'
 
 // Conversation messages plus the frozen pending action awaiting user confirmation (or null).
@@ -53,12 +54,20 @@ export function buildAssistantGraph({ ctx, tools, model, checkpointer }) {
     if (!hasToolCall && !hasText) throw new OutputTruncatedError()
   }
 
+  // A final reply (no tool calls) with a degenerate blank run is rejected before it is appended to
+  // state, so it never becomes conversation history. Earlier tool results stay checkpointed.
+  function assertWellFormedReply(response) {
+    if (response.tool_calls?.length) return
+    if (hasDegenerateWhitespaceRun(contentText(response.content))) throw new InvalidAssistantReplyError()
+  }
+
   async function agentNode(state) {
     const response = await getModelWithTools().invoke([
       new SystemMessage(buildSystemPrompt(ctx)),
       ...state.messages,
     ])
     assertUsable(response)
+    assertWellFormedReply(response)
     return { messages: [response] }
   }
 
