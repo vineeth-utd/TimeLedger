@@ -416,6 +416,7 @@ TimeLedger is a production-deployed personal application actively used for daily
 ### User Experience
 
 - Responsive UI
+- Light/Dark theme (toggle in the navigation; follows the system preference on first visit, then remembers your choice)
 - Accessibility improvements
 - Local timezone handling
 
@@ -454,10 +455,6 @@ Future enhancements include:
 
 - CSV import
 - CSV export
-
-### Personalization
-
-- Dark mode
 
 ### Authentication
 

@@ -336,6 +336,19 @@ The current application behavior is documented in:
 
 Future enhancements will be tracked separately in `BACKLOG.md`.
 
+## Light / Dark Theme (Small UI Enhancement)
+
+Added after the AI Assistant and Voice milestones as a small, explicitly approved personalization enhancement; not a separate phase.
+
+- Global Light/Dark toggle (Sun/Moon) in the authenticated navigation, desktop and mobile
+- First visit follows the browser/OS preference; an explicit choice is saved in `localStorage` and takes precedence afterward
+- No wrong-theme flash (inline init script before first paint); no theme library
+- Class-based dark mode with semantic neutral tokens plus explicit `dark:` variants for status/accent colors; charts and the floating Assistant included
+- No database, API, authentication or AI changes
+- Verified manually on light/dark, desktop and mobile/home-screen usage
+
+**Status:** Complete. See `ui.md` (Theme).
+
 ---
 
 # Phase 10 - AI Assistant

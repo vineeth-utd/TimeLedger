@@ -22,14 +22,14 @@ export default function ConfirmationCard({ pendingAction, busy, onDecision }) {
   const many = pendingAction.actions.length > 1
 
   return (
-    <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3.5">
-      <div className="flex items-center gap-2 text-sm font-medium text-blue-800">
+    <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/40 p-3.5">
+      <div className="flex items-center gap-2 text-sm font-medium text-blue-800 dark:text-blue-300">
         <ShieldCheck className="w-4 h-4" strokeWidth={2} />
         {expired ? 'This request expired' : many ? 'Please confirm these actions' : 'Please confirm this action'}
       </div>
       <ul className="mt-2 space-y-1.5">
         {pendingAction.actions.map((action, index) => (
-          <li key={index} className="text-sm text-gray-800">
+          <li key={index} className="text-sm text-foreground">
             {action.display.summary}
           </li>
         ))}
@@ -40,7 +40,7 @@ export default function ConfirmationCard({ pendingAction, busy, onDecision }) {
             type="button"
             onClick={() => onDecision('reject')}
             disabled={busy}
-            className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50"
+            className="flex-1 px-3 py-2 text-sm font-medium text-foreground-secondary bg-surface border border-border-strong rounded-md hover:bg-surface-subtle active:bg-surface-muted disabled:opacity-50"
           >
             Dismiss
           </button>
@@ -59,7 +59,7 @@ export default function ConfirmationCard({ pendingAction, busy, onDecision }) {
               type="button"
               onClick={() => onDecision('reject')}
               disabled={busy}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-foreground-secondary bg-surface border border-border-strong rounded-md hover:bg-surface-subtle active:bg-surface-muted disabled:opacity-50"
             >
               <X className="w-4 h-4" strokeWidth={2} />
               Reject

@@ -12,18 +12,18 @@ const ACCENTS = [
 
 function getStatus(pct) {
   if (pct === null) return null
-  if (pct > 100)   return { label: 'Exceeded',        cls: 'bg-violet-50 text-violet-700 border border-violet-200' }
-  if (pct === 100) return { label: 'Target Achieved',  cls: 'bg-green-50 text-green-700 border border-green-200' }
-  if (pct >= 75)   return { label: 'Near Target',      cls: 'bg-amber-50 text-amber-700 border border-amber-200' }
-  return             { label: 'On Track',              cls: 'bg-blue-50 text-blue-700 border border-blue-200' }
+  if (pct > 100)   return { label: 'Exceeded',        cls: 'bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800' }
+  if (pct === 100) return { label: 'Target Achieved',  cls: 'bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800' }
+  if (pct >= 75)   return { label: 'Near Target',      cls: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800' }
+  return             { label: 'On Track',              cls: 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800' }
 }
 
 export default function WeeklyProgress({ weeklyProgress }) {
   return (
-    <section className="bg-white border border-gray-200 rounded-xl shadow-sm">
-      <div className="px-6 py-4 border-b border-gray-100">
-        <h2 className="text-sm font-semibold text-gray-900">Weekly Progress</h2>
-        <p className="text-xs text-gray-500 mt-0.5">Progress by main category for the selected week</p>
+    <section className="bg-surface border border-border rounded-xl shadow-sm">
+      <div className="px-6 py-4 border-b border-border-subtle">
+        <h2 className="text-sm font-semibold text-foreground">Weekly Progress</h2>
+        <p className="text-xs text-foreground-muted mt-0.5">Progress by main category for the selected week</p>
       </div>
 
       {weeklyProgress.length === 0 ? (
@@ -39,16 +39,16 @@ export default function WeeklyProgress({ weeklyProgress }) {
             return (
               <div
                 key={row.mainCategoryId}
-                className={`bg-white border border-gray-100 border-l-4 ${accent.border} rounded-xl p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 cursor-default`}
+                className={`bg-surface border border-border-subtle border-l-4 ${accent.border} rounded-xl p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 cursor-default`}
               >
                 {/* Header */}
                 <div className="flex items-start justify-between gap-2 mb-3">
-                  <span className="text-sm font-semibold text-gray-800 leading-snug">
+                  <span className="text-sm font-semibold text-foreground leading-snug">
                     {row.mainCategoryName}
                   </span>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {row.isTargetFallback && (
-                      <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+                      <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded px-1.5 py-0.5">
                         Fallback
                       </span>
                     )}
@@ -64,7 +64,7 @@ export default function WeeklyProgress({ weeklyProgress }) {
                   <>
                     {/* Percentage */}
                     <div className="mb-2">
-                      <span className="text-2xl font-bold text-gray-900">
+                      <span className="text-2xl font-bold text-foreground">
                         {pct ?? 0}%
                       </span>
                     </div>
@@ -76,7 +76,7 @@ export default function WeeklyProgress({ weeklyProgress }) {
                       aria-valuemin={0}
                       aria-valuemax={100}
                       aria-label={`${row.mainCategoryName} progress`}
-                      className="w-full bg-gray-100 rounded-full h-1.5 mb-1"
+                      className="w-full bg-surface-muted rounded-full h-1.5 mb-1"
                     >
                       <div
                         className={`${accent.bar} h-1.5 rounded-full transition-all duration-500`}
@@ -85,27 +85,27 @@ export default function WeeklyProgress({ weeklyProgress }) {
                     </div>
 
                     {/* 3-column stats */}
-                    <div className="grid grid-cols-3 gap-1 mt-3 pt-3 border-t border-gray-100">
+                    <div className="grid grid-cols-3 gap-1 mt-3 pt-3 border-t border-border-subtle">
                       <div>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-wide">Spent</p>
-                        <p className="text-sm font-semibold text-gray-800 mt-0.5">{formatMinutes(row.spentMinutes)}</p>
+                        <p className="text-[10px] text-foreground-subtle uppercase tracking-wide">Spent</p>
+                        <p className="text-sm font-semibold text-foreground mt-0.5">{formatMinutes(row.spentMinutes)}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-wide">Target</p>
-                        <p className="text-sm font-medium text-gray-600 mt-0.5">{formatMinutes(row.targetMinutes)}</p>
+                        <p className="text-[10px] text-foreground-subtle uppercase tracking-wide">Target</p>
+                        <p className="text-sm font-medium text-foreground-secondary mt-0.5">{formatMinutes(row.targetMinutes)}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-wide">Remaining</p>
-                        <p className="text-sm font-medium text-gray-500 mt-0.5">{formatMinutes(row.remainingMinutes)}</p>
+                        <p className="text-[10px] text-foreground-subtle uppercase tracking-wide">Remaining</p>
+                        <p className="text-sm font-medium text-foreground-muted mt-0.5">{formatMinutes(row.remainingMinutes)}</p>
                       </div>
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-2xl font-bold text-foreground">
                       {formatMinutes(row.spentMinutes)}
                     </div>
-                    <div className="text-xs text-gray-400 mt-1">No target set</div>
+                    <div className="text-xs text-foreground-subtle mt-1">No target set</div>
                   </>
                 )}
               </div>

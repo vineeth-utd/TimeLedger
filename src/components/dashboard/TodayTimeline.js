@@ -30,10 +30,10 @@ export default function TodayTimeline({ activities, onEdit, onDelete }) {
   }
 
   return (
-    <section className="bg-white border border-gray-200 rounded-xl shadow-sm">
-      <div className="px-6 py-4 border-b border-gray-100">
-        <h2 className="text-sm font-semibold text-gray-900">Today&apos;s Timeline</h2>
-        <p className="text-xs text-gray-500 mt-0.5">Activities logged today, newest first</p>
+    <section className="bg-surface border border-border rounded-xl shadow-sm">
+      <div className="px-6 py-4 border-b border-border-subtle">
+        <h2 className="text-sm font-semibold text-foreground">Today&apos;s Timeline</h2>
+        <p className="text-xs text-foreground-muted mt-0.5">Activities logged today, newest first</p>
       </div>
 
       {activities.length === 0 ? (
@@ -41,8 +41,8 @@ export default function TodayTimeline({ activities, onEdit, onDelete }) {
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr className="text-left text-xs text-gray-400 uppercase tracking-wide">
+            <thead className="bg-surface-subtle border-b border-border-subtle">
+              <tr className="text-left text-xs text-foreground-subtle uppercase tracking-wide">
                 <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 font-medium">Time</th>
                 <th scope="col" className="px-2 py-2 sm:px-4 sm:py-3 font-medium">Title</th>
                 <th scope="col" className="px-4 py-3 font-medium hidden sm:table-cell">Sub Category</th>
@@ -53,12 +53,12 @@ export default function TodayTimeline({ activities, onEdit, onDelete }) {
             </thead>
             <tbody>
               {activities.map((activity) => (
-                <tr key={activity.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="px-3 py-2 sm:px-6 sm:py-3 text-gray-500 whitespace-nowrap tabular-nums">
+                <tr key={activity.id} className="border-b border-border-subtle hover:bg-surface-subtle transition-colors">
+                  <td className="px-3 py-2 sm:px-6 sm:py-3 text-foreground-muted whitespace-nowrap tabular-nums">
                     {formatTime(activity.startTime)} – {formatTime(activity.endTime)}
                   </td>
                   <td
-                    className="px-2 py-2 sm:px-4 sm:py-3 text-gray-800 font-medium max-w-[100px] sm:max-w-[200px]"
+                    className="px-2 py-2 sm:px-4 sm:py-3 text-foreground font-medium max-w-[100px] sm:max-w-[200px]"
                     title={activity.title}
                   >
                     <div className="flex items-center gap-1 min-w-0">
@@ -68,36 +68,36 @@ export default function TodayTimeline({ activities, onEdit, onDelete }) {
                         onClick={(e) => handleCopyTitle(e, activity)}
                         aria-label={`Copy title: ${activity.title}`}
                         title="Copy title"
-                        className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
+                        className="p-1 rounded text-foreground-subtle hover:text-foreground-secondary hover:bg-surface-muted transition-colors shrink-0"
                       >
                         {copiedActivityId === activity.id
-                          ? <Check className="w-3.5 h-3.5 text-green-600" aria-hidden="true" />
+                          ? <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-400" aria-hidden="true" />
                           : <Copy className="w-3.5 h-3.5" aria-hidden="true" />
                         }
                       </button>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">
+                  <td className="px-4 py-3 text-foreground-secondary hidden sm:table-cell">
                     {activity.subCategory?.name}
                   </td>
-                  <td className="px-4 py-3 text-gray-400 hidden md:table-cell">
+                  <td className="px-4 py-3 text-foreground-subtle hidden md:table-cell">
                     {activity.subCategory?.mainCategory?.name}
                   </td>
-                  <td className="px-2 py-2 sm:px-4 sm:py-3 text-gray-700 text-right whitespace-nowrap tabular-nums">
+                  <td className="px-2 py-2 sm:px-4 sm:py-3 text-foreground-secondary text-right whitespace-nowrap tabular-nums">
                     {formatMinutes(activity.durationMinutes)}
                   </td>
                   <td className="px-3 py-2 sm:px-6 sm:py-3 text-right whitespace-nowrap">
                     <button
                       onClick={() => onEdit(activity)}
                       aria-label="Edit activity"
-                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                      className="p-1.5 text-foreground-subtle hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded transition-colors"
                     >
                       <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
                     </button>
                     <button
                       onClick={() => onDelete(activity)}
                       aria-label="Delete activity"
-                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors ml-0.5"
+                      className="p-1.5 text-foreground-subtle hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors ml-0.5"
                     >
                       <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
                     </button>

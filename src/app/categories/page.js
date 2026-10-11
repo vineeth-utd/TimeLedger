@@ -194,7 +194,7 @@ export default function CategoriesPage() {
             className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
               statusFilter === f.key
                 ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-zinc-600 border-zinc-300 hover:border-zinc-400'
+                : 'bg-surface text-foreground-secondary border-border-strong hover:border-border-strong'
             }`}
           >
             {f.label}
@@ -208,7 +208,7 @@ export default function CategoriesPage() {
       {loading ? (
         <LoadingState />
       ) : filteredMainCategories.length === 0 ? (
-        <div className="bg-white border border-zinc-200 rounded-lg">
+        <div className="bg-surface border border-border rounded-lg">
           <EmptyState
             message={
               statusFilter === 'all'

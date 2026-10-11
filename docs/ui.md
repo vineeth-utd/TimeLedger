@@ -65,6 +65,18 @@ The application should use a consistent shell across pages.
 3. Convert wide tables into stacked rows or compact cards where needed.
 4. Keep form fields easy to tap.
 
+### Theme (Light / Dark)
+
+A global Light/Dark theme is implemented. It is purely client-side UI state (no database, API or auth involvement).
+
+- **Toggle:** a compact icon button (Moon in light mode, Sun in dark mode) in the main navigation, shown only to authenticated users. On desktop it sits in the link row before Sign In/Out; on mobile it sits beside the hamburger so it is always one tap away. The login page has no toggle but follows the saved theme.
+- **Accessibility:** the button has an accessible label ("Switch to dark mode" / "Switch to light mode") and is keyboard operable.
+- **First visit:** with no saved preference, the theme follows the browser/OS `prefers-color-scheme`. Nothing is stored at this point.
+- **Explicit choice:** clicking the toggle saves `light` or `dark` in `localStorage` (key `theme`). From then on the saved choice wins, and later OS theme changes are not followed.
+- **No flash:** an inline script in the root layout's `<head>` applies the `dark` class to `<html>` (plus `color-scheme` and the `theme-color` meta tag) before first paint.
+- **Implementation:** neutral colors use semantic tokens in `globals.css` (`background`, `surface`, `surface-subtle`, `surface-muted`, `foreground*`, `border*`) with light values on `:root` and dark values on `.dark`. Status/accent colors use explicit `dark:` variants only where needed. Tailwind's built-in palette is not redefined. Analytics charts take grid, axis and tooltip colors from `useIsDark()` in `src/lib/theme.js`. The floating Assistant uses the same tokens.
+- **Scope:** Light/Dark only. There are no custom themes, accent customization or settings page.
+
 ### Authentication
 
 The application requires authentication.
@@ -949,13 +961,13 @@ Implemented:
 * Protected Pages
 * Responsive Design
 * Accessibility Improvements
+* Light / Dark theme
 
 Not yet implemented:
 
 * Email / Password login
 * User Profile
 * Settings
-* Themes
 * Background Automation
 
 ---
@@ -991,10 +1003,6 @@ Not yet implemented:
 ### Integrations
 
 14. Google Calendar integration
-
-### Personalization
-
-15. Dark mode
 
 ### Authentication
 

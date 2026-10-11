@@ -119,7 +119,7 @@ Do not implement unless explicitly requested:
 * Background jobs
 * Offline support
 * Calendar integrations
-* Theme customization
+* Theme customization beyond the existing Light/Dark toggle (custom themes, accent color customization, or a Settings-based personalization system)
 * Complex animations
 * Over-engineered state management
 * Future AI/voice/productivity-coach functionality beyond the currently approved milestone

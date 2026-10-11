@@ -12,19 +12,19 @@ export default function WeekNavigator({ weekStartDate, onPrev, onNext, onToday, 
   return (
     <div className="flex items-center gap-3 flex-wrap">
       {/* Grouped Prev / week label / Next */}
-      <div className="flex items-center border border-gray-200 rounded-md bg-white divide-x divide-gray-200 shadow-sm">
+      <div className="flex items-center border border-border rounded-md bg-surface divide-x divide-border shadow-sm">
         <button
           onClick={onPrev}
-          className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 active:bg-gray-100 rounded-l-md transition-colors"
+          className="px-3 py-1.5 text-sm font-medium text-foreground-secondary hover:bg-surface-subtle active:bg-surface-muted rounded-l-md transition-colors"
         >
           ← Prev
         </button>
-        <span className="px-5 py-1.5 text-sm font-medium text-gray-800 min-w-[196px] text-center select-none">
+        <span className="px-5 py-1.5 text-sm font-medium text-foreground min-w-[196px] text-center select-none">
           {formatWeekLabel(weekStartDate)}
         </span>
         <button
           onClick={onNext}
-          className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 active:bg-gray-100 rounded-r-md transition-colors"
+          className="px-3 py-1.5 text-sm font-medium text-foreground-secondary hover:bg-surface-subtle active:bg-surface-muted rounded-r-md transition-colors"
         >
           Next →
         </button>
@@ -33,7 +33,7 @@ export default function WeekNavigator({ weekStartDate, onPrev, onNext, onToday, 
       {/* Today */}
       <button
         onClick={onToday}
-        className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 active:bg-blue-200 transition-colors"
+        className="px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/40 active:bg-blue-200 dark:active:bg-blue-900/60 transition-colors"
       >
         Today
       </button>
@@ -41,11 +41,11 @@ export default function WeekNavigator({ weekStartDate, onPrev, onNext, onToday, 
       {/* Jump to week */}
       {onGoTo && (
         <div className="flex items-center gap-2 ml-1">
-          <span className="text-xs text-gray-500 whitespace-nowrap">Week containing:</span>
+          <span className="text-xs text-foreground-muted whitespace-nowrap">Week containing:</span>
           <input
             type="date"
             aria-label="Jump to week containing date"
-            className="text-sm border border-gray-200 rounded-md px-2 py-1 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+            className="text-sm border border-border rounded-md px-2 py-1 text-foreground-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
             onChange={(e) => {
               if (e.target.value) {
                 onGoTo(getWeekStartMonday(e.target.value))

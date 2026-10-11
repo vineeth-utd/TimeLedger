@@ -90,49 +90,49 @@ export default function CategoryModal({ isOpen, mode, mainCategory, subCategory,
         role="dialog"
         aria-modal="true"
         aria-labelledby="category-modal-title"
-        className="bg-white rounded-lg shadow-xl w-full max-w-md"
+        className="bg-surface rounded-lg shadow-xl w-full max-w-md"
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h2 id="category-modal-title" className="text-base font-semibold text-zinc-900">{TITLES[mode]}</h2>
-          <button onClick={onClose} aria-label="Close" className="p-1 rounded text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 id="category-modal-title" className="text-base font-semibold text-foreground">{TITLES[mode]}</h2>
+          <button onClick={onClose} aria-label="Close" className="p-1 rounded text-foreground-subtle hover:text-foreground-secondary hover:bg-surface-muted transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
           {apiError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded">
+            <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm px-3 py-2 rounded">
               {apiError}
             </div>
           )}
 
           {(mode === 'add-sub' || mode === 'edit-sub') && (
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">Main Category</label>
-              <div className="w-full border border-zinc-200 rounded px-3 py-2 text-sm bg-zinc-50 text-zinc-500">
+              <label className="block text-sm font-medium text-foreground-secondary mb-1">Main Category</label>
+              <div className="w-full border border-border rounded px-3 py-2 text-sm bg-surface-subtle text-foreground-muted">
                 {mainCategory?.name ?? '—'}
               </div>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Name</label>
+            <label className="block text-sm font-medium text-foreground-secondary mb-1">Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => { setName(e.target.value); setNameError('') }}
               autoFocus
               placeholder={mode === 'add-main' || mode === 'edit-main' ? 'e.g. Career Growth' : 'e.g. LeetCode Problems'}
-              className="w-full border border-zinc-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-border-strong rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            {nameError && <p className="text-red-600 text-xs mt-1">{nameError}</p>}
+            {nameError && <p className="text-red-600 dark:text-red-400 text-xs mt-1">{nameError}</p>}
           </div>
 
           <div className="flex justify-end gap-3 pt-2 pb-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded hover:bg-zinc-50"
+              className="px-4 py-2 text-sm font-medium text-foreground-secondary bg-surface border border-border-strong rounded hover:bg-surface-subtle"
             >
               Cancel
             </button>

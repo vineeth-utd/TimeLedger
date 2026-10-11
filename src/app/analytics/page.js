@@ -14,6 +14,7 @@ import {
   Line,
 } from 'recharts'
 import useAssistantRefreshKey from '@/lib/useAssistantRefreshKey'
+import { useIsDark } from '@/lib/theme'
 import PageHeader from '@/components/PageHeader'
 import DateRangeFilter from '@/components/DateRangeFilter'
 import SummaryCard from '@/components/SummaryCard'
@@ -127,13 +128,20 @@ function computeTargetRows(weeklyTargets, mainCategoryData) {
 }
 
 function getStatusBadge(pct) {
-  if (pct > 100) return { label: 'Exceeded', cls: 'bg-violet-50 text-violet-700 border border-violet-200' }
-  if (pct === 100) return { label: 'Target Achieved', cls: 'bg-green-50 text-green-700 border border-green-200' }
-  if (pct >= 75) return { label: 'Near Target', cls: 'bg-amber-50 text-amber-700 border border-amber-200' }
-  return { label: 'On Track', cls: 'bg-blue-50 text-blue-700 border border-blue-200' }
+  if (pct > 100) return { label: 'Exceeded', cls: 'bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800' }
+  if (pct === 100) return { label: 'Target Achieved', cls: 'bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800' }
+  if (pct >= 75) return { label: 'Near Target', cls: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800' }
+  return { label: 'On Track', cls: 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800' }
+}
+
+// Recharts draws SVG props directly, so neutral chart colors can't use Tailwind classes.
+const CHART_COLORS = {
+  light: { grid: '#f4f4f5', axis: '#52525b', prior: '#d4d4d8', tooltipBg: '#ffffff', tooltipBorder: '#e4e4e7', tooltipText: '#18181b' },
+  dark: { grid: '#2d3748', axis: '#9ca3af', prior: '#4b5563', tooltipBg: '#1f2937', tooltipBorder: '#374151', tooltipText: '#f3f4f6' },
 }
 
 export default function AnalyticsPage() {
+  const isDark = useIsDark()
   const [dateRange, setDateRange] = useState(null)
   const [activities, setActivities] = useState([])
   const [prevActivities, setPrevActivities] = useState([])
@@ -217,7 +225,15 @@ export default function AnalyticsPage() {
 
   const targetRows = isWeekRange ? computeTargetRows(weeklyTargets, mainCategoryData) : []
 
-  const tooltipStyle = { fontSize: 12, border: '1px solid #e4e4e7', borderRadius: 6 }
+  const chart = isDark ? CHART_COLORS.dark : CHART_COLORS.light
+  const tooltipStyle = {
+    fontSize: 12,
+    border: `1px solid ${chart.tooltipBorder}`,
+    borderRadius: 6,
+    backgroundColor: chart.tooltipBg,
+    color: chart.tooltipText,
+  }
+  const tooltipTextStyle = { color: chart.tooltipText }
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 max-md:pb-[calc(5rem+env(safe-area-inset-bottom))] space-y-6">
@@ -289,37 +305,37 @@ export default function AnalyticsPage() {
 
           {/* Week-over-Week Comparison */}
           {isWeekRange && (
-            <div className="bg-white border border-zinc-200 rounded-lg p-5">
+            <div className="bg-surface border border-border rounded-lg p-5">
               <div className="flex items-start justify-between mb-1">
-                <h2 className="text-sm font-semibold text-zinc-900">Week-over-Week Comparison</h2>
+                <h2 className="text-sm font-semibold text-foreground">Week-over-Week Comparison</h2>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+                  <span className="flex items-center gap-1.5 text-xs text-foreground-muted">
                     <span className="inline-block w-3 h-2 rounded-sm bg-blue-600" />
                     This Period
                   </span>
-                  <span className="flex items-center gap-1.5 text-xs text-zinc-500">
-                    <span className="inline-block w-3 h-2 rounded-sm bg-zinc-300" />
+                  <span className="flex items-center gap-1.5 text-xs text-foreground-muted">
+                    <span className="inline-block w-3 h-2 rounded-sm bg-[#d4d4d8] dark:bg-[#4b5563]" />
                     Prior Period
                   </span>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3 text-sm text-zinc-600">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3 text-sm text-foreground-secondary">
                 <span>
                   This period:{' '}
-                  <span className="font-medium text-zinc-800">{formatMinutes(currentTotal)}</span>
+                  <span className="font-medium text-foreground">{formatMinutes(currentTotal)}</span>
                 </span>
-                <span className="text-zinc-300">|</span>
+                <span className="text-foreground-subtle">|</span>
                 <span>
                   Prior period:{' '}
-                  <span className="font-medium text-zinc-800">{formatMinutes(prevTotal)}</span>
+                  <span className="font-medium text-foreground">{formatMinutes(prevTotal)}</span>
                 </span>
                 {totalDelta !== 0 && (
                   <span
                     className={`text-xs font-medium rounded px-1.5 py-0.5 border ${
                       totalDelta > 0
-                        ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
-                        : 'text-rose-600 bg-rose-50 border-rose-200'
+                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800'
+                        : 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800'
                     }`}
                   >
                     <span aria-label={totalDelta > 0 ? 'increased' : 'decreased'}>{totalDelta > 0 ? '▲' : '▼'}</span> {formatMinutes(Math.abs(totalDelta))}
@@ -331,7 +347,7 @@ export default function AnalyticsPage() {
               {weekHighlights && (
                 <div className="flex flex-wrap gap-2 mb-4">
                   {weekHighlights.biggestGain.current - weekHighlights.biggestGain.previous > 0 && (
-                    <span className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
+                    <span className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-full px-3 py-1">
                       <span aria-label="increased">▲</span>
                       <span>Biggest gain: <strong>{weekHighlights.biggestGain.name}</strong></span>
                       <span className="text-emerald-500">
@@ -340,7 +356,7 @@ export default function AnalyticsPage() {
                     </span>
                   )}
                   {weekHighlights.biggestDrop.current - weekHighlights.biggestDrop.previous < 0 && (
-                    <span className="flex items-center gap-1.5 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-full px-3 py-1">
+                    <span className="flex items-center gap-1.5 text-xs text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-full px-3 py-1">
                       <span aria-label="decreased">▼</span>
                       <span>Biggest drop: <strong>{weekHighlights.biggestDrop.name}</strong></span>
                       <span className="text-rose-500">
@@ -354,7 +370,7 @@ export default function AnalyticsPage() {
               {prevLoading ? (
                 <LoadingState />
               ) : comparisonData.length === 0 ? (
-                <p className="text-sm text-zinc-400 py-8 text-center">No data to compare.</p>
+                <p className="text-sm text-foreground-subtle py-8 text-center">No data to compare.</p>
               ) : (
                 <ResponsiveContainer
                   width="100%"
@@ -365,19 +381,21 @@ export default function AnalyticsPage() {
                     data={comparisonData}
                     margin={{ left: 8, right: 24, top: 4, bottom: 4 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" />
-                    <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
+                    <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12, fill: chart.axis }} />
                     <XAxis
                       type="number"
                       tickFormatter={(v) => formatMinutes(v)}
-                      tick={{ fontSize: 11 }}
+                      tick={{ fontSize: 11, fill: chart.axis }}
                     />
                     <Tooltip
                       formatter={(v, name) => [formatMinutes(v), name]}
                       contentStyle={tooltipStyle}
+                      labelStyle={tooltipTextStyle}
+                      itemStyle={tooltipTextStyle}
                     />
                     <Bar dataKey="current" name="This Period" fill="#2563eb" radius={[0, 3, 3, 0]} />
-                    <Bar dataKey="previous" name="Prior Period" fill="#d4d4d8" radius={[0, 3, 3, 0]} />
+                    <Bar dataKey="previous" name="Prior Period" fill={chart.prior} radius={[0, 3, 3, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -386,19 +404,19 @@ export default function AnalyticsPage() {
 
           {/* Target vs Actual */}
           {isWeekRange && (
-            <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
-              <div className="px-5 py-4 border-b border-zinc-100">
-                <h2 className="text-sm font-semibold text-zinc-900">Target vs Actual</h2>
-                <p className="text-xs text-zinc-500 mt-0.5">Weekly target progress by main category</p>
+            <div className="bg-surface border border-border rounded-lg overflow-hidden">
+              <div className="px-5 py-4 border-b border-border-subtle">
+                <h2 className="text-sm font-semibold text-foreground">Target vs Actual</h2>
+                <p className="text-xs text-foreground-muted mt-0.5">Weekly target progress by main category</p>
               </div>
               {targetRows.length === 0 ? (
-                <p className="text-sm text-zinc-400 px-5 py-8 text-center">
+                <p className="text-sm text-foreground-subtle px-5 py-8 text-center">
                   No weekly targets set for this period.
                 </p>
               ) : (
                 <table className="w-full text-sm">
-                  <thead className="bg-zinc-50 border-b border-zinc-100">
-                    <tr className="text-left text-xs text-zinc-500 uppercase tracking-wide">
+                  <thead className="bg-surface-subtle border-b border-border-subtle">
+                    <tr className="text-left text-xs text-foreground-muted uppercase tracking-wide">
                       <th scope="col" className="px-5 py-3 font-medium">Category</th>
                       <th scope="col" className="px-5 py-3 font-medium hidden sm:table-cell">Target</th>
                       <th scope="col" className="px-5 py-3 font-medium">Actual</th>
@@ -411,12 +429,12 @@ export default function AnalyticsPage() {
                       const status = getStatusBadge(row.pct)
                       const barWidth = Math.min(row.pct, 100)
                       return (
-                        <tr key={row.name} className="border-b border-zinc-50 last:border-0">
-                          <td className="px-5 py-3.5 text-zinc-800 font-medium">{row.name}</td>
-                          <td className="px-5 py-3.5 text-zinc-500 hidden sm:table-cell">
+                        <tr key={row.name} className="border-b border-border-subtle last:border-0">
+                          <td className="px-5 py-3.5 text-foreground font-medium">{row.name}</td>
+                          <td className="px-5 py-3.5 text-foreground-muted hidden sm:table-cell">
                             {formatMinutes(row.targetMinutes)}
                           </td>
-                          <td className="px-5 py-3.5 text-zinc-800 font-semibold">
+                          <td className="px-5 py-3.5 text-foreground font-semibold">
                             {formatMinutes(row.spentMinutes)}
                           </td>
                           <td className="px-5 py-3.5 hidden md:table-cell">
@@ -427,14 +445,14 @@ export default function AnalyticsPage() {
                                 aria-valuemin={0}
                                 aria-valuemax={100}
                                 aria-label={`${row.name} progress`}
-                                className="flex-1 bg-zinc-100 rounded-full h-1.5 max-w-[120px]"
+                                className="flex-1 bg-surface-muted rounded-full h-1.5 max-w-[120px]"
                               >
                                 <div
                                   className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
                                   style={{ width: `${barWidth}%` }}
                                 />
                               </div>
-                              <span className="text-xs text-zinc-500 w-9 shrink-0">{row.pct}%</span>
+                              <span className="text-xs text-foreground-muted w-9 shrink-0">{row.pct}%</span>
                             </div>
                           </td>
                           <td className="px-5 py-3.5 text-right">
@@ -452,10 +470,10 @@ export default function AnalyticsPage() {
           )}
 
           {/* Time by Main Category */}
-          <div className="bg-white border border-zinc-200 rounded-lg p-5">
-            <h2 className="text-sm font-semibold text-zinc-900 mb-4">Time by Main Category</h2>
+          <div className="bg-surface border border-border rounded-lg p-5">
+            <h2 className="text-sm font-semibold text-foreground mb-4">Time by Main Category</h2>
             {mainCategoryData.length === 0 ? (
-              <p className="text-sm text-zinc-400 py-8 text-center">No data for this period.</p>
+              <p className="text-sm text-foreground-subtle py-8 text-center">No data for this period.</p>
             ) : (
               <ResponsiveContainer
                 width="100%"
@@ -466,17 +484,17 @@ export default function AnalyticsPage() {
                   data={mainCategoryData}
                   margin={{ left: 8, right: 24, top: 4, bottom: 4 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
                   <YAxis
                     type="category"
                     dataKey="name"
                     width={100}
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: chart.axis }}
                   />
                   <XAxis
                     type="number"
                     tickFormatter={(v) => formatMinutes(v)}
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 11, fill: chart.axis }}
                   />
                   <Tooltip
                     formatter={(v) => [
@@ -484,6 +502,8 @@ export default function AnalyticsPage() {
                       'Time Spent',
                     ]}
                     contentStyle={tooltipStyle}
+                      labelStyle={tooltipTextStyle}
+                      itemStyle={tooltipTextStyle}
                   />
                   <Bar dataKey="totalMinutes" fill="#2563eb" radius={[0, 3, 3, 0]} />
                 </BarChart>
@@ -493,27 +513,29 @@ export default function AnalyticsPage() {
 
           {/* Daily Trend */}
           {dailyData.length >= 2 && (
-            <div className="bg-white border border-zinc-200 rounded-lg p-5">
-              <h2 className="text-sm font-semibold text-zinc-900 mb-4">Daily Trend</h2>
+            <div className="bg-surface border border-border rounded-lg p-5">
+              <h2 className="text-sm font-semibold text-foreground mb-4">Daily Trend</h2>
               <ResponsiveContainer width="100%" height={240}>
                 <LineChart
                   data={dailyData}
                   margin={{ left: 8, right: 16, top: 4, bottom: 4 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f1f1" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
                   <XAxis
                     dataKey="date"
                     tickFormatter={formatAxisDate}
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 11, fill: chart.axis }}
                   />
                   <YAxis
                     tickFormatter={(v) => formatMinutes(v)}
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 11, fill: chart.axis }}
                   />
                   <Tooltip
                     formatter={(v) => [formatMinutes(v), 'Time Spent']}
                     labelFormatter={formatAxisDate}
                     contentStyle={tooltipStyle}
+                      labelStyle={tooltipTextStyle}
+                      itemStyle={tooltipTextStyle}
                   />
                   <Line
                     type="monotone"
@@ -528,10 +550,10 @@ export default function AnalyticsPage() {
           )}
 
           {/* Top Sub Categories */}
-          <div className="bg-white border border-zinc-200 rounded-lg p-5">
-            <h2 className="text-sm font-semibold text-zinc-900 mb-4">Top Sub Categories</h2>
+          <div className="bg-surface border border-border rounded-lg p-5">
+            <h2 className="text-sm font-semibold text-foreground mb-4">Top Sub Categories</h2>
             {subCategoryData.length === 0 ? (
-              <p className="text-sm text-zinc-400 py-8 text-center">No data for this period.</p>
+              <p className="text-sm text-foreground-subtle py-8 text-center">No data for this period.</p>
             ) : (
               <ResponsiveContainer
                 width="100%"
@@ -542,17 +564,17 @@ export default function AnalyticsPage() {
                   data={subCategoryData}
                   margin={{ left: 8, right: 24, top: 4, bottom: 4 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
                   <YAxis
                     type="category"
                     dataKey="name"
                     width={120}
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: chart.axis }}
                   />
                   <XAxis
                     type="number"
                     tickFormatter={(v) => formatMinutes(v)}
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 11, fill: chart.axis }}
                   />
                   <Tooltip
                     formatter={(v) => [formatMinutes(v), 'Time Spent']}
@@ -561,6 +583,8 @@ export default function AnalyticsPage() {
                       return entry ? `${label} (${entry.mainName})` : label
                     }}
                     contentStyle={tooltipStyle}
+                      labelStyle={tooltipTextStyle}
+                      itemStyle={tooltipTextStyle}
                   />
                   <Bar dataKey="totalMinutes" fill="#0891b2" radius={[0, 3, 3, 0]} />
                 </BarChart>
