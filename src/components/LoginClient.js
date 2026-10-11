@@ -33,35 +33,35 @@ export default function LoginClient() {
   return (
     <section
       aria-labelledby="login-heading"
-      className="relative min-h-[calc(100vh-3.5rem)] overflow-hidden bg-[linear-gradient(135deg,#f8fafc_0%,#eff6ff_48%,#f8fafc_100%)] px-4 py-10"
+      className="relative min-h-[calc(100vh-3.5rem)] overflow-hidden bg-[linear-gradient(135deg,#f8fafc_0%,#eff6ff_48%,#f8fafc_100%)] dark:bg-[linear-gradient(135deg,#0b0f19_0%,#0f172a_48%,#0b0f19_100%)] px-4 py-10"
     >
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-[linear-gradient(rgba(15,23,42,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.045)_1px,transparent_1px)] bg-[size:34px_34px] opacity-60"
+        className="absolute inset-0 bg-[linear-gradient(rgba(15,23,42,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.045)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:34px_34px] opacity-60"
       />
 
       <div className="relative mx-auto flex min-h-[calc(100vh-8.5rem)] w-full max-w-md items-center">
-        <div className="w-full rounded-lg border border-slate-200 bg-white/95 p-7 shadow-lg shadow-slate-200/70 ring-1 ring-white">
+        <div className="w-full rounded-lg border border-border bg-surface/95 p-7 shadow-lg shadow-slate-200/70 dark:shadow-black/40 ring-1 ring-white dark:ring-white/5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
               <Clock className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
             </div>
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-blue-600">Private time tracking</p>
-              <h1 id="login-heading" className="text-2xl font-semibold text-slate-950">
+              <p className="text-xs font-medium uppercase tracking-wide text-blue-600 dark:text-blue-400">Private time tracking</p>
+              <h1 id="login-heading" className="text-2xl font-semibold text-foreground">
                 TimeLedger
               </h1>
             </div>
           </div>
 
-          <p className="mt-4 text-sm leading-6 text-slate-600">
+          <p className="mt-4 text-sm leading-6 text-foreground-secondary">
             Sign in with Google to access your personal time ledger.
           </p>
 
           <ul className="mt-6 space-y-3">
             {benefits.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-3 text-sm text-slate-600">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-blue-600">
+              <li key={text} className="flex items-center gap-3 text-sm text-foreground-secondary">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-surface-muted text-blue-600 dark:text-blue-400">
                   <Icon className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
                 </span>
                 <span>{text}</span>
@@ -98,7 +98,7 @@ export default function LoginClient() {
           </button>
 
           {error ? (
-            <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+            <p className="mt-4 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-300" role="alert">
               {error}
             </p>
           ) : null}

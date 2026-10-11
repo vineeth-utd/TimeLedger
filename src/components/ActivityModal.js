@@ -151,38 +151,38 @@ export default function ActivityModal({ isOpen, activity, onClose, onSuccess }) 
         role="dialog"
         aria-modal="true"
         aria-labelledby="activity-modal-title"
-        className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col"
+        className="bg-surface rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col"
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 id="activity-modal-title" className="text-base font-semibold text-gray-900">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 id="activity-modal-title" className="text-base font-semibold text-foreground">
             {activity ? 'Edit Activity' : 'Add Activity'}
           </h2>
-          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} aria-label="Close" className="text-foreground-subtle hover:text-foreground-secondary">
             <X className="w-4 h-4" strokeWidth={2} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4 overflow-y-auto">
           {apiError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded">
+            <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm px-3 py-2 rounded">
               {apiError}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Activity Date</label>
+            <label className="block text-sm font-medium text-foreground-secondary mb-1">Activity Date</label>
             <input
               type="date"
               name="activityDate"
               value={form.activityDate}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-border-strong rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            {errors.activityDate && <p className="text-red-600 text-xs mt-1">{errors.activityDate}</p>}
+            {errors.activityDate && <p className="text-red-600 dark:text-red-400 text-xs mt-1">{errors.activityDate}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <label className="block text-sm font-medium text-foreground-secondary mb-1">Title</label>
             <input
               type="text"
               name="title"
@@ -190,18 +190,18 @@ export default function ActivityModal({ isOpen, activity, onClose, onSuccess }) 
               onChange={handleChange}
               autoFocus
               placeholder="What did you work on?"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-border-strong rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            {errors.title && <p className="text-red-600 text-xs mt-1">{errors.title}</p>}
+            {errors.title && <p className="text-red-600 dark:text-red-400 text-xs mt-1">{errors.title}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category</label>
+            <label className="block text-sm font-medium text-foreground-secondary mb-1">Sub Category</label>
             <select
               name="subCategoryId"
               value={form.subCategoryId}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none"
+              className="w-full border border-border-strong rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-surface appearance-none"
             >
               <option value="">Select a sub category</option>
               {Object.entries(grouped).map(([mcName, scs]) => (
@@ -214,44 +214,44 @@ export default function ActivityModal({ isOpen, activity, onClose, onSuccess }) 
                 </optgroup>
               ))}
             </select>
-            {errors.subCategoryId && <p className="text-red-600 text-xs mt-1">{errors.subCategoryId}</p>}
+            {errors.subCategoryId && <p className="text-red-600 dark:text-red-400 text-xs mt-1">{errors.subCategoryId}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Main Category</label>
-            <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm bg-gray-50 text-gray-500 min-h-[38px]">
+            <label className="block text-sm font-medium text-foreground-secondary mb-1">Main Category</label>
+            <div className="w-full border border-border rounded-md px-3 py-2 text-sm bg-surface-subtle text-foreground-muted min-h-[38px]">
               {mainCategoryName || '—'}
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+              <label className="block text-sm font-medium text-foreground-secondary mb-1">Start Time</label>
               <input
                 type="time"
                 name="startTime"
                 value={form.startTime}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-border-strong rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              {errors.startTime && <p className="text-red-600 text-xs mt-1">{errors.startTime}</p>}
+              {errors.startTime && <p className="text-red-600 dark:text-red-400 text-xs mt-1">{errors.startTime}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+              <label className="block text-sm font-medium text-foreground-secondary mb-1">End Time</label>
               <input
                 type="time"
                 name="endTime"
                 value={form.endTime}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-border-strong rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              {errors.endTime && <p className="text-red-600 text-xs mt-1">{errors.endTime}</p>}
+              {errors.endTime && <p className="text-red-600 dark:text-red-400 text-xs mt-1">{errors.endTime}</p>}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes <span className="text-gray-400 font-normal">(optional)</span>
+            <label className="block text-sm font-medium text-foreground-secondary mb-1">
+              Notes <span className="text-foreground-subtle font-normal">(optional)</span>
             </label>
             <textarea
               name="notes"
@@ -259,7 +259,7 @@ export default function ActivityModal({ isOpen, activity, onClose, onSuccess }) 
               onChange={handleChange}
               rows={2}
               placeholder="Optional notes..."
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none placeholder:text-gray-400"
+              className="w-full border border-border-strong rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none placeholder:text-foreground-subtle"
             />
           </div>
 
@@ -267,7 +267,7 @@ export default function ActivityModal({ isOpen, activity, onClose, onSuccess }) 
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 active:bg-gray-100"
+              className="px-4 py-2 text-sm font-medium text-foreground-secondary bg-surface border border-border-strong rounded-md hover:bg-surface-subtle active:bg-surface-muted"
             >
               Cancel
             </button>

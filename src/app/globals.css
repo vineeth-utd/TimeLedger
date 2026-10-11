@@ -1,8 +1,21 @@
 @import "tailwindcss";
 
+/* Dark mode is toggled by the `dark` class on <html> (see src/lib/theme.js). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Semantic neutral tokens (light values). Dark values are in `.dark` below. */
+  --background: #f9fafb;
+  --surface: #ffffff;
+  --surface-subtle: #f9fafb;
+  --surface-muted: #f3f4f6;
+  --foreground: #111827;
+  --foreground-secondary: #374151;
+  --foreground-muted: #6b7280;
+  --foreground-subtle: #9ca3af;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --border-subtle: #f3f4f6;
 
   /* Design tokens */
   --color-primary: #2563eb;
@@ -13,16 +26,46 @@
   --color-error: #dc2626;
 }
 
+.dark {
+  --background: #0b0f19;
+  --surface: #111827;
+  --surface-subtle: #161e2e;
+  --surface-muted: #1f2937;
+  --foreground: #f3f4f6;
+  --foreground-secondary: #d1d5db;
+  --foreground-muted: #9ca3af;
+  --foreground-subtle: #7b8494;
+  --border: #2d3748;
+  --border-strong: #4b5563;
+  --border-subtle: #1f2937;
+}
+
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-muted: var(--surface-muted);
   --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-foreground-subtle: var(--foreground-subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-border-subtle: var(--border-subtle);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
+/* Ring offsets (focus rings on floating/login buttons) should match the page, not white. */
+*,
+::before,
+::after {
+  --tw-ring-offset-color: var(--background);
+}
+
 body {
-  background: #f9fafb;
-  color: #111827;
+  background: var(--background);
+  color: var(--foreground);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }

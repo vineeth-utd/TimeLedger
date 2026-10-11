@@ -59,7 +59,7 @@ export default function DateRangeFilter({ onChange }) {
   }, [preset, customStart, customEnd, onChange])
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-lg px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+    <div className="bg-surface border border-border rounded-lg px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
       <div className="flex flex-wrap gap-1.5">
         {PRESETS.map((p) => (
           <button
@@ -69,7 +69,7 @@ export default function DateRangeFilter({ onChange }) {
             className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
               preset === p.key
                 ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-zinc-600 border-zinc-300 hover:border-zinc-400'
+                : 'bg-surface text-foreground-secondary border-border-strong hover:border-border-strong'
             }`}
           >
             {p.label}
@@ -84,15 +84,15 @@ export default function DateRangeFilter({ onChange }) {
             value={customStart}
             onChange={(e) => setCustomStart(e.target.value)}
             aria-label="Start date"
-            className="border border-zinc-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-border-strong rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <span className="text-xs text-zinc-400" aria-hidden="true">to</span>
+          <span className="text-xs text-foreground-subtle" aria-hidden="true">to</span>
           <input
             type="date"
             value={customEnd}
             onChange={(e) => setCustomEnd(e.target.value)}
             aria-label="End date"
-            className="border border-zinc-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-border-strong rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       )}

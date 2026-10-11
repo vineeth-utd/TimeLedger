@@ -38,18 +38,18 @@ export default function ActivitiesTable({ activities, onEdit, onDelete }) {
 
   if (activities.length === 0) {
     return (
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-sm">
+      <div className="bg-surface border border-border rounded-lg shadow-sm">
         <EmptyState message="No activities found for this date range." />
       </div>
     )
   }
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-lg shadow-sm overflow-hidden">
+    <div className="bg-surface border border-border rounded-lg shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-50 border-b border-zinc-100">
-            <tr className="text-left text-xs text-zinc-500 uppercase tracking-wide">
+          <thead className="bg-surface-subtle border-b border-border-subtle">
+            <tr className="text-left text-xs text-foreground-muted uppercase tracking-wide">
               <th scope="col" className="px-5 py-3 font-medium">Date</th>
               <th scope="col" className="px-5 py-3 font-medium">Title</th>
               <th scope="col" className="px-5 py-3 font-medium hidden sm:table-cell">Category</th>
@@ -61,12 +61,12 @@ export default function ActivitiesTable({ activities, onEdit, onDelete }) {
           </thead>
           <tbody>
             {activities.map((activity) => (
-              <tr key={activity.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
-                <td className="px-5 py-3.5 text-zinc-500 whitespace-nowrap">
+              <tr key={activity.id} className="border-b border-border-subtle hover:bg-surface-subtle transition-colors">
+                <td className="px-5 py-3.5 text-foreground-muted whitespace-nowrap">
                   {formatDate(activity.activityDate)}
                 </td>
                 <td
-                  className="px-5 py-3.5 text-zinc-800 font-medium max-w-[180px]"
+                  className="px-5 py-3.5 text-foreground font-medium max-w-[180px]"
                   title={activity.title}
                 >
                   <div className="flex items-center gap-1 min-w-0">
@@ -76,23 +76,23 @@ export default function ActivitiesTable({ activities, onEdit, onDelete }) {
                       onClick={(e) => handleCopyTitle(e, activity)}
                       aria-label={`Copy title: ${activity.title}`}
                       title="Copy title"
-                      className="p-1 rounded text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors shrink-0"
+                      className="p-1 rounded text-foreground-subtle hover:text-foreground-secondary hover:bg-surface-muted transition-colors shrink-0"
                     >
                       {copiedActivityId === activity.id
-                        ? <Check className="w-3.5 h-3.5 text-green-600" aria-hidden="true" />
+                        ? <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-400" aria-hidden="true" />
                         : <Copy className="w-3.5 h-3.5" aria-hidden="true" />
                       }
                     </button>
                   </div>
                 </td>
                 <td className="px-5 py-3.5 hidden sm:table-cell">
-                  <span className="text-zinc-700">{activity.subCategory?.name}</span>
-                  <span className="block text-xs text-zinc-400">{activity.subCategory?.mainCategory?.name}</span>
+                  <span className="text-foreground-secondary">{activity.subCategory?.name}</span>
+                  <span className="block text-xs text-foreground-subtle">{activity.subCategory?.mainCategory?.name}</span>
                 </td>
-                <td className="px-5 py-3.5 text-zinc-500 whitespace-nowrap hidden sm:table-cell">
+                <td className="px-5 py-3.5 text-foreground-muted whitespace-nowrap hidden sm:table-cell">
                   {formatTime(activity.startTime)} – {formatTime(activity.endTime)}
                 </td>
-                <td className="px-5 py-3.5 text-zinc-700 whitespace-nowrap">
+                <td className="px-5 py-3.5 text-foreground-secondary whitespace-nowrap">
                   {formatMinutes(activity.durationMinutes)}
                 </td>
                 <td
@@ -100,8 +100,8 @@ export default function ActivitiesTable({ activities, onEdit, onDelete }) {
                   title={activity.notes || undefined}
                 >
                   {activity.notes
-                    ? <span className="text-zinc-600 italic">{activity.notes}</span>
-                    : <span className="text-zinc-400">—</span>
+                    ? <span className="text-foreground-secondary italic">{activity.notes}</span>
+                    : <span className="text-foreground-subtle">—</span>
                   }
                 </td>
                 <td className="px-5 py-3.5 text-right whitespace-nowrap">
@@ -109,14 +109,14 @@ export default function ActivitiesTable({ activities, onEdit, onDelete }) {
                     <button
                       onClick={() => onEdit(activity)}
                       aria-label="Edit activity"
-                      className="p-1.5 rounded text-zinc-400 hover:text-blue-600 hover:bg-zinc-100 transition-colors"
+                      className="p-1.5 rounded text-foreground-subtle hover:text-blue-600 dark:hover:text-blue-400 hover:bg-surface-muted transition-colors"
                     >
                       <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
                     <button
                       onClick={() => onDelete(activity)}
                       aria-label="Delete activity"
-                      className="p-1.5 rounded text-zinc-400 hover:text-red-500 hover:bg-zinc-100 transition-colors"
+                      className="p-1.5 rounded text-foreground-subtle hover:text-red-500 hover:bg-surface-muted transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>

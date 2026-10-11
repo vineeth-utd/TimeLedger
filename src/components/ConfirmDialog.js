@@ -35,24 +35,24 @@ export default function ConfirmDialog({
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6"
+        className="bg-surface rounded-xl shadow-xl w-full max-w-sm p-6"
       >
         <div className="flex items-start justify-between mb-1">
-          <h2 id="confirm-dialog-title" className="text-base font-semibold text-gray-900">{title}</h2>
+          <h2 id="confirm-dialog-title" className="text-base font-semibold text-foreground">{title}</h2>
           <button
             onClick={onCancel}
             aria-label="Close"
-            className="text-gray-400 hover:text-gray-600 ml-4"
+            className="text-foreground-subtle hover:text-foreground-secondary ml-4"
           >
             <X className="w-4 h-4" strokeWidth={2} />
           </button>
         </div>
-        <p className="text-sm text-gray-600 mt-2">{message}</p>
-        {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
+        <p className="text-sm text-foreground-secondary mt-2">{message}</p>
+        {error && <p className="text-sm text-red-600 dark:text-red-400 mt-2">{error}</p>}
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 active:bg-gray-100"
+            className="px-4 py-2 text-sm font-medium text-foreground-secondary bg-surface border border-border-strong rounded-md hover:bg-surface-subtle active:bg-surface-muted"
           >
             Cancel
           </button>

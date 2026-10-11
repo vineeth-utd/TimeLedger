@@ -1,5 +1,6 @@
 import { Geist } from "next/font/google";
 import "./globals.css";
+import { themeInitScript } from "@/lib/themeScript";
 import Nav from "@/components/Nav";
 import AssistantWidget from "@/components/assistant/AssistantWidget";
 
@@ -15,8 +16,11 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
-      <body className={`${geistSans.variable} min-h-full bg-gray-50 text-gray-900 font-sans`}>
+    <html lang="en" className={`${geistSans.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
+      <body className={`${geistSans.variable} min-h-full bg-background text-foreground font-sans`}>
         <Nav />
         <main>{children}</main>
         <AssistantWidget />

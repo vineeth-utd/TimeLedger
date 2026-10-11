@@ -144,15 +144,15 @@ export default function AssistantWidget() {
         <section
           role="dialog"
           aria-label="TimeLedger Assistant"
-          className="fixed z-40 inset-x-0 top-0 h-dvh flex flex-col bg-white md:inset-x-auto md:top-auto md:right-4 md:bottom-4 md:w-[400px] md:h-[600px] md:max-h-[calc(100dvh-2rem)] md:rounded-2xl md:border md:border-gray-200 md:shadow-xl overflow-hidden"
+          className="fixed z-40 inset-x-0 top-0 h-dvh flex flex-col bg-surface md:inset-x-auto md:top-auto md:right-4 md:bottom-4 md:w-[400px] md:h-[600px] md:max-h-[calc(100dvh-2rem)] md:rounded-2xl md:border md:border-border md:shadow-xl overflow-hidden"
         >
-          <header className="flex items-center gap-3 border-b border-gray-200 px-4 py-3">
-            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-              <Sparkles className="w-4 h-4 text-blue-600" strokeWidth={2} />
+          <header className="flex items-center gap-3 border-b border-border px-4 py-3">
+            <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" strokeWidth={2} />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-sm font-semibold text-gray-900 truncate">TimeLedger Assistant</h2>
-              <p className="text-xs text-gray-500 truncate">Log and review your time by chatting</p>
+              <h2 className="text-sm font-semibold text-foreground truncate">TimeLedger Assistant</h2>
+              <p className="text-xs text-foreground-muted truncate">Log and review your time by chatting</p>
             </div>
             <button
               type="button"
@@ -160,7 +160,7 @@ export default function AssistantWidget() {
               disabled={locked || voiceBusy}
               aria-label="New conversation"
               title={pendingAction ? 'Approve or reject the pending request first' : 'New conversation'}
-              className="p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent"
+              className="p-2 rounded-md text-foreground-muted hover:text-foreground hover:bg-surface-muted disabled:opacity-40 disabled:hover:bg-transparent"
             >
               <SquarePen className="w-4 h-4" strokeWidth={2} />
             </button>
@@ -171,7 +171,7 @@ export default function AssistantWidget() {
                 setOpen(false)
               }}
               aria-label="Close assistant"
-              className="p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+              className="p-2 rounded-md text-foreground-muted hover:text-foreground hover:bg-surface-muted"
             >
               <X className="w-4 h-4" strokeWidth={2} />
             </button>
@@ -180,11 +180,11 @@ export default function AssistantWidget() {
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
             {messages.length === 0 && !pendingAction ? (
               <div className="h-full flex flex-col items-center justify-center text-center px-2">
-                <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-3">
-                  <Sparkles className="w-6 h-6 text-blue-600" strokeWidth={1.5} />
+                <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center mb-3">
+                  <Sparkles className="w-6 h-6 text-blue-600 dark:text-blue-400" strokeWidth={1.5} />
                 </div>
-                <p className="text-sm font-medium text-gray-900">How can I help?</p>
-                <p className="text-sm text-gray-500 mt-1 max-w-xs">
+                <p className="text-sm font-medium text-foreground">How can I help?</p>
+                <p className="text-sm text-foreground-muted mt-1 max-w-xs">
                   Add or edit activities, look up your time and manage categories.
                 </p>
                 <div className="mt-4 flex flex-col gap-2 w-full max-w-xs">
@@ -197,7 +197,7 @@ export default function AssistantWidget() {
                         setDraft(suggestion)
                         inputRef.current?.focus()
                       }}
-                      className="text-left text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 disabled:opacity-50"
+                      className="text-left text-sm text-foreground-secondary border border-border rounded-lg px-3 py-2 hover:bg-surface-subtle disabled:opacity-50"
                     >
                       {suggestion}
                     </button>

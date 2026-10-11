@@ -12,7 +12,7 @@ function renderInline(text, keyPrefix) {
     }
     if (part.length > 2 && part.startsWith('`') && part.endsWith('`')) {
       return (
-        <code key={key} className="rounded bg-black/5 px-1 py-0.5 text-[0.85em] font-mono">
+        <code key={key} className="rounded bg-black/5 dark:bg-white/10 px-1 py-0.5 text-[0.85em] font-mono">
           {part.slice(1, -1)}
         </code>
       )

@@ -17,14 +17,14 @@ function VoiceBar({ voice }) {
         onClick={voice.cancel}
         aria-label="Cancel recording"
         title="Cancel"
-        className="shrink-0 w-10 h-10 inline-flex items-center justify-center rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 active:bg-gray-100"
+        className="shrink-0 w-10 h-10 inline-flex items-center justify-center rounded-lg border border-border-strong text-foreground-secondary hover:bg-surface-subtle active:bg-surface-muted"
       >
         <X className="w-4 h-4" strokeWidth={2} />
       </button>
-      <div className="flex-1 min-w-0 flex items-center gap-2 text-sm text-gray-700">
+      <div className="flex-1 min-w-0 flex items-center gap-2 text-sm text-foreground-secondary">
         {state === 'requesting' && (
           <>
-            <Loader2 className="w-4 h-4 shrink-0 animate-spin text-gray-500" strokeWidth={2} />
+            <Loader2 className="w-4 h-4 shrink-0 animate-spin text-foreground-muted" strokeWidth={2} />
             <span className="truncate">Waiting for microphone…</span>
           </>
         )}
@@ -38,7 +38,7 @@ function VoiceBar({ voice }) {
         )}
         {(state === 'stopping' || state === 'transcribing') && (
           <>
-            <Loader2 className="w-4 h-4 shrink-0 animate-spin text-gray-500" strokeWidth={2} />
+            <Loader2 className="w-4 h-4 shrink-0 animate-spin text-foreground-muted" strokeWidth={2} />
             <span className="truncate">Transcribing…</span>
           </>
         )}
@@ -75,7 +75,7 @@ const ChatInput = forwardRef(function ChatInput({ value, onChange, onSubmit, dis
         e.preventDefault()
         if (!disabled && !voiceActive && value.trim()) onSubmit()
       }}
-      className="flex items-end gap-2 border-t border-gray-200 bg-white p-3"
+      className="flex items-end gap-2 border-t border-border bg-surface p-3"
     >
       <div role="status" aria-live="polite" className="sr-only">
         {announcement}
@@ -91,7 +91,7 @@ const ChatInput = forwardRef(function ChatInput({ value, onChange, onSubmit, dis
               disabled={disabled}
               aria-label="Record voice message"
               title="Record voice message"
-              className="shrink-0 w-10 h-10 inline-flex items-center justify-center rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:hover:bg-transparent"
+              className="shrink-0 w-10 h-10 inline-flex items-center justify-center rounded-lg border border-border-strong text-foreground-secondary hover:bg-surface-subtle active:bg-surface-muted disabled:opacity-50 disabled:hover:bg-transparent"
             >
               <Mic className="w-4 h-4" strokeWidth={2} />
             </button>
@@ -106,7 +106,7 @@ const ChatInput = forwardRef(function ChatInput({ value, onChange, onSubmit, dis
             maxLength={MAX_LENGTH}
             placeholder={placeholder}
             aria-label="Message"
-            className="flex-1 resize-none field-sizing-content max-h-32 rounded-lg border border-gray-300 px-3 py-2 text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
+            className="flex-1 resize-none field-sizing-content max-h-32 rounded-lg border border-border-strong px-3 py-2 text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-surface-subtle disabled:text-foreground-subtle"
           />
           <button
             type="submit"

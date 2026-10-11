@@ -155,8 +155,8 @@ export default function WeeklyTargetsSection() {
   const dirty = isDirty()
 
   return (
-    <div className="border-t border-zinc-200 pt-6 space-y-4">
-      <h2 className="text-base font-semibold text-zinc-900">Weekly Targets</h2>
+    <div className="border-t border-border pt-6 space-y-4">
+      <h2 className="text-base font-semibold text-foreground">Weekly Targets</h2>
 
       <WeekNavigator
         weekStartDate={weekStartDate}
@@ -171,16 +171,16 @@ export default function WeeklyTargetsSection() {
       {loading ? (
         <LoadingState />
       ) : mainCategories.length === 0 ? (
-        <p className="text-sm text-zinc-500">No active categories. Add main categories first.</p>
+        <p className="text-sm text-foreground-muted">No active categories. Add main categories first.</p>
       ) : (
-        <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+        <div className="bg-surface border border-border rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 border-b border-zinc-100">
-              <tr className="text-left text-xs text-zinc-500 uppercase tracking-wide">
+            <thead className="bg-surface-subtle border-b border-border-subtle">
+              <tr className="text-left text-xs text-foreground-muted uppercase tracking-wide">
                 <th scope="col" className="px-5 py-3 font-medium">Category</th>
                 <th scope="col" className="px-5 py-3 font-medium">Target</th>
-                <th scope="col" className="px-5 py-3 font-medium hidden sm:table-cell text-zinc-400">Formatted</th>
+                <th scope="col" className="px-5 py-3 font-medium hidden sm:table-cell text-foreground-subtle">Formatted</th>
               </tr>
             </thead>
             <tbody>
@@ -191,11 +191,11 @@ export default function WeeklyTargetsSection() {
                 const existingTotal = existing ? existing.targetMinutes : 0
                 const isChanged = numVal !== existingTotal
                 const inputClass = (isChanged
-                  ? 'border-blue-400 ring-1 ring-blue-200 bg-white'
-                  : 'border-zinc-300')
+                  ? 'border-blue-400 ring-1 ring-blue-200 dark:ring-blue-800 bg-surface'
+                  : 'border-border-strong')
                 return (
-                  <tr key={mc.id} className={`border-b border-zinc-50 last:border-0 transition-colors ${isChanged ? 'bg-blue-50/40' : ''}`}>
-                    <td className="px-5 py-3 text-zinc-800 font-medium">{mc.name}</td>
+                  <tr key={mc.id} className={`border-b border-border-subtle last:border-0 transition-colors ${isChanged ? 'bg-blue-50/40 dark:bg-blue-950/40' : ''}`}>
+                    <td className="px-5 py-3 text-foreground font-medium">{mc.name}</td>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-1">
                         <input
@@ -206,7 +206,7 @@ export default function WeeklyTargetsSection() {
                           placeholder="0"
                           className={`w-14 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputClass}`}
                         />
-                        <span className="text-xs text-zinc-400">h</span>
+                        <span className="text-xs text-foreground-subtle">h</span>
                         <input
                           type="number"
                           min="0"
@@ -216,10 +216,10 @@ export default function WeeklyTargetsSection() {
                           placeholder="0"
                           className={`w-14 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputClass}`}
                         />
-                        <span className="text-xs text-zinc-400">m</span>
+                        <span className="text-xs text-foreground-subtle">m</span>
                       </div>
                     </td>
-                    <td className="px-5 py-3 text-zinc-400 hidden sm:table-cell text-xs">
+                    <td className="px-5 py-3 text-foreground-subtle hidden sm:table-cell text-xs">
                       {numVal > 0 ? formatMinutes(numVal) : '—'}
                     </td>
                   </tr>
@@ -229,7 +229,7 @@ export default function WeeklyTargetsSection() {
           </table>
           </div>
 
-          <div className="px-5 py-3 border-t border-zinc-100 flex items-center gap-3">
+          <div className="px-5 py-3 border-t border-border-subtle flex items-center gap-3">
             <button
               onClick={handleSave}
               disabled={saving || !dirty}
@@ -238,7 +238,7 @@ export default function WeeklyTargetsSection() {
               {saving ? 'Saving…' : 'Save Changes'}
             </button>
             {saved && !dirty && (
-              <span className="flex items-center gap-1 text-sm text-green-600 font-medium">
+              <span className="flex items-center gap-1 text-sm text-green-600 dark:text-green-400 font-medium">
                 <Check className="w-3.5 h-3.5" />
                 Saved
               </span>
