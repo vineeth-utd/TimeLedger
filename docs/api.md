@@ -633,6 +633,7 @@ Failures use the standard error format with an added `code`.
 | 429 | `RATE_LIMITED` | The model provider is rate limiting; `data.retryAfterSeconds` and a `Retry-After` header are present when provided |
 | 500 | `ASSISTANT_UNAVAILABLE` | The assistant failed to finish the turn |
 | 500 | `ASSISTANT_INCOMPLETE` | The model response was cut off before it was usable |
+| 500 | `ASSISTANT_INVALID_REPLY` | The model's final reply was malformed (a run of 16+ blank/invisible characters) and was rejected before entering the conversation; no automatic retry |
 
 When a turn fails after it started (429 and 500 above, and `ACTION_OUTCOME_UNKNOWN`), `data` carries `threadId`, `pendingAction: null`, `changes`, and `outcome`:
 

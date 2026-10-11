@@ -10,6 +10,15 @@ export class OutputTruncatedError extends Error {
   }
 }
 
+// The model's final reply was malformed (e.g. a long run of blank/invisible characters). The reply
+// is rejected before it enters the conversation; nothing is retried automatically.
+export class InvalidAssistantReplyError extends Error {
+  constructor() {
+    super('The model produced a malformed final reply')
+    this.name = 'InvalidAssistantReplyError'
+  }
+}
+
 // ---- Structured results -------------------------------------------------
 
 export function ok(data = {}) {
