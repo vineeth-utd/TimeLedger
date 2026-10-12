@@ -667,3 +667,12 @@ Deterministic checks (`scripts/stt-check.mjs`: 9 checks incl. provider/HTTP erro
 
 **Status:** Complete
 
+---
+
+## Configurable AI Provider (Groq | OpenAI-compatible)
+
+Small enhancement after Phase 10B: `AI_PROVIDER` and `STT_PROVIDER` (`groq` default | `openai-compatible`) select the LLM and speech-to-text providers independently from environment variables, using An OpenAI-compatible API (`OPENAI_COMPATIBLE_API_BASE_URL`, `OPENAI_COMPATIBLE_API_KEY`). Groq behaviour and defaults are unchanged. OpenAI-compatible does not receive `reasoning_effort`. No graph, tool or UI changes.
+
+**Status:** Implemented and verified deterministically (`scripts/provider-check.mjs`). Live OpenAI-compatible chat/tool-call and transcription checks pending.
+
+Model, output-token cap and reasoning settings are per provider (`GROQ_*` / `OPENAI_COMPATIBLE_*`); the shared `AI_MODEL`, `STT_MODEL`, `AI_MAX_OUTPUT_TOKENS` and `AI_REASONING_EFFORT` no longer exist.

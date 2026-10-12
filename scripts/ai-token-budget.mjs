@@ -37,7 +37,8 @@ const { getReasoningEffort } = await import('@/lib/ai/llm.js')
 // Groq's TPM pre-check ("Requested") = input tokens + the max output cap. BEFORE is the previous
 // default (1024); AFTER is the configured cap (default 512).
 const BEFORE_CAP = 1024
-const maxOutput = Number(process.env.AI_MAX_OUTPUT_TOKENS) || 512
+const { getMaxOutputTokens } = await import('@/lib/providers.js')
+const maxOutput = getMaxOutputTokens('groq') // this script models Groq's TPM pre-check
 
 console.log(`\nFixed prefix per call: ${fixed}  (system prompt ${prefix.prompt} + ${definitions.length} tool definitions ${prefix.tools})`)
 for (const definition of definitions) {
@@ -50,7 +51,7 @@ const parts = definitions.reduce(
 )
 const instructions = count(systemPrompt.split('\n\nCurrent date and time')[0])
 console.log(`Breakdown: instructions ${instructions} + date/calendar tail ${prefix.prompt - instructions} | tool descriptions ${parts.description} + tool schemas ${parts.schema} + wrapper ${prefix.tools - parts.description - parts.schema}`)
-console.log(`Output cap per call (AI_MAX_OUTPUT_TOKENS): ${maxOutput} (before Batch 1: ${BEFORE_CAP}); reasoning effort: ${getReasoningEffort()} (not measurable offline)`)
+console.log(`Output cap per call (GROQ_AI_MAX_OUTPUT_TOKENS): ${maxOutput} (before Batch 1: ${BEFORE_CAP}); reasoning effort: ${getReasoningEffort()} (not measurable offline)`)
 
 // ---- Representative tool results (real serializers on synthetic rows) -------------------------
 

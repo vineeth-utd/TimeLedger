@@ -65,8 +65,8 @@ measurements only. `docs/ai.md` remains the source of truth for architecture and
 ## Decisions
 - Measure one variable at a time. The 20b model was used for the first Batch 1 design; the Batch 1 live runs were on 120b, which is now the fixed baseline.
 - Batch 1 (output side and failure handling) before any input-side compression:
-  1. `AI_REASONING_EFFORT` (low | medium | high), default `low`.
-  2. Default `AI_MAX_OUTPUT_TOKENS` 1024 -> 512.
+  1. `GROQ_AI_REASONING_EFFORT` (renamed from `AI_REASONING_EFFORT`; low | medium | high), default `low`.
+  2. Default Groq output cap (`GROQ_AI_MAX_OUTPUT_TOKENS`, renamed from `AI_MAX_OUTPUT_TOKENS`) 1024 -> 512. Other providers have their own variable and default (1024), since this cap is tuned to Groq's TPM pre-check.
   3. Output truncation: a length-limited response with a complete valid tool call or some text is
      kept; with neither, the turn fails as `ASSISTANT_INCOMPLETE` (HTTP 500) via the normal failure
      path, preserving `changes`/`outcome`. Nothing is retried automatically.

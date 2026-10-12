@@ -1,5 +1,5 @@
 // Opt-in diagnostics for model token usage (AI_LOG_USAGE=true). Wraps the provider's fetch so it
-// sees the raw request/response of every LLM invocation, including Groq's prompt-cache details and
+// sees the raw request/response of every LLM invocation (Groq or OpenAI-compatible), including prompt-cache details and
 // rate-limit headers, which LangChain does not surface. It logs numbers and tool names only: never
 // message text, tool arguments/results, activity data or credentials. It must never affect a request.
 
@@ -97,9 +97,14 @@ export function createUsageLoggingFetch(baseFetch = globalThis.fetch) {
       if (response.ok) {
         Object.assign(record, describeSuccess(await response.clone().json()))
       } else {
-        // Groq's 429 text states Limit / Used / Requested; it contains no user content.
+        // Groq's 429 text states Limit / Used / Requested; it contains no user content. Other
+        // providers/gateways may return a non-JSON body, which must not drop the log line.
         const text = await response.clone().text()
-        record.error = (JSON.parse(text).error?.message ?? '').slice(0, 300)
+        try {
+          record.error = (JSON.parse(text).error?.message ?? '').slice(0, 300)
+        } catch {
+          record.error = text.slice(0, 300)
+        }
       }
       record.limits = clean(rateLimitHeaders(response.headers))
       console.log(`[ai-usage] ${JSON.stringify(clean(record))}`)

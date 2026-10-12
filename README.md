@@ -71,7 +71,7 @@ The application is designed with a strong focus on fast activity logging, meanin
 
 ### Voice Input
 
-- Tap-to-record voice input with Groq-hosted Whisper speech-to-text
+- Tap-to-record voice input with Whisper speech-to-text (Groq or OpenAI-compatible)
 - Transcription appears as editable text for review and is never submitted automatically
 - Voice messages enter the same clarification, confirmation, and tool workflow as typed input
 - Audio is transient and never persisted by TimeLedger
@@ -107,8 +107,8 @@ The application is designed with a strong focus on fast activity logging, meanin
 
 ### AI
 
-- Groq (configurable model, GPT-OSS by default)
-- Groq-hosted Whisper for speech-to-text (voice input)
+- Groq (default) or any OpenAI-compatible API for the LLM (configurable model, GPT-OSS by default)
+- Groq-hosted or OpenAI-compatible Whisper for speech-to-text (voice input)
 - LangGraph (orchestration, confirmations, PostgreSQL-backed conversation state)
 - LangChain
 - Zod (tool input validation)
@@ -208,7 +208,7 @@ time-ledger/
 │   │
 │   ├── lib/
 │   │   ├── ai/               # Assistant: LangGraph, controlled tools, prompt, confirmations
-│   │   ├── stt/              # Speech-to-text: audio validation and Groq Whisper provider
+│   │   ├── stt/              # Speech-to-text: audio validation and Groq/OpenAI-compatible Whisper provider
 │   │   ├── services/         # Shared business logic (REST APIs and AI tools)
 │   │   ├── auth.js
 │   │   ├── prisma.js
@@ -286,25 +286,39 @@ Where:
 - `DIRECT_URL` → Supabase direct connection string (port 5432) used only by Prisma CLI commands such as `migrate deploy`. If your network has no IPv6, use the Supabase Session Pooler string (pooler host, port 5432) instead. Never use the Transaction Pooler for migrations.
 - `NEXT_PUBLIC_SUPABASE_URL` → Supabase Project URL
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` → Supabase Publishable (Anon) Key
-- `GROQ_API_KEY` → Groq API key used by the AI Assistant and by voice transcription (server-only; never exposed to the browser)
+- `GROQ_API_KEY` → Groq API key used by the AI Assistant and by voice transcription when the Groq provider is selected (the default; server-only, never exposed to the browser)
+
+Optional AI provider variables. The assistant's LLM and voice transcription are selected independently; both default to `groq`, so a deployment with only `GROQ_API_KEY` keeps working:
+
+```env
+AI_PROVIDER=groq        # groq | openai-compatible
+STT_PROVIDER=groq       # groq | openai-compatible
+OPENAI_COMPATIBLE_API_BASE_URL=       # required if either provider is openai-compatible
+OPENAI_COMPATIBLE_API_KEY=            # required if either provider is openai-compatible (server-only)
+```
+
+For example, `AI_PROVIDER=openai-compatible` with `STT_PROVIDER=groq` is valid. Invalid provider names and missing credentials fail with a clear server-side configuration error.
 
 Optional AI tuning and debug variables (all can be omitted):
 
 ```env
-AI_MODEL=
-AI_MAX_OUTPUT_TOKENS=
-AI_REASONING_EFFORT=
+GROQ_AI_MODEL=
+GROQ_STT_MODEL=
+OPENAI_COMPATIBLE_AI_MODEL=
+OPENAI_COMPATIBLE_STT_MODEL=
+GROQ_AI_MAX_OUTPUT_TOKENS=
+OPENAI_COMPATIBLE_AI_MAX_OUTPUT_TOKENS=
+GROQ_AI_REASONING_EFFORT=
 AI_CHECKPOINTER=
 AI_LOG_USAGE=
-STT_MODEL=
 ```
 
-- `AI_MODEL` → Groq model used by the assistant (default `openai/gpt-oss-120b`)
-- `AI_MAX_OUTPUT_TOKENS` → Maximum output tokens per model call (default `512`)
-- `AI_REASONING_EFFORT` → `low`, `medium` or `high` (default `low`)
+- `GROQ_AI_MODEL` / `OPENAI_COMPATIBLE_AI_MODEL` → chat model used by the assistant for that provider (defaults `openai/gpt-oss-120b` and `gpt-oss-120b`). Model ids differ per provider, so each has its own variable; only the variable for the selected `AI_PROVIDER` is read.
+- `GROQ_AI_MAX_OUTPUT_TOKENS` / `OPENAI_COMPATIBLE_AI_MAX_OUTPUT_TOKENS` → Maximum output tokens per model call for that provider (defaults `512` and `1024`). Invalid, zero or negative values fall back to the default.
+- `GROQ_AI_REASONING_EFFORT` → `low`, `medium` or `high` (default `low`); applies to Groq only and is not sent to the openai-compatible provider
 - `AI_CHECKPOINTER` → set to `memory` to keep conversation state in-process (local testing only); by default state is stored in PostgreSQL
 - `AI_LOG_USAGE` → set to `true` to log per-call token usage and rate-limit headers while debugging (no message content)
-- `STT_MODEL` → Groq Whisper model used for voice transcription (default `whisper-large-v3-turbo`; independent of `AI_MODEL`)
+- `GROQ_STT_MODEL` / `OPENAI_COMPATIBLE_STT_MODEL` → Whisper model used for voice transcription for that provider (defaults `whisper-large-v3-turbo` and `whisper-large-v3`); only the variable for the selected `STT_PROVIDER` is read, independent of the chat model
 
 ---
 

@@ -9,7 +9,7 @@ import { SttError } from '../src/lib/stt/errors.js'
 
 register('./ai-eval-loader.mjs', import.meta.url)
 const { sttErrorResponse } = await import('../src/lib/stt/http.js')
-const { transcribeAudio } = await import('../src/lib/stt/groq.js')
+const { transcribeAudio } = await import('../src/lib/stt/provider.js')
 
 const bytes = (size, header) => {
   const data = new Uint8Array(size)

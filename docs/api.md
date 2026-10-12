@@ -684,7 +684,7 @@ All errors: `{ "success": false, "code": "…", "message": "…" }` (401 has no 
 | 429 | `RATE_LIMITED` | Provider rate limit; `data.retryAfterSeconds` and `Retry-After` header when provided |
 | 504 | `TRANSCRIPTION_TIMEOUT` | Provider took longer than 25 seconds |
 | 502 | `TRANSCRIPTION_FAILED` | Other provider failure |
-| 500 | `TRANSCRIPTION_UNAVAILABLE` | `GROQ_API_KEY` not configured |
+| 500 | `TRANSCRIPTION_UNAVAILABLE` | `STT_PROVIDER` invalid or the selected provider's credentials (`GROQ_API_KEY`, or `OPENAI_COMPATIBLE_API_BASE_URL` + `OPENAI_COMPATIBLE_API_KEY`) not configured |
 
 Nothing is retried automatically. Provider error details are logged server-side only; the transcription endpoint never logs or stores audio or transcript text (once a reviewed transcript is sent through `/api/assistant/chat` it is a normal message).
 

@@ -1,31 +1,48 @@
 import { ChatGroq } from '@langchain/groq'
+import { ChatOpenAI } from '@langchain/openai'
 import { createUsageLoggingFetch, isUsageLogEnabled } from '@/lib/ai/usageLog'
+import { getMaxOutputTokens, getModelName, getOpenAiCompatibleConfig, getGroqApiKey, resolveProvider } from '@/lib/providers'
 
-const DEFAULT_MODEL = 'openai/gpt-oss-120b'
-// Groq counts `max_tokens` toward the TPM pre-check ("Requested" = input + this cap), so the cap is
-// kept close to real usage. Observed completions (reasoning included) are ~130-250 tokens.
-const DEFAULT_MAX_OUTPUT_TOKENS = 512
 const REASONING_EFFORTS = ['low', 'medium', 'high']
 const DEFAULT_REASONING_EFFORT = 'low'
 
+// Groq only: the OpenAI-compatible provider is never sent a reasoning effort.
 export function getReasoningEffort() {
-  const configured = process.env.AI_REASONING_EFFORT?.trim().toLowerCase()
+  const configured = process.env.GROQ_AI_REASONING_EFFORT?.trim().toLowerCase()
   return REASONING_EFFORTS.includes(configured) ? configured : DEFAULT_REASONING_EFFORT
 }
 
-// The only provider-specific module. The graph relies on the generic LangChain
-// chat-model interface (`bindTools`, `invoke`), so swapping provider/model is local to this file.
-export function createChatModel() {
-  const apiKey = process.env.GROQ_API_KEY
-  if (!apiKey) {
-    throw new Error('GROQ_API_KEY is not configured')
-  }
+
+function createGroqModel() {
   return new ChatGroq({
-    apiKey,
-    model: process.env.AI_MODEL || DEFAULT_MODEL,
+    apiKey: getGroqApiKey(),
+    model: getModelName('groq', 'ai'),
     temperature: 0,
-    maxTokens: Number(process.env.AI_MAX_OUTPUT_TOKENS) || DEFAULT_MAX_OUTPUT_TOKENS,
+    maxTokens: getMaxOutputTokens('groq'),
     reasoningEffort: getReasoningEffort(),
     ...(isUsageLogEnabled() && { fetch: createUsageLoggingFetch() }),
   })
+}
+
+// An OpenAI-compatible Chat Completions API. Groq-specific options (reasoning effort) are not
+// sent, and automatic retries are off, matching the "no automatic 429 retries" rule.
+function createOpenAiCompatibleModel() {
+  const { baseURL, apiKey } = getOpenAiCompatibleConfig()
+  return new ChatOpenAI({
+    apiKey,
+    model: getModelName('openai-compatible', 'ai'),
+    temperature: 0,
+    maxTokens: getMaxOutputTokens('openai-compatible'),
+    maxRetries: 0,
+    configuration: {
+      baseURL,
+      ...(isUsageLogEnabled() && { fetch: createUsageLoggingFetch() }),
+    },
+  })
+}
+
+// The only provider-specific module for the LLM. The graph relies on the generic LangChain
+// chat-model interface (`bindTools`, `invoke`), so swapping provider/model is local to this file.
+export function createChatModel() {
+  return resolveProvider('AI_PROVIDER') === 'openai-compatible' ? createOpenAiCompatibleModel() : createGroqModel()
 }
