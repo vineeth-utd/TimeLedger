@@ -12,6 +12,7 @@ const links = [
   { href: '/activities', label: 'Activities' },
   { href: '/categories', label: 'Categories' },
   { href: '/analytics', label: 'Analytics' },
+  { href: '/productivity-agent', label: 'Productivity Agent' },
 ]
 
 export default function Nav() {

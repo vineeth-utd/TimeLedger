@@ -109,6 +109,7 @@ The following resources are user-owned:
 * Dashboard data
 * Analytics data
 * Assistant conversations
+* AI Productivity Agent preferences and weekly reports
 
 Each user can access only their own data.
 
@@ -687,6 +688,28 @@ All errors: `{ "success": false, "code": "…", "message": "…" }` (401 has no 
 | 500 | `TRANSCRIPTION_UNAVAILABLE` | `STT_PROVIDER` invalid or the selected provider's credentials (`GROQ_API_KEY`, or `OPENAI_COMPATIBLE_API_BASE_URL` + `OPENAI_COMPATIBLE_API_KEY`) not configured |
 
 Nothing is retried automatically. Provider error details are logged server-side only; the transcription endpoint never logs or stores audio or transcript text (once a reviewed transcript is sent through `/api/assistant/chat` it is a normal message).
+
+---
+
+## AI Productivity Agent (Phase 11, Milestone 4)
+
+All endpoints require authentication; identity comes only from the session (no `userId`, week or timezone is accepted from the client). Errors use the standard `{ "success": false, "message": "…" }` envelope.
+
+| Endpoint | Behavior |
+|---|---|
+| `GET /api/productivity-agent/preferences` | `{ productivityAgentEnabled, weeklyEmailReportsEnabled, timezone, scheduledGenerationEnabled, emailDeliveryEnabled }`; defaults (all off, no timezone) when the user has no row. |
+| `PATCH /api/productivity-agent/preferences` | Body: any of `productivityAgentEnabled`, `weeklyEmailReportsEnabled` (booleans), `timezone` (valid IANA). Enabling requires a stored or supplied timezone (400 otherwise). Returns the updated preferences. |
+| `GET /api/productivity-agent/reports` | `{ reports: [{ id, weekStartDate, status, errorCode, generatedAt }], targetWeekStartDate }`: newest first, at most 52, metadata only. `targetWeekStartDate` is the latest completed week in the stored timezone (null without one). Available while the Agent is disabled. |
+| `GET /api/productivity-agent/reports/:id` | One report with `facts` (Milestone 1 data) and `content` (Milestone 3 report, without generation metadata). 404 for a missing id or another user's report. |
+| `POST /api/productivity-agent/reports` | Manual generation for the latest completed week using the stored timezone; no body. Returns `{ reportId, weekStartDate }`. |
+
+`POST` errors: 409 `AGENT_DISABLED` (Agent off), 400 (no stored timezone), 409 `REPORT_EXISTS` (completed reports are never regenerated), 409 `REPORT_IN_PROGRESS`, 429 (provider rate limit), 502 (provider unavailable), 500 (other generation failure; a failed report can be retried with the same call). Only safe codes are returned; the call can take several seconds (`maxDuration` 60).
+
+### Scheduled Weekly Report Generation (Milestone 5)
+
+| Endpoint | Behavior |
+|---|---|
+| `GET /api/cron/weekly-reports` | Authenticated background cron endpoint. Requires `Authorization: Bearer <CRON_SECRET>`. Evaluates all users with `productivityAgentEnabled: true` and a valid timezone. Uses catch-up semantics to generate reports for the latest completed local week. Recovers stale `generating` leases (> 10m). Retries failed reports up to 3 scheduled attempts; failed reports remain recoverable via manual POST. Returns `{ success: true, eligibleCount, processed, completed, failed, skipped, attemptsExceeded, durationMs }`. |
 
 ---
 

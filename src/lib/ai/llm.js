@@ -13,12 +13,12 @@ export function getReasoningEffort() {
 }
 
 
-function createGroqModel() {
+function createGroqModel(maxOutputTokens) {
   return new ChatGroq({
     apiKey: getGroqApiKey(),
     model: getModelName('groq', 'ai'),
     temperature: 0,
-    maxTokens: getMaxOutputTokens('groq'),
+    maxTokens: maxOutputTokens ?? getMaxOutputTokens('groq'),
     reasoningEffort: getReasoningEffort(),
     ...(isUsageLogEnabled() && { fetch: createUsageLoggingFetch() }),
   })
@@ -26,14 +26,16 @@ function createGroqModel() {
 
 // An OpenAI-compatible Chat Completions API. Groq-specific options (reasoning effort) are not
 // sent, and automatic retries are off, matching the "no automatic 429 retries" rule.
-function createOpenAiCompatibleModel() {
+function createOpenAiCompatibleModel(maxOutputTokens, reasoningEffort) {
   const { baseURL, apiKey } = getOpenAiCompatibleConfig()
   return new ChatOpenAI({
     apiKey,
     model: getModelName('openai-compatible', 'ai'),
     temperature: 0,
-    maxTokens: getMaxOutputTokens('openai-compatible'),
+    maxTokens: maxOutputTokens ?? getMaxOutputTokens('openai-compatible'),
     maxRetries: 0,
+    // The `reasoning` constructor option is not sent on this Chat Completions path; modelKwargs is.
+    ...(reasoningEffort && { modelKwargs: { reasoning_effort: reasoningEffort } }),
     configuration: {
       baseURL,
       ...(isUsageLogEnabled() && { fetch: createUsageLoggingFetch() }),
@@ -43,6 +45,11 @@ function createOpenAiCompatibleModel() {
 
 // The only provider-specific module for the LLM. The graph relies on the generic LangChain
 // chat-model interface (`bindTools`, `invoke`), so swapping provider/model is local to this file.
-export function createChatModel() {
-  return resolveProvider('AI_PROVIDER') === 'openai-compatible' ? createOpenAiCompatibleModel() : createGroqModel()
+// `maxOutputTokens` optionally overrides the provider's default output cap, and `reasoningEffort`
+// sets the OpenAI-compatible reasoning effort (both used only by weekly reports; the assistant
+// passes neither, and Groq keeps its own GROQ_AI_REASONING_EFFORT).
+export function createChatModel({ maxOutputTokens, reasoningEffort } = {}) {
+  return resolveProvider('AI_PROVIDER') === 'openai-compatible'
+    ? createOpenAiCompatibleModel(maxOutputTokens, reasoningEffort)
+    : createGroqModel(maxOutputTokens)
 }

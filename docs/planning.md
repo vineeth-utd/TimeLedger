@@ -680,3 +680,280 @@ Model, output-token cap and reasoning settings are per provider (`GROQ_*` / `OPE
 ## Assistant Duration Wording (Small UX Enhancement)
 
 Assistant replies show durations as hours and minutes (`2 hrs 34 mins`) instead of raw minutes. The model still reports whole minutes; the server deterministically rewrites clear integer durations in the final reply (`src/lib/ai/durationText.js`). Internal values, tool results and API contracts are unchanged. Verified by `scripts/duration-text-check.mjs`.
+
+---
+
+# Phase 11 - AI Productivity Agent
+
+Add an opt-in AI Productivity Agent that proactively analyzes completed weeks, generates personalized weekly productivity reports, stores them in TimeLedger, and optionally delivers them by email.
+
+The initial version focuses on weekly review and coaching. More advanced multi-week analysis and interactive productivity coaching may be added later.
+
+## Product Behavior
+
+The AI Productivity Agent is an optional per-user feature and is disabled by default.
+
+When the AI Productivity Agent is disabled:
+
+- No scheduled productivity-agent LLM runs occur for the user.
+- No new weekly AI reports are generated.
+- No weekly report emails are sent.
+- Previously generated reports remain available.
+
+When the AI Productivity Agent is enabled:
+
+- A weekly report is generated automatically after the previous week is complete.
+- The report is persisted and available from the AI Productivity Agent page.
+- Weekly email delivery is controlled by a separate per-user setting.
+
+Weekly email behavior:
+
+- AI Productivity Agent ON + Weekly Email Reports OFF → generate and persist the report, but do not email it.
+- AI Productivity Agent ON + Weekly Email Reports ON → generate, persist, and email the report.
+- AI Productivity Agent OFF → generate nothing and send nothing, regardless of the saved email preference.
+- Disabling the parent feature does not need to erase the saved email preference.
+
+The initial automated report compares:
+
+- the previous completed week; and
+- the completed week immediately before it.
+
+The architecture should allow additional historical periods to be analyzed later without requiring the initial implementation to retrieve them.
+
+---
+
+## Milestone 1 - Analytics & Report Data Foundation
+
+Build the deterministic analytics foundation required by the AI Productivity Agent.
+
+Before adding new analytics logic, inspect the existing Analytics implementation and reuse or extract existing calculations wherever practical.
+
+The LLM must not calculate authoritative analytics values that TimeLedger can calculate deterministically.
+
+Scope:
+
+- Inspect the current Analytics frontend/backend/service logic.
+- Reuse existing Daily Sub Category Summaries and Weekly Targets.
+- Build a server-side weekly report-data service.
+- Retrieve the previous completed week and the completed week before it.
+- Include both Main Category and Sub Category summaries.
+- Derive Main Category totals from existing summary data where appropriate.
+- Include weekly targets for Main Categories.
+- Calculate deterministic target-vs-actual metrics.
+- Calculate target achievement/deviation.
+- Calculate week-over-week absolute changes.
+- Calculate week-over-week percentage changes where meaningful.
+- Identify deterministic largest increases/decreases where useful.
+- Return a compact structured dataset suitable for later LLM interpretation.
+- Keep all reads scoped to the authenticated user.
+- Do not expose raw activity history to the LLM when summary data is sufficient.
+- Do not add LLM report generation yet.
+
+The output of this milestone should clearly separate:
+
+- deterministic facts calculated by TimeLedger; and
+- interpretation that will later be performed by the LLM.
+
+**Status:** Complete
+
+Implemented in `src/lib/analytics/reportMetrics.js` (pure calculations), `src/lib/services/weeklyReportService.js` (user-scoped read of `daily_sub_category_summaries` + explicit `weekly_targets`) and `getWeekStartMondayForDate` in `src/lib/timezone.js`. Explicit targets only (no previous-week fallback; missing or 0 target → `null`). The existing Analytics page and Dashboard route were intentionally not refactored. Verified by `scripts/weekly-report-check.mjs`.
+
+---
+
+## Milestone 2 - Productivity Agent Data & Preferences
+
+Add the persistence required for the AI Productivity Agent and weekly reports.
+
+Scope:
+
+- Add a user-scoped feature/preferences model suitable for this feature and future optional TimeLedger features.
+- Store whether the AI Productivity Agent is enabled.
+- Store whether Weekly Email Reports are enabled.
+- Both settings default to disabled.
+- Keep the email preference independent from the parent feature preference.
+- Store or otherwise establish the user's IANA timezone required for scheduled weekly processing.
+- Add persisted weekly report records.
+- Store the report's target week and generation state.
+- Store generated report content in a structured form suitable for rendering in TimeLedger and email.
+- Track generation timestamps and relevant failure state.
+- Enforce user ownership for preferences and reports.
+- Define an idempotency key/constraint so one user/week represents one scheduled weekly report.
+- Design report state so concurrent/repeated scheduler invocations cannot generate duplicate scheduled reports.
+- Preserve historical reports when the feature is disabled.
+- Do not add scheduled execution yet.
+- Do not add email delivery yet.
+
+The exact schema and state model should be finalized after inspecting the existing Prisma/authentication architecture.
+
+**Status:** Complete (code and migration SQL; not yet applied to the Supabase database)
+
+Implemented as `user_preferences` and `weekly_reports` (see `docs/database.md` sections 7-8; migration `20261011120000_add_productivity_agent_tables`), `src/lib/services/productivityAgentService.js` (preference defaults, validation and derived behavior), and `src/lib/analytics/reportStatus.js`. One report row per user/week with insert-as-claim semantics; M1 facts are snapshotted on the report. Verified offline by `scripts/productivity-agent-check.mjs`. Retry leases, email-delivery state and report APIs belong to later milestones.
+
+---
+
+## Milestone 3 - AI Weekly Report Generation
+
+Generate personalized weekly productivity reports from the deterministic analytics produced by Milestone 1.
+
+The LLM is responsible for interpretation and recommendations, not authoritative calculations.
+
+Scope:
+
+- Use the configured TimeLedger LLM provider/model.
+- Provide the LLM with the structured two-week analytics dataset.
+- Analyze Main Category and Sub Category changes.
+- Interpret target-vs-actual performance.
+- Identify meaningful improvements, regressions and shifts in time allocation.
+- Avoid presenting speculative causes as facts.
+- Avoid automatically treating increased leisure/break time or reduced career/productivity time as inherently negative.
+- Distinguish observed facts from interpretations or possible explanations.
+- Generate a concise weekly overview.
+- Generate category-level observations where useful.
+- Generate a small number of actionable recommendations for the upcoming week.
+- Keep recommendations grounded in the supplied TimeLedger analytics.
+- Produce a structured report that can be rendered consistently in both the application and email.
+- Persist the generated report.
+- Support manual report generation for development/quality evaluation before scheduling is introduced.
+- Handle insufficient or missing weekly data gracefully.
+- Keep LLM access behind controlled application/service boundaries; the LLM must never access Prisma or the database directly.
+
+Initial report sections should include, where meaningful:
+
+- Week overview
+- Target vs Actual
+- Week-over-week changes
+- Main Category insights
+- Sub Category insights
+- AI observations
+- Recommendations for the next week
+
+Report quality should be manually evaluated before scheduled generation is implemented.
+
+**Status:** Implementation complete (offline-verified; live-model quality evaluated on five synthetic fixtures with prompt `weekly-report-v5.1`). **Live persistence verified** against the real database during the Milestone 4 manual verification (report generated and persisted as `completed`).
+
+Implemented in `src/lib/ai/report/` (prompt + compact input with a deterministic data-coverage signal, schema/validation/normalization/number guard, generation), `src/lib/services/weeklyReportGenerationService.js` (claim -> M1 facts -> model -> persist), per-provider report output caps (`GROQ_REPORT_MAX_OUTPUT_TOKENS` / `OPENAI_COMPATIBLE_REPORT_MAX_OUTPUT_TOKENS`, default 2048) and an OpenAI-compatible-only report reasoning effort (`OPENAI_COMPATIBLE_REPORT_REASONING_EFFORT`, baseline `low`). See `docs/ai.md` section 18C. Verified by `scripts/weekly-report-generation-check.mjs`; the opt-in live evaluation is `scripts/weekly-report-eval.mjs` (dry run, no database writes).
+
+---
+
+## Milestone 4 - AI Productivity Agent Page
+
+Add the user-facing AI Productivity Agent experience.
+
+Scope:
+
+- Add an AI Productivity Agent page for authenticated users.
+- Allow the user to enable or disable the AI Productivity Agent.
+- Keep the feature disabled by default.
+- When disabled, show a concise explanation of the feature and an option to enable it.
+- Allow Weekly Email Reports to be enabled or disabled separately.
+- Make it clear that email delivery only applies while the AI Productivity Agent is enabled.
+- Display the latest generated weekly report.
+- Display historical weekly reports.
+- Allow users to inspect previously generated reports after disabling the feature.
+- Provide appropriate loading, empty and error states.
+- Support manual report generation/regeneration where appropriate.
+- Keep the page responsive and consistent with the existing TimeLedger UI.
+- Enforce authenticated user ownership for all report/preference operations.
+
+Do not introduce a general Settings page solely for this feature.
+
+**Status:** Complete. Offline-verified, then manually verified in the browser against the real database and model after the M2 migration was applied. One UI defect found there (the Generate action did not appear after enabling the Agent until a refresh, because the generation target week was not reloaded once the timezone was stored) is fixed.
+
+Implemented as `/productivity-agent` (`src/app/productivity-agent`, `src/components/productivity-agent`), `/api/productivity-agent/{preferences,reports,reports/[id]}` and `listWeeklyReports` / `getWeeklyReport` / `requestWeeklyReportGeneration` in `productivityAgentService.js`. Decisions: manual generation targets only the latest completed week and is blocked while the Agent is disabled; failed reports can be retried, completed reports are not regenerated; stale `generating` recovery is deferred to Milestone 5; the Weekly Email Reports toggle is hidden until Milestone 6 (the preference remains supported by the API). See `docs/api.md` and `docs/ui.md`.
+
+---
+
+## Milestone 5 - Scheduled Weekly Generation
+
+Automatically generate weekly reports for eligible users.
+
+Scope:
+
+- Add scheduled/background execution suitable for the deployed TimeLedger environment.
+- Evaluate the simplest reliable scheduling mechanism supported by the current Vercel deployment before adding new infrastructure.
+- Run scheduled eligibility checks for users with the AI Productivity Agent enabled.
+- Respect each user's local timezone when determining when a completed week is ready for review.
+- Generate the report only after the previous local week has completed.
+- Use the persisted report/idempotency state to prevent duplicate scheduled generation.
+- Safely handle repeated or concurrent scheduler invocations.
+- Claim report-generation work before invoking the LLM.
+- Add bounded retry behavior for clearly retryable generation failures.
+- Do not retry indefinitely.
+- Persist generation failures/status so they are visible and recoverable.
+- Allow failed reports to be generated manually later.
+- Users with the AI Productivity Agent disabled must not cause scheduled LLM calls.
+- Email delivery must not be required for scheduled report generation.
+
+**Status:** Complete. Offline-verified via `scripts/weekly-report-scheduler-check.mjs`.
+
+Implemented as `vercel.json` (daily cron at 12:00 UTC conforming to Vercel Hobby constraints), `GET /api/cron/weekly-reports` (constant-time `CRON_SECRET` bearer auth, `maxDuration = 60`), `weeklyReportSchedulerService.js` (`findEligibleScheduledUsers`, `processScheduledWeeklyReports`), and enhanced `claimReport` in `weeklyReportGenerationService.js`. Key decisions: catch-up semantics (the latest completed week remains eligible across any day of the week until completed or retry cap reached); bounded execution (default max batch size 3, 45 s budget); 10-minute stale lease recovery for crashed/abandoned `generating` rows; max 3 scheduled attempts with failed/exhausted reports remaining recoverable via manual user retry in the UI. See `docs/api.md`.
+
+---
+
+## Milestone 6 - Weekly Report Email Delivery
+
+Optionally deliver generated weekly reports by email.
+
+Email delivery is a separate opt-in from enabling the AI Productivity Agent.
+
+Scope:
+
+- Determine and implement the simplest reliable email-delivery mechanism suitable for TimeLedger.
+- Use the authenticated user's account email as the report recipient where available.
+- Do not require the LLM to generate the report again for email delivery.
+- Render email content from the persisted weekly report.
+- Send email only when both:
+  - the AI Productivity Agent is enabled; and
+  - Weekly Email Reports are enabled.
+- Track email-delivery state separately from report-generation state.
+- Track successful delivery time.
+- Track delivery failures without losing the generated report.
+- Add bounded retry behavior for clearly retryable email failures.
+- Avoid blindly resending when the delivery outcome is unknown.
+- Support manual resend of an already-generated report where appropriate.
+- Manual resend must reuse the persisted report rather than invoke the LLM again.
+- Do not expose authentication credentials or email-provider secrets to the browser.
+
+The email mechanism should be finalized during this milestone rather than coupling the earlier report-generation milestones to a specific email provider.
+
+**Status:** Pending
+
+---
+
+## Milestone 7 - Reliability and Production Readiness
+
+Validate the AI Productivity Agent end to end.
+
+Scope:
+
+- Analytics correctness.
+- Main Category and Sub Category report accuracy.
+- Target-vs-actual calculations.
+- Week-over-week calculations.
+- User preference behavior.
+- Feature disabled/enabled behavior.
+- Email preference behavior.
+- User isolation and authorization.
+- Historical report access.
+- Manual generation/regeneration.
+- Manual email resend.
+- Scheduler authentication/security.
+- Scheduler idempotency.
+- Concurrent scheduler invocations.
+- Duplicate-generation prevention.
+- User timezone/week-boundary behavior.
+- Missing or insufficient weekly data.
+- LLM provider failures.
+- LLM rate limits/timeouts.
+- Invalid or incomplete LLM report output.
+- Email provider failures.
+- Unknown email-delivery outcomes.
+- Bounded retry behavior.
+- Disabling and re-enabling the feature.
+- Responsive desktop/mobile UI.
+- Production scheduler behavior.
+- Safe logging with no report content, credentials or private user data unnecessarily logged.
+
+Update the relevant architecture, database, API, UI and README documentation only as the corresponding implementation becomes authoritative.
+
+**Status:** Pending
