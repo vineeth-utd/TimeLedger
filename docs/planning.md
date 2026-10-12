@@ -785,7 +785,9 @@ Scope:
 
 The exact schema and state model should be finalized after inspecting the existing Prisma/authentication architecture.
 
-**Status:** Pending
+**Status:** Complete (code and migration SQL; not yet applied to the Supabase database)
+
+Implemented as `user_preferences` and `weekly_reports` (see `docs/database.md` sections 7-8; migration `20261011120000_add_productivity_agent_tables`), `src/lib/services/productivityAgentService.js` (preference defaults, validation and derived behavior), and `src/lib/analytics/reportStatus.js`. One report row per user/week with insert-as-claim semantics; M1 facts are snapshotted on the report. Verified offline by `scripts/productivity-agent-check.mjs`. Retry leases, email-delivery state and report APIs belong to later milestones.
 
 ---
 

@@ -118,3 +118,33 @@ model AssistantActionClaim {
   @@unique([userId, threadId, actionId])
   @@map("assistant_action_claims")
 }
+
+model UserPreference {
+  id                        Int      @id @default(autoincrement())
+  userId                    String   @unique @db.Uuid @map("user_id")
+  productivityAgentEnabled  Boolean  @default(false) @map("productivity_agent_enabled")
+  weeklyEmailReportsEnabled Boolean  @default(false) @map("weekly_email_reports_enabled")
+  timezone                  String?
+  createdAt                 DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt                 DateTime @updatedAt @db.Timestamptz @map("updated_at")
+
+  @@map("user_preferences")
+}
+
+model WeeklyReport {
+  id                  Int       @id @default(autoincrement())
+  userId              String    @db.Uuid @map("user_id")
+  weekStartDate       DateTime  @db.Date @map("week_start_date")
+  status              String
+  attemptCount        Int       @default(0) @map("attempt_count")
+  generationStartedAt DateTime? @db.Timestamptz @map("generation_started_at")
+  generatedAt         DateTime? @db.Timestamptz @map("generated_at")
+  errorCode           String?   @map("error_code")
+  facts               Json?
+  content             Json?
+  createdAt           DateTime  @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt           DateTime  @updatedAt @db.Timestamptz @map("updated_at")
+
+  @@unique([userId, weekStartDate])
+  @@map("weekly_reports")
+}

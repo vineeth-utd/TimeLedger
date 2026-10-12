@@ -1467,6 +1467,14 @@ The initial voice phase does not include:
 
 ---
 
+# 18B. Productivity Agent Preferences and Reports (Phase 11, Milestone 2)
+
+* Preferences live in `user_preferences` (`getPreferences` / `updatePreferences` in `src/lib/services/productivityAgentService.js`). Defaults are both off. Scheduled generation requires the Agent enabled and a valid stored timezone; email delivery requires the Agent enabled **and** Weekly Email Reports enabled. Agent OFF + Email ON generates and sends nothing, and the email preference is retained.
+* The stored timezone is updated only by an explicit authenticated operation; it is never part of any tool schema.
+* Reports live in `weekly_reports`: one row per user/week, `generating` -> `completed`/`failed`. The row is created as the claim (unique violation = already owned). `facts` stores the M1 snapshot and `content` the future AI report, so a report never changes when activities are edited later.
+
+---
+
 # 19. Core Design Principles
 
 1. **The LLM never accesses the database directly.**

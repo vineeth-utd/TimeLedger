@@ -229,6 +229,62 @@ AI assistant only. Guarantees a pending confirmation action (delete, category cr
 
 ---
 
+## 7. user_preferences
+
+Per-user feature preferences (one row per user). A missing row means every feature is off and no timezone is known; the row is created on the first explicit preference update.
+
+### Fields
+
+* id
+* user_id (unique)
+* productivity_agent_enabled (default false)
+* weekly_email_reports_enabled (default false)
+* timezone (nullable IANA name)
+* created_at
+* updated_at
+
+### Rules
+
+* The two flags are independent. Agent OFF with Email ON is a valid stored state; email delivery is effective only while the Agent is enabled, and disabling the Agent never clears the email preference.
+* Enabling the Agent requires a valid timezone (supplied or already stored).
+* The timezone is updated only by an explicit authenticated server operation, never by merely rendering a page. It is used for scheduled weekly processing; existing reports stay keyed to their original week_start_date.
+* Own-row RLS policies (`auth.uid() = user_id`); server code also scopes every query by user_id.
+
+---
+
+## 8. weekly_reports
+
+Persisted AI Productivity Agent weekly reports (one row per user and report week). Reports are historical snapshots and survive the Agent being disabled.
+
+### Fields
+
+* id
+* user_id
+* week_start_date (the report week's Monday)
+* status: `generating`, `completed` or `failed`
+* attempt_count (default 0)
+* generation_started_at
+* generated_at
+* error_code (safe code only, no message or content)
+* facts (JSONB): the Milestone 1 deterministic report data (`schemaVersion` + `facts`) captured at generation time; never recomputed when viewing
+* content (JSONB): the structured AI-generated report (Milestone 3)
+* created_at
+* updated_at
+
+### Constraints
+
+* Unique (user_id, week_start_date): one report per user/week. Creating the row is the claim; a unique violation means another worker owns that week.
+* CHECK status IN ('generating', 'completed', 'failed') (mirrors `src/lib/analytics/reportStatus.js`)
+* CHECK week_start_date is a Monday
+* CHECK a `completed` row has facts, content and generated_at
+* No foreign keys; own-row RLS policies (`auth.uid() = user_id`)
+
+### Notes
+
+* Retry/regeneration reuses the same row (status back to `generating`, attempt_count + 1). Lease length, retry limits and email-delivery state are defined in later milestones.
+
+---
+
 # Application Rules
 
 ## Activity Creation
@@ -347,4 +403,4 @@ No additional database tables are required beyond the current schema.
 * **Authoring a migration:** `npx prisma migrate dev --name <name>` needs a Supabase-compatible development environment (the shadow database must provide `auth.uid()`). Commit the generated folder.
 * **Production:** run `npx prisma migrate deploy` explicitly against `DIRECT_URL`; never during the Vercel build.
 * **Drift check:** `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code` (read-only).
-* **Optional onboarding verification (not yet performed):** on a throwaway Supabase project, confirm `migrate deploy` applies all five migrations from an empty database, `migrate diff` reports no drift, 20 RLS policies exist, `assistant_action_claims` has RLS enabled with its unique index, and `scripts/ai-setup-checkpointer.mjs` succeeds.
+* **Optional onboarding verification (not yet performed):** on a throwaway Supabase project, confirm `migrate deploy` applies all six migrations from an empty database, `migrate diff` reports no drift, 28 RLS policies exist, `assistant_action_claims` has RLS enabled with its unique index, `user_preferences`/`weekly_reports` have their unique indexes, CHECK constraints and RLS policies, and `scripts/ai-setup-checkpointer.mjs` succeeds.
