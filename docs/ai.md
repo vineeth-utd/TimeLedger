@@ -1305,9 +1305,11 @@ The future Productivity Coach should use aggregated Analytics Engine tools rathe
 
 ---
 
-# 17. Future — Analytics and Productivity Coach
+# 17. Analytics and Productivity Coach
 
-The conversational assistant may later become the interface for the AI Productivity Coach.
+**Status:** The standalone weekly AI Productivity Agent with deterministic analytics, scheduled generation, and email delivery is implemented as Phase 11 (see Sections 18A–18D and `docs/planning.md`).
+
+The conversational assistant may also later become an interactive interface for productivity coaching:
 
 Example requests:
 
@@ -1515,7 +1517,16 @@ A direct LLM workflow, separate from the assistant: no LangGraph, tools, checkpo
 * `scripts/weekly-report-generation-check.mjs` (offline: mocked model, fake database, prints input size measurements; `js-tiktoken` is used only if present).
 * `scripts/weekly-report-eval.mjs` is the opt-in live-model dry run on synthetic fixtures (`--only`, `--diagnostics` prints the raw response and every number-guard hit with its field on a rejection; nothing is persisted and no production logging is affected). Wording quality is reviewed by a human.
 * Live evaluation on prompt v5.x (the seven fixtures are in `scripts/weekly-report-fixtures.mjs`): `typical`, `sparse`, `noPriorWeek`, `workDropLeisureUp` and `allTargetsMet` all validated with correct factual grounding, no number-guard rejections, natural target commentary, neutral leisure framing, proportionate gap-sized recommendations (including none when targets were met or exceeded), a coverage caveat when coverage was limited or there was no prior week, and no comparison language without a prior week. Known stylistic limits: some `observed` fields are terse fragments, recommendation wording under limited coverage is only moderately tentative, and single samples cannot show run-to-run variance.
-* **Pending integration verification:** live persistence (claim, snapshot and failure paths against a real database) has only been verified offline against a fake database, because the M2 migration has not been applied. It must be exercised once after the migration is applied.
+* Live integration verification: verified against real database with live migrations, deterministic verification suites (`scripts/weekly-report-check.mjs`, `scripts/weekly-report-generation-check.mjs`, `scripts/productivity-agent-check.mjs`, `scripts/weekly-report-scheduler-check.mjs`, `scripts/weekly-report-email-check.mjs`, `scripts/weekly-report-reliability-check.mjs`), and ephemeral live Supabase Admin / Resend integration tests.
+
+---
+
+# 18D. UI, Scheduling, Email Delivery, and Production Hardening (Phase 11, Milestones 4–7)
+
+* **UI (`/productivity-agent`, Milestone 4):** Preferences toggle with timezone display, manual report generation/retry, historical report viewing with client-side tabs/sections, and email delivery status badges (`Email sent`, `Delivery failed`, `Sending…`) with manual Send/Retry/Resend controls. Completed reports are never regenerated.
+* **Scheduled Generation (Milestone 5):** Vercel Cron (`0 * * * *`, hourly catch-up) invoking `/api/cron/weekly-report`. Only processes users with `productivity_agent_enabled = true` and a valid timezone whose latest completed local week lacks a completed report. Bounded batch limit (`MAX_REPORTS_PER_RUN = 5`), 10-minute generation lease (`REPORT_STALE_MINUTES = 10`), and maximum 3 automatic attempts (`MAX_SCHEDULED_ATTEMPTS = 3`). Authenticated via `CRON_SECRET` bearer token.
+* **Email Delivery (Milestone 6):** Direct HTTPS Resend integration (`src/lib/email/client.js`) sending the already-persisted report without re-invoking the LLM. Sent only when both `productivity_agent_enabled` and `weekly_email_reports_enabled` are true. Recipient resolved via authenticated session for manual sends, or server-side Supabase Admin (`getUserEmailById`) using `SUPABASE_SERVICE_ROLE_KEY` for background cron runs. Independent delivery status (`sending`, `sent`, `failed`), 5-minute lease (`EMAIL_STALE_MINUTES = 5`), and maximum 3 scheduled attempts (`MAX_SCHEDULED_DELIVERY_ATTEMPTS = 3`).
+* **Production Hardening (Milestone 7):** Scheduler loop per-user email failure containment (unexpected email failure for one user never aborts processing of remaining users), safe distinction between server admin config missing vs recipient missing, safe error code mapping without raw provider bodies in logs, and deterministic verification.
 
 ---
 

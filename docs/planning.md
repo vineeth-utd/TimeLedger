@@ -956,4 +956,4 @@ Scope:
 
 Update the relevant architecture, database, API, UI and README documentation only as the corresponding implementation becomes authoritative.
 
-**Status:** Pending
+**Status:** Complete — Hardened scheduler loop with per-user email failure containment; safe distinction between Supabase Admin config missing (`EMAIL_CONFIG_MISSING`) and missing recipient (`EMAIL_RECIPIENT_MISSING`) without crashing background processing; audited safe logging across Phase 11 (no credentials, prompts, report bodies, recipient emails, or raw third-party error messages in logs; safe error codes only); added deterministic reliability checks (`scripts/weekly-report-reliability-check.mjs`); verified all Phase 11 test suites (107/107 total assertions passing), ESLint clean, and production build succeeded. Authoritative documentation updated across README, database, UI, AI, and planning docs.

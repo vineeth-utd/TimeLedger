@@ -106,23 +106,29 @@ export async function sendWeeklyReportEmail(
   }
 
   let email = recipientEmail
+  let lookupErrorCode = null
   if (!email) {
-    email = await getUserEmailById(userId, { adminClient })
+    try {
+      email = await getUserEmailById(userId, { adminClient })
+    } catch (err) {
+      lookupErrorCode = err instanceof EmailDeliveryError ? err.code : EMAIL_ERROR.CONFIG_MISSING
+    }
   }
 
   if (!email || typeof email !== 'string' || !email.includes('@')) {
+    const errorCode = lookupErrorCode ?? EMAIL_ERROR.RECIPIENT_MISSING
     await db.weeklyReport.updateMany({
       where: { id: reportId, userId },
       data: {
         emailStatus: WEEKLY_REPORT_EMAIL_STATUS.FAILED,
-        emailErrorCode: EMAIL_ERROR.RECIPIENT_MISSING,
+        emailErrorCode: errorCode,
       },
     })
     return {
       success: false,
       reportId,
       emailStatus: WEEKLY_REPORT_EMAIL_STATUS.FAILED,
-      errorCode: EMAIL_ERROR.RECIPIENT_MISSING,
+      errorCode,
     }
   }
 

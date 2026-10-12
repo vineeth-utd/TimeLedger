@@ -129,27 +129,37 @@ export async function processScheduledWeeklyReports({
 
         // Email delivery needed for existing completed report
         summary.processed += 1
-        const emailResult = await sendWeeklyReportEmail(existing.id, {
-          userId: user.userId,
-          db,
-          emailClient,
-          adminClient,
-          now,
-          maxAttempts: maxScheduledEmailAttempts,
-        })
+        try {
+          const emailResult = await sendWeeklyReportEmail(existing.id, {
+            userId: user.userId,
+            db,
+            emailClient,
+            adminClient,
+            now,
+            maxAttempts: maxScheduledEmailAttempts,
+          })
 
-        if (emailResult.success) {
-          summary.emailsSent += 1
-        } else {
+          if (emailResult.success) {
+            summary.emailsSent += 1
+          } else {
+            summary.emailsFailed += 1
+          }
+          summary.details.push({
+            userId: user.userId,
+            weekStartDate: user.weekStartDate,
+            outcome: 'email_only',
+            emailStatus: emailResult.emailStatus,
+            errorCode: emailResult.errorCode ?? null,
+          })
+        } catch (emailError) {
           summary.emailsFailed += 1
+          summary.details.push({
+            userId: user.userId,
+            weekStartDate: user.weekStartDate,
+            outcome: 'email_failed',
+            errorCode: emailError?.code ?? EMAIL_ERROR.INTERNAL,
+          })
         }
-        summary.details.push({
-          userId: user.userId,
-          weekStartDate: user.weekStartDate,
-          outcome: 'email_only',
-          emailStatus: emailResult.emailStatus,
-          errorCode: emailResult.errorCode ?? null,
-        })
         continue
       }
 
@@ -260,17 +270,21 @@ export async function processScheduledWeeklyReports({
 
     // If report generation succeeded and email reports are enabled, send email
     if (reportId && user.weeklyEmailReportsEnabled) {
-      const emailResult = await sendWeeklyReportEmail(reportId, {
-        userId: user.userId,
-        db,
-        emailClient,
-        adminClient,
-        now,
-        maxAttempts: maxScheduledEmailAttempts,
-      })
-      if (emailResult.success) {
-        summary.emailsSent += 1
-      } else {
+      try {
+        const emailResult = await sendWeeklyReportEmail(reportId, {
+          userId: user.userId,
+          db,
+          emailClient,
+          adminClient,
+          now,
+          maxAttempts: maxScheduledEmailAttempts,
+        })
+        if (emailResult.success) {
+          summary.emailsSent += 1
+        } else {
+          summary.emailsFailed += 1
+        }
+      } catch {
         summary.emailsFailed += 1
       }
     }

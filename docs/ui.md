@@ -898,14 +898,15 @@ If there is insufficient data:
 
 ---
 
-## Page 5: AI Productivity Agent (Phase 11, Milestone 4)
+## Page 5: AI Productivity Agent (Phase 11)
 
 Route `/productivity-agent` (nav item "Productivity Agent"; no general Settings page).
 
-- Preferences card: Agent on/off switch (off by default, with a concise explanation) and the stored timezone. The browser timezone is sent only when enabling or via the explicit "Use <timezone>" action; loading the page never writes. The Weekly Email Reports toggle is hidden until email delivery exists (Milestone 6).
+- Preferences card: Agent on/off switch (off by default, with a concise explanation), the stored timezone, and the Weekly Email Reports toggle. The browser timezone is sent only when enabling or via the explicit "Use <timezone>" action; loading the page never writes.
 - "Generate report" appears only while the Agent is enabled and the latest completed week has no report; a failed report shows "Try again". Completed reports are never regenerated.
 - Report history lists past weeks (Ready / In progress / Failed) and stays available after the Agent is disabled; selecting a week shows it.
 - A report shows the overview, summary cards, Target vs Actual and Week over Week tables (from stored facts), insights, observations, recommendations and data notes. Possible explanations are labelled as such. Insufficient-data weeks show the overview only.
+- Email delivery: Completed reports display email delivery status badges (`Email sent`, `Delivery failed`, `Sending…`). Manual delivery actions allow sending, retrying failed delivery, or resending already delivered reports (`Send email`, `Retry email`, `Resend email`) without regenerating the report or invoking the LLM. Delivery errors display friendly safe messages.
 - States: loading, load error banner, disabled, no reports yet, generating (button disabled), failed (friendly message), in progress.
 
 ---
