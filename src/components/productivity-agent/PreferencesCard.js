@@ -67,6 +67,39 @@ export default function PreferencesCard({ preferences, onUpdate }) {
           )}
         </p>
       )}
+
+      <div className="border-t border-border-subtle mt-5 pt-5 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Weekly Email Reports</h2>
+          <p className="text-sm text-foreground-muted mt-1 max-w-xl">
+            Receive a copy of your weekly productivity report by email once it is generated.
+          </p>
+          {!enabled && preferences.weeklyEmailReportsEnabled && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5">
+              Email delivery is active only while the AI Productivity Agent is enabled.
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={preferences.weeklyEmailReportsEnabled}
+          aria-label="Weekly Email Reports"
+          disabled={saving}
+          onClick={() =>
+            update({ weeklyEmailReportsEnabled: !preferences.weeklyEmailReportsEnabled })
+          }
+          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+            preferences.weeklyEmailReportsEnabled ? 'bg-blue-600' : 'bg-border-strong'
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+              preferences.weeklyEmailReportsEnabled ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      </div>
     </section>
   )
 }

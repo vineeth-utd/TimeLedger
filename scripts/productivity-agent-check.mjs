@@ -265,7 +265,12 @@ await check('report history: own reports only, newest first, metadata only, boun
   assert.equal(targetWeekStartDate, '2026-10-05')
   assert.deepEqual(calls[0].where, { userId: 'u1' })
   assert.ok(calls[0].take <= 52)
-  for (const r of reports) assert.deepEqual(Object.keys(r).sort(), ['errorCode', 'generatedAt', 'id', 'status', 'weekStartDate'])
+  for (const r of reports) {
+    assert.deepEqual(
+      Object.keys(r).sort(),
+      ['emailErrorCode', 'emailRecipient', 'emailSentAt', 'emailStatus', 'errorCode', 'generatedAt', 'id', 'status', 'weekStartDate']
+    )
+  }
 })
 
 await check('report history survives disabling; no timezone means no generation target', async () => {

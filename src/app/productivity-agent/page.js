@@ -110,6 +110,23 @@ export default function ProductivityAgentPage() {
   const canGenerate = enabled && history.targetWeekStartDate && (!targetReport || targetReport.status === 'failed')
   const generateLabel = targetReport?.status === 'failed' ? 'Try again' : 'Generate report'
 
+  function handleEmailSent(data) {
+    setDetailState((prev) => {
+      if (prev?.id === data.reportId) {
+        return {
+          id: prev.id,
+          report: {
+            ...prev.report,
+            emailStatus: data.emailStatus,
+            emailSentAt: data.emailSentAt,
+            emailRecipient: data.recipient,
+          },
+        }
+      }
+      return prev
+    })
+  }
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 max-md:pb-[calc(5rem+env(safe-area-inset-bottom))] space-y-6">
       <PageHeader title="AI Productivity Agent" subtitle="A weekly review of how you spent your time" />
@@ -155,7 +172,7 @@ export default function ProductivityAgentPage() {
             {selected?.status === 'generating' && (
               <p className="text-sm text-foreground-secondary">This report is being generated.</p>
             )}
-            {selectedIsCompleted && (detail ? <ReportView report={detail} /> : <LoadingState />)}
+            {selectedIsCompleted && (detail ? <ReportView report={detail} onEmailSent={handleEmailSent} /> : <LoadingState />)}
           </div>
         </div>
       )}

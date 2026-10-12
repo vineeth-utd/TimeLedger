@@ -699,17 +699,20 @@ All endpoints require authentication; identity comes only from the session (no `
 |---|---|
 | `GET /api/productivity-agent/preferences` | `{ productivityAgentEnabled, weeklyEmailReportsEnabled, timezone, scheduledGenerationEnabled, emailDeliveryEnabled }`; defaults (all off, no timezone) when the user has no row. |
 | `PATCH /api/productivity-agent/preferences` | Body: any of `productivityAgentEnabled`, `weeklyEmailReportsEnabled` (booleans), `timezone` (valid IANA). Enabling requires a stored or supplied timezone (400 otherwise). Returns the updated preferences. |
-| `GET /api/productivity-agent/reports` | `{ reports: [{ id, weekStartDate, status, errorCode, generatedAt }], targetWeekStartDate }`: newest first, at most 52, metadata only. `targetWeekStartDate` is the latest completed week in the stored timezone (null without one). Available while the Agent is disabled. |
-| `GET /api/productivity-agent/reports/:id` | One report with `facts` (Milestone 1 data) and `content` (Milestone 3 report, without generation metadata). 404 for a missing id or another user's report. |
+| `GET /api/productivity-agent/reports` | `{ reports: [{ id, weekStartDate, status, errorCode, generatedAt, emailStatus, emailSentAt, emailErrorCode, emailRecipient }], targetWeekStartDate }`: newest first, at most 52, metadata only. `targetWeekStartDate` is the latest completed week in the stored timezone (null without one). Available while the Agent is disabled. |
+| `GET /api/productivity-agent/reports/:id` | One report with `facts` (Milestone 1 data), `content` (Milestone 3 report, without generation metadata), and email status fields. 404 for a missing id or another user's report. |
 | `POST /api/productivity-agent/reports` | Manual generation for the latest completed week using the stored timezone; no body. Returns `{ reportId, weekStartDate }`. |
+| `POST /api/productivity-agent/reports/:id/email` | Manual email delivery / resend for a completed report owned by the authenticated user (`user.email`). Reuses persisted `facts` and `content` without calling the LLM. Bypasses scheduled retry caps. Returns `{ reportId, emailStatus, emailSentAt, recipient }`. |
 
-`POST` errors: 409 `AGENT_DISABLED` (Agent off), 400 (no stored timezone), 409 `REPORT_EXISTS` (completed reports are never regenerated), 409 `REPORT_IN_PROGRESS`, 429 (provider rate limit), 502 (provider unavailable), 500 (other generation failure; a failed report can be retried with the same call). Only safe codes are returned; the call can take several seconds (`maxDuration` 60).
+`POST` generation errors: 409 `AGENT_DISABLED` (Agent off), 400 (no stored timezone), 409 `REPORT_EXISTS` (completed reports are never regenerated), 409 `REPORT_IN_PROGRESS`, 429 (provider rate limit), 502 (provider unavailable), 500 (other generation failure; a failed report can be retried with the same call). Only safe codes are returned; the call can take several seconds (`maxDuration` 60).
 
-### Scheduled Weekly Report Generation (Milestone 5)
+`POST /email` errors: 404 `NOT_FOUND` (report missing or owned by another user), 409 `REPORT_NOT_COMPLETED` (only completed reports can be delivered), 429 `EMAIL_RATE_LIMITED`, 502 `EMAIL_PROVIDER_UNAVAILABLE`, 504 `EMAIL_UNKNOWN_OUTCOME` (delivery timed out with uncertain outcome), 500 `EMAIL_CONFIG_MISSING` / other failure.
+
+### Scheduled Weekly Report Generation & Delivery (Milestones 5 & 6)
 
 | Endpoint | Behavior |
 |---|---|
-| `GET /api/cron/weekly-reports` | Authenticated background cron endpoint. Requires `Authorization: Bearer <CRON_SECRET>`. Evaluates all users with `productivityAgentEnabled: true` and a valid timezone. Uses catch-up semantics to generate reports for the latest completed local week. Recovers stale `generating` leases (> 10m). Retries failed reports up to 3 scheduled attempts; failed reports remain recoverable via manual POST. Returns `{ success: true, eligibleCount, processed, completed, failed, skipped, attemptsExceeded, durationMs }`. |
+| `GET /api/cron/weekly-reports` | Authenticated background cron endpoint. Requires `Authorization: Bearer <CRON_SECRET>`. Evaluates all users with `productivityAgentEnabled: true` and a valid timezone. Uses catch-up semantics to generate reports for the latest completed local week. Recovers stale `generating` leases (> 10m). Retries failed reports up to 3 scheduled attempts; failed reports remain recoverable via manual POST. If `weeklyEmailReportsEnabled: true`, delivers email reports via Resend with a 5-minute stale-send lease, max 3 scheduled delivery attempts, and blocks auto-retry on ambiguous outcomes. Returns `{ success: true, eligibleCount, processed, completed, failed, skipped, emailsSent, durationMs }`. |
 
 ---
 

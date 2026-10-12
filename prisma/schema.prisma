@@ -142,6 +142,11 @@ model WeeklyReport {
   errorCode           String?   @map("error_code")
   facts               Json?
   content             Json?
+  emailStatus         String?   @map("email_status")
+  emailSentAt         DateTime? @db.Timestamptz @map("email_sent_at")
+  emailAttemptCount   Int       @default(0) @map("email_attempt_count")
+  emailErrorCode      String?   @map("email_error_code")
+  emailRecipient      String?   @map("email_recipient")
   createdAt           DateTime  @default(now()) @db.Timestamptz @map("created_at")
   updatedAt           DateTime  @updatedAt @db.Timestamptz @map("updated_at")
 

@@ -916,7 +916,7 @@ Scope:
 
 The email mechanism should be finalized during this milestone rather than coupling the earlier report-generation milestones to a specific email provider.
 
-**Status:** Pending
+**Status:** Complete — Resend via HTTPS fetch (`https://api.resend.com/emails`), recipient retrieved from Supabase Auth (`getAuthenticatedUser` / `admin.getUserById`), persisted `facts` + `content` email rendering (HTML + text), independent email delivery status (`sending`, `sent`, `failed`), 5-min stale lease, max 3 scheduled attempts, no automatic retry on ambiguous outcome (`EMAIL_UNKNOWN_OUTCOME`), manual Send/Retry/Resend in UI (`POST /api/productivity-agent/reports/:id/email`), preference toggle exposed, server secrets preserved. Deterministic offline checks pass (`scripts/weekly-report-email-check.mjs`, lint, regression suites). Live migration and real delivery deferred for deployment.
 
 ---
 
