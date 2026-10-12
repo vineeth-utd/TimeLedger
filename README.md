@@ -139,42 +139,61 @@ The application is designed with a strong focus on fast activity logging, meanin
 ## Architecture
 
 ```
-                               Browser
-                                  │
-               ┌──────────────────┴──────────────────┐
-               │                                     │
-          Standard UI                          AI Assistant
-               │                                     │
-               ▼                         ┌───────────┴───────────┐
-           REST APIs                     │                       │
-               │                     Text Input             Voice Input
-               │                         │                       │
-               │                         │                  Groq Whisper
-               │                         │                       │
-               │                         │                 Review / Edit
-               │                         │                       │
-               │                         └───────────┬───────────┘
-               │                                     │
-               │                                   Send
-               │                                     │
-               │                                     ▼
-               │                             LangGraph Assistant
-               │                                     │
-               │                                  Groq LLM
-               │                                     │
-               │                                     ▼
-               │                              Controlled Tools
-               │                                     │
-               └──────────────────────► Shared Services
-                                                     │
-                                                     ▼
-                                                   Prisma
-                                                     │
-                                                     ▼
-                                            Supabase PostgreSQL
+                                  Browser
+                                     │
+                ┌────────────────────┼────────────────────┐
+                │                    │                    │
+           Standard UI         AI Assistant      AI Productivity Agent
+                │                    │                    │
+                │              ┌─────┴─────┐              │
+                │              │           │              │
+                │            Text        Voice            │
+                │              │           │              │
+                │              │           ▼              │
+                │              │     Speech-to-Text       │
+                │              │           │              │
+                │              └─────┬─────┘              │
+                │                    │                    │
+                │                    ▼                    │
+                │                LangGraph                │
+                │                    │                    │
+                │                    ▼                    │
+                │            Controlled Tools             │
+                │                    │                    │
+                └────────────────────┼────────────────────┘
+                                     │
+                                     ▼
+                              Shared Services
+                                     │
+                                     ▼
+                                   Prisma
+                                     │
+                                     ▼
+                           Supabase PostgreSQL
+
+
+                              Vercel Cron
+                                   │
+                                   ▼
+                      Productivity Agent Scheduler
+                                   │
+                                   ▼
+                       Deterministic Analytics
+                                   │
+                                   ▼
+                           Configured LLM
+                                   │
+                                   ▼
+                      Persisted Weekly Report
+                                   │
+                                   ▼
+                        Optional Resend Email
 ```
 
-Text input enters the assistant directly, while voice input is first transcribed with Groq-hosted Whisper and reviewed by the user; after Send, both follow the same LangGraph assistant pipeline. The AI model never accesses Prisma or the database directly, and it never supplies a trusted user identity: the user comes from the authenticated server-side session, and tool inputs cannot contain a `userId`. LangGraph orchestrates controlled TimeLedger tools, which reuse the same authenticated service layer as the application's APIs. Sensitive actions (deletions and category creation) run only after the user approves a server-built confirmation. 
+TimeLedger separates interactive assistant operations from scheduled background analytics:
+
+- **AI Assistant (Interactive):** Conversational activity and category management via natural language. Text input enters directly, while voice input is transcribed using Whisper and reviewed by the user before sending. LangGraph orchestrates multi-step, tool-calling workflows executing through controlled server-side tools; sensitive actions (deletions and category creation) require explicit user confirmations. The model never accesses Prisma directly and never supplies a `userId`.
+- **AI Productivity Agent (Scheduled & Autonomous):** Background weekly reporting triggered by Vercel Cron. The scheduler calculates deterministic analytics directly from stored summaries, invokes the configured LLM strictly for structured interpretation and recommendations, persists the immutable weekly report snapshot, and optionally delivers it via Resend without re-invoking the model.
 
 ```
 Authentication
@@ -320,6 +339,9 @@ OPENAI_COMPATIBLE_STT_MODEL=
 GROQ_AI_MAX_OUTPUT_TOKENS=
 OPENAI_COMPATIBLE_AI_MAX_OUTPUT_TOKENS=
 GROQ_AI_REASONING_EFFORT=
+GROQ_REPORT_MAX_OUTPUT_TOKENS=
+OPENAI_COMPATIBLE_REPORT_MAX_OUTPUT_TOKENS=
+OPENAI_COMPATIBLE_REPORT_REASONING_EFFORT=
 AI_CHECKPOINTER=
 AI_LOG_USAGE=
 ```
@@ -327,9 +349,25 @@ AI_LOG_USAGE=
 - `GROQ_AI_MODEL` / `OPENAI_COMPATIBLE_AI_MODEL` → chat model used by the assistant for that provider (defaults `openai/gpt-oss-120b` and `gpt-oss-120b`). Model ids differ per provider, so each has its own variable; only the variable for the selected `AI_PROVIDER` is read.
 - `GROQ_AI_MAX_OUTPUT_TOKENS` / `OPENAI_COMPATIBLE_AI_MAX_OUTPUT_TOKENS` → Maximum output tokens per model call for that provider (defaults `512` and `1024`). Invalid, zero or negative values fall back to the default.
 - `GROQ_AI_REASONING_EFFORT` → `low`, `medium` or `high` (default `low`); applies to Groq only and is not sent to the openai-compatible provider
+- `GROQ_REPORT_MAX_OUTPUT_TOKENS` / `OPENAI_COMPATIBLE_REPORT_MAX_OUTPUT_TOKENS` → Maximum output tokens for weekly report generation for that provider (defaults `2048` each; invalid, zero or negative values fall back to the default; separate from the assistant's cap)
+- `OPENAI_COMPATIBLE_REPORT_REASONING_EFFORT` → Reasoning effort for weekly reports on the OpenAI-compatible provider only (`none`, `low`, `medium`, or `high`; default unset/empty sends nothing and uses the provider default)
 - `AI_CHECKPOINTER` → set to `memory` to keep conversation state in-process (local testing only); by default state is stored in PostgreSQL
 - `AI_LOG_USAGE` → set to `true` to log per-call token usage and rate-limit headers while debugging (no message content)
 - `GROQ_STT_MODEL` / `OPENAI_COMPATIBLE_STT_MODEL` → Whisper model used for voice transcription for that provider (defaults `whisper-large-v3-turbo` and `whisper-large-v3`); only the variable for the selected `STT_PROVIDER` is read, independent of the chat model
+
+Scheduled weekly reports and email delivery variables (required for automated weekly reports and email delivery):
+
+```env
+CRON_SECRET=
+SUPABASE_SERVICE_ROLE_KEY=
+RESEND_API_KEY=
+EMAIL_FROM=
+```
+
+- `CRON_SECRET` → Secret token used to authenticate Vercel Cron calls to `/api/cron/weekly-reports` via `Authorization: Bearer <CRON_SECRET>` (server-only, never exposed to the browser)
+- `SUPABASE_SERVICE_ROLE_KEY` → Supabase Service Role Key used by the background scheduler to resolve recipient account emails by user ID via Supabase Admin Auth (server-only, never exposed to the browser)
+- `RESEND_API_KEY` → API key for delivering weekly report emails via Resend HTTPS API (server-only, never exposed to the browser)
+- `EMAIL_FROM` → Verified sender email address (e.g. `TimeLedger <reports@yourdomain.com>`) for weekly report delivery
 
 ---
 
@@ -413,7 +451,7 @@ Detailed design and implementation documents are available in the `docs/` direct
 
 ## Current Status
 
-TimeLedger is a production-deployed personal application actively used for daily time tracking. Core activity management, categories, weekly targets, analytics, Google authentication, and the AI Assistant with text and voice input are implemented.
+TimeLedger is a production-deployed personal application actively used for daily time tracking. Core activity management, categories, weekly targets, analytics, Google authentication, the AI Assistant with text and voice input, and the scheduled AI Productivity Agent are implemented.
 
 ### Core Features
 
@@ -423,6 +461,7 @@ TimeLedger is a production-deployed personal application actively used for daily
 - Weekly Targets
 - Analytics
 - AI Assistant with text and voice input
+- AI Productivity Agent
 
 ### Authentication & Security
 
@@ -437,6 +476,14 @@ TimeLedger is a production-deployed personal application actively used for daily
 - Confirmation required for sensitive actions
 - Server-side, user-scoped tools (the LLM never accesses the database)
 - Voice input via speech-to-text, reviewed and sent explicitly by the user
+
+### AI Productivity Agent
+
+- Deterministic weekly analytics engine computes authoritative totals, changes, rankings, and targets, followed by LLM-generated structured insights and actionable recommendations
+- Persisted immutable report history survives feature disablement and subsequent activity edits
+- Scheduled timezone-aware weekly generation via Vercel Cron with catch-up semantics
+- Optional weekly email delivery via Resend (HTML and plain text) without re-invoking the LLM
+- Idempotent generation/delivery claims with bounded leases (10-min generation, 5-min email) and safe automated retry recovery
 
 ### User Experience
 
@@ -469,7 +516,7 @@ Future enhancements include:
 
 ### AI
 
-- AI Productivity Coach and advanced AI analytics
+- Expanded AI Productivity Agent coaching, multi-week trend analysis, and more granular Main/Sub Category recommendations
 - Possible later voice extensions (not planned): text-to-speech replies, streaming transcription and automatic submission of transcriptions
 
 ### Integrations
