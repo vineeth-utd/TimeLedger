@@ -2,6 +2,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import { themeInitScript } from "@/lib/themeScript";
 import Nav from "@/components/Nav";
+import ThemeSync from "@/components/ThemeSync";
 import AssistantWidget from "@/components/assistant/AssistantWidget";
 
 const geistSans = Geist({
@@ -21,6 +22,7 @@ export default function RootLayout({ children }) {
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className={`${geistSans.variable} min-h-full bg-background text-foreground font-sans`}>
+        <ThemeSync />
         <Nav />
         <main>{children}</main>
         <AssistantWidget />
