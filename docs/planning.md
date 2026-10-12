@@ -754,7 +754,9 @@ The output of this milestone should clearly separate:
 - deterministic facts calculated by TimeLedger; and
 - interpretation that will later be performed by the LLM.
 
-**Status:** Pending
+**Status:** Complete
+
+Implemented in `src/lib/analytics/reportMetrics.js` (pure calculations), `src/lib/services/weeklyReportService.js` (user-scoped read of `daily_sub_category_summaries` + explicit `weekly_targets`) and `getWeekStartMondayForDate` in `src/lib/timezone.js`. Explicit targets only (no previous-week fallback; missing or 0 target → `null`). The existing Analytics page and Dashboard route were intentionally not refactored. Verified by `scripts/weekly-report-check.mjs`.
 
 ---
 

@@ -1454,6 +1454,19 @@ The initial voice phase does not include:
 
 ---
 
+# 18A. Weekly Report Data Contract (Phase 11, Milestone 1)
+
+`getWeeklyReportData(userId, { timezone, now?, weekStartDate? })` (`src/lib/services/weeklyReportService.js`) returns the deterministic two-week dataset the Productivity Agent will later interpret. It reads only `daily_sub_category_summaries` and explicit `weekly_targets` for the authenticated user (never raw activities) and outputs minutes only.
+
+* Report week = latest completed Monday-Sunday week in the user's timezone; prior week = the week before it. `weekStartDate` may override the report week and must be a Monday.
+* Shape: `{ schemaVersion: 1, facts: { timezone, periods, totals, mainCategories[], highlights } }`. `facts` holds everything TimeLedger calculates; LLM interpretation is a separate structure added later and must never be mixed into `facts`.
+* Each main category has report/prior minutes, activities, share %, change (absolute, % or `null` when prior is 0), per-week target metrics and nested sub categories.
+* Targets: explicit only, no previous-week fallback; missing or 0 target is `null`. Metrics: `targetMinutes`, `actualMinutes`, `achievementPercent`, signed `deviationMinutes`, `status` from exact minutes: `exceeded` (> target), `achieved` (= target), `near_target` (>= 75% of target), `below_target`.
+* Highlights: top 3 largest increases/decreases for main and sub categories, non-zero only, ties by name.
+* The output never contains `userId`, activity titles or notes.
+
+---
+
 # 19. Core Design Principles
 
 1. **The LLM never accesses the database directly.**

@@ -54,6 +54,13 @@ export function addDaysToDateString(dateString, days) {
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10)
 }
 
+// Monday (YYYY-MM-DD) of the Monday–Sunday week containing the given calendar date.
+export function getWeekStartMondayForDate(dateString) {
+  const [y, m, d] = dateString.split('-').map(Number)
+  const dayOfWeek = new Date(Date.UTC(y, m - 1, d)).getUTCDay() // 0=Sun, 1=Mon
+  return addDaysToDateString(dateString, dayOfWeek === 0 ? -6 : 1 - dayOfWeek)
+}
+
 // ("2026-10-07", "17:30", tz) -> Date (UTC instant)
 export function localDateTimeToUtc(dateString, timeString, timeZone) {
   let date = dateString
