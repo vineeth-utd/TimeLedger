@@ -1,8 +1,8 @@
 # TimeLedger
 
-A personal time-tracking and productivity application with analytics and a conversational AI assistant for managing and understanding how time is spent.
+A personal time-tracking and productivity application with analytics, a conversational AI assistant, and an AI Productivity Agent for managing, understanding, and improving how time is spent.
 
-TimeLedger was originally built to replace my Google Sheets-based time-tracking workflow and has evolved into a full-stack application that I use daily to log activities, manage categories, set weekly targets, analyze how my time is spent, and manage my time records through natural-language text and voice input.
+TimeLedger was originally built to replace my Google Sheets-based time-tracking workflow and has evolved into a full-stack application that I use daily to log activities, manage categories, set weekly targets, analyze how my time is spent, manage time records through natural-language text and voice input, and receive AI-generated weekly productivity insights and recommendations.
 
 The application is designed with a strong focus on fast activity logging, meaningful analytics, safe AI-assisted workflows, and a clean user experience across desktop and mobile.
 ---
