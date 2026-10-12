@@ -829,7 +829,9 @@ Initial report sections should include, where meaningful:
 
 Report quality should be manually evaluated before scheduled generation is implemented.
 
-**Status:** Pending
+**Status:** Implementation complete (offline-verified; live-model quality evaluated on five synthetic fixtures with prompt `weekly-report-v5.1`). **Pending integration verification:** live persistence against a real database after the M2 migration is applied (the migration has intentionally not been applied yet).
+
+Implemented in `src/lib/ai/report/` (prompt + compact input with a deterministic data-coverage signal, schema/validation/normalization/number guard, generation), `src/lib/services/weeklyReportGenerationService.js` (claim -> M1 facts -> model -> persist), per-provider report output caps (`GROQ_REPORT_MAX_OUTPUT_TOKENS` / `OPENAI_COMPATIBLE_REPORT_MAX_OUTPUT_TOKENS`, default 2048) and an OpenAI-compatible-only report reasoning effort (`OPENAI_COMPATIBLE_REPORT_REASONING_EFFORT`, baseline `low`). See `docs/ai.md` section 18C. Verified by `scripts/weekly-report-generation-check.mjs`; the opt-in live evaluation is `scripts/weekly-report-eval.mjs` (dry run, no database writes).
 
 ---
 

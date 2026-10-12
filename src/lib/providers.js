@@ -48,11 +48,46 @@ const MAX_OUTPUT_TOKEN_SETTINGS = {
   'openai-compatible': { env: 'OPENAI_COMPATIBLE_AI_MAX_OUTPUT_TOKENS', fallback: 1024 },
 }
 
-export function getMaxOutputTokens(provider) {
-  const { env, fallback } = MAX_OUTPUT_TOKEN_SETTINGS[provider]
-  const configured = process.env[env]?.trim()
+function readPositiveInteger(envName, fallback) {
+  const configured = process.env[envName]?.trim()
   const value = configured ? Number(configured) : NaN
   return Number.isInteger(value) && value > 0 ? value : fallback
+}
+
+export function getMaxOutputTokens(provider) {
+  const { env, fallback } = MAX_OUTPUT_TOKEN_SETTINGS[provider]
+  return readPositiveInteger(env, fallback)
+}
+
+// Output-token cap for AI Productivity Agent weekly reports. Separate from the assistant's cap
+// (a report is much longer than a chat reply) and independent per provider so each can be tuned
+// on its own. Invalid, zero or negative values fall back to the default.
+const REPORT_MAX_OUTPUT_TOKEN_SETTINGS = {
+  groq: { env: 'GROQ_REPORT_MAX_OUTPUT_TOKENS', fallback: 2048 },
+  'openai-compatible': { env: 'OPENAI_COMPATIBLE_REPORT_MAX_OUTPUT_TOKENS', fallback: 2048 },
+}
+
+export function getReportMaxOutputTokens(provider) {
+  const { env, fallback } = REPORT_MAX_OUTPUT_TOKEN_SETTINGS[provider]
+  return readPositiveInteger(env, fallback)
+}
+
+// Reasoning effort for weekly reports on the OpenAI-compatible provider only (Groq and the
+// assistant keep their own settings). Unset/empty -> undefined: the parameter is not sent and the
+// provider default applies. Any other non-empty value must be valid, so a typo is a clear
+// configuration error rather than a silently ignored setting.
+export const REPORT_REASONING_EFFORTS = ['none', 'low', 'medium', 'high']
+
+export function getReportReasoningEffort(provider) {
+  if (provider !== 'openai-compatible') return undefined
+  const configured = process.env.OPENAI_COMPATIBLE_REPORT_REASONING_EFFORT?.trim().toLowerCase()
+  if (!configured) return undefined
+  if (!REPORT_REASONING_EFFORTS.includes(configured)) {
+    throw new Error(
+      `OPENAI_COMPATIBLE_REPORT_REASONING_EFFORT must be one of: ${REPORT_REASONING_EFFORTS.join(', ')} (got "${configured}")`
+    )
+  }
+  return configured
 }
 
 export function getGroqApiKey() {

@@ -1475,6 +1475,50 @@ The initial voice phase does not include:
 
 ---
 
+# 18C. AI Weekly Report Generation (Phase 11, Milestone 3)
+
+A direct LLM workflow, separate from the assistant: no LangGraph, tools, checkpointer or assistant prompt. It uses only `createReportModel()` (`createChatModel` with report-specific options), so it stays provider-independent, and the model never touches Prisma or any data other than the facts text it is given. Prompt version: `weekly-report-v5.1` (`PROMPT_VERSION`, recorded in `content.meta`).
+
+**Flow** (`generateWeeklyReport` in `src/lib/services/weeklyReportGenerationService.js`, manual/development entry point; it does not check preferences):
+
+1. Resolve the report week (`resolveReportPeriods`, no database), then **claim** the `(user, week)` row by inserting it as `generating` (unique violation = already owned). Only then run the M1 analytics queries and the model call, so a concurrent loser does no report work.
+2. `getWeeklyReportData` (M1 facts) -> `generateReportContent` -> validated content.
+3. One conditional update (`WHERE id AND user_id AND status = 'generating'`) stores `completed`, the full M1 data in `facts`, `content` and `generated_at`. Any failure stores `failed` plus a safe `error_code` only (no facts, content, model text or messages), so a failure never looks completed.
+4. An existing `completed` row -> `REPORT_EXISTS` (M3 never regenerates a completed report); `generating` -> `REPORT_IN_PROGRESS`; `failed` -> one conditional re-claim for a manual rerun (`attempt_count + 1`). Leases, automatic retries, preferences, scheduling and email are later milestones.
+
+**Facts versus interpretation.** Target vs Actual and Week-over-week tables are deterministic and rendered later from the stored `facts`; the LLM writes only interpretation. A week with zero activity completes with deterministic `insufficient_data` content and makes no model call.
+
+**Input** (`reportPrompt.js`, a compact text rendering of the M1 facts, user-written names whitespace-collapsed, truncated and placed in a delimited data block):
+
+* Two-week input: every Main and Sub Category with ids, report/prior minutes, change, explicit targets (report and prior) and the largest changes.
+* A deterministic `DATA COVERAGE: <state> | report active days N/7 | prior active days M/7` line (`getDataCoverage`): `no_prior_week` when the prior week has no activity (takes precedence); `limited` when a non-empty week has 3 or fewer active days; otherwise `sufficient`.
+* `no_prior_week` input hygiene: only valid report-week facts and report targets are sent. No prior values or zeros, no change fields, no prior TARGET lines and no largest-change rankings.
+
+**Output contract** (`content`, plain text, `schemaVersion` 1): `kind` (`ai_report` | `insufficient_data`), `overview`, `mainCategoryInsights[]` (`mainCategoryId`, `headline`, `observed`, `targetCommentary`, `possibleExplanation`), `subCategoryInsights[]`, `observations[]`, `recommendations[]` (`title`, `action`, `rationale`, optional category ids; 0 to 3, none is valid), `dataNotes[]` and server-added `meta` (`promptVersion`, provider, model, token usage). Observed facts and speculation are structurally separate: `observed` holds only facts, and reasons may appear only in the optional `possibleExplanation`. Optional strings sent as `""` are normalized to `null`.
+
+**Prompt rules** (behavior verified by live evaluation, see below):
+
+* Quote numbers as whole minutes or supplied percents, never hours, sums or invented numbers; give magnitudes without a sign after up/down/rose/fell.
+* A target may be mentioned only for a category with a TARGET line. `targetCommentary` is one natural sentence and never a status word or raw TARGET text.
+* `possibleExplanation` is optional, explicitly worded as an uncertain possibility and only plausibly inferable from the supplied data; no invented external causes; no medical, health-outcome or wellbeing claims in any field; no "usual", trend, consistency or longer-term baseline claims (only two weeks exist).
+* Coverage: `limited` -> one concise `dataNotes` caveat with the active-day counts, no overconfident conclusions, tentative recommendations without consistency or pattern claims; `no_prior_week` -> one `dataNotes` caveat and no comparison language in any field, including recommendations; `sufficient` -> no coverage caveat. `dataNotes` is only for coverage limitations.
+* Recommendations: refer to next week; a category below its explicit target may receive an increase no greater than the observed gap; never reduce, cap or limit a category and never write "no more than N" limits; no corrective action for a category that met or exceeded its target; no new arbitrary numeric goals; no generic advice; never padded to fill the count.
+
+**Validation** (no repair re-asks, no retries): JSON extraction -> report-local Unicode normalization (spaces such as U+202F and hyphens such as U+2011 to ASCII, before the guard and humanizer; the shared assistant `durationText.js` is untouched) -> zod schema -> category-id cross-checks -> degenerate-whitespace check -> **number guard**. The guard rejects any "<number> <unit>" (minutes, percent, activities, days; hours are never allowed) in a fact-bearing field that is not a value supplied in the facts; recommendation `title`/`action` are exempt because they propose new quantities. Durations are then humanized ("154 min" -> "2 hrs 34 mins") in fact-bearing text; recommendation `title`/`action` are left as written. A response cut off by the output cap is rejected. Language rules (target mentions, hedging, recommendation content) are enforced by the prompt only; there is deliberately no heuristic natural-language validator.
+
+**Failure codes** (`weekly_reports.error_code`): `LLM_RATE_LIMITED`, `LLM_UNAVAILABLE`, `REPORT_TRUNCATED`, `REPORT_INVALID_JSON`, `REPORT_INVALID_SCHEMA`, `REPORT_UNSUPPORTED_NUMBERS`, `REPORT_INTERNAL`. Only codes are logged. An invalid report configuration value is a plain configuration error, not a provider failure.
+
+**Configuration.** Report output caps are per provider and independent of the assistant's caps: `GROQ_REPORT_MAX_OUTPUT_TOKENS` and `OPENAI_COMPATIBLE_REPORT_MAX_OUTPUT_TOKENS` (default 2048 each; invalid, zero or negative values fall back to the default). `OPENAI_COMPATIBLE_REPORT_REASONING_EFFORT` (`none` | `low` | `medium` | `high`) sets the reasoning effort for weekly reports on the OpenAI-compatible provider only: unset/empty sends nothing (provider default), any other value is a configuration error. It never affects the assistant or Groq. It is sent through `modelKwargs` because LangChain's `reasoning` constructor option is not sent on the Chat Completions path. A live compatibility probe showed the configured endpoint accepts and honors `reasoning_effort` (and rejects invalid values with HTTP 400). At the provider default effort, gpt-oss reasoning tokens consumed the 2048 cap and reports were truncated; with `low` the evaluated reports used about 600 to 1,050 output tokens (roughly 1,350 to 1,800 input tokens, 10 to 20 s). The evaluated baseline is `gpt-oss-120b`, `OPENAI_COMPATIBLE_REPORT_REASONING_EFFORT=low`, cap 2048.
+
+**Verification.**
+
+* `scripts/weekly-report-generation-check.mjs` (offline: mocked model, fake database, prints input size measurements; `js-tiktoken` is used only if present).
+* `scripts/weekly-report-eval.mjs` is the opt-in live-model dry run on synthetic fixtures (`--only`, `--diagnostics` prints the raw response and every number-guard hit with its field on a rejection; nothing is persisted and no production logging is affected). Wording quality is reviewed by a human.
+* Live evaluation on prompt v5.x (the seven fixtures are in `scripts/weekly-report-fixtures.mjs`): `typical`, `sparse`, `noPriorWeek`, `workDropLeisureUp` and `allTargetsMet` all validated with correct factual grounding, no number-guard rejections, natural target commentary, neutral leisure framing, proportionate gap-sized recommendations (including none when targets were met or exceeded), a coverage caveat when coverage was limited or there was no prior week, and no comparison language without a prior week. Known stylistic limits: some `observed` fields are terse fragments, recommendation wording under limited coverage is only moderately tentative, and single samples cannot show run-to-run variance.
+* **Pending integration verification:** live persistence (claim, snapshot and failure paths against a real database) has only been verified offline against a fake database, because the M2 migration has not been applied. It must be exercised once after the migration is applied.
+
+---
+
 # 19. Core Design Principles
 
 1. **The LLM never accesses the database directly.**
