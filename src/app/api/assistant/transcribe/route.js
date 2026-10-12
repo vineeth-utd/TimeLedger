@@ -1,7 +1,7 @@
 import { getAuthenticatedUser } from '@/lib/auth'
 import { MAX_AUDIO_BYTES, validateAudio } from '@/lib/stt/audio'
 import { SttError } from '@/lib/stt/errors'
-import { transcribeAudio } from '@/lib/stt/groq'
+import { transcribeAudio } from '@/lib/stt/provider'
 import { sttErrorResponse } from '@/lib/stt/http'
 
 export const runtime = 'nodejs'

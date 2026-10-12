@@ -9,13 +9,18 @@
 // Opt-in regression tool: run just the scenarios affected by a change. A full run is ~60k
 // tokens against Groq's 200k/day on-demand cap. Stops cleanly if the daily cap is hit.
 //
-// Requires GROQ_API_KEY (+ DATABASE_URL). Assertions are on tool names/arguments, database
+// Requires the configured provider's key (GROQ_API_KEY, or OPENAI_COMPATIBLE_API_BASE_URL + OPENAI_COMPATIBLE_API_KEY when
+// AI_PROVIDER=openai-compatible) plus DATABASE_URL. Assertions are on tool names/arguments, database
 // state and coarse reply properties (asks vs. acts) — never on exact wording.
 import { register } from 'node:module'
 import { randomUUID } from 'node:crypto'
 
-if (!process.env.GROQ_API_KEY) {
-  console.error('GROQ_API_KEY is required (run with: node --env-file=.env scripts/ai-eval.mjs)')
+const evalProvider = (process.env.AI_PROVIDER?.trim().toLowerCase() || 'groq')
+const missingKeys = (evalProvider === 'openai-compatible' ? ['OPENAI_COMPATIBLE_API_BASE_URL', 'OPENAI_COMPATIBLE_API_KEY'] : ['GROQ_API_KEY']).filter(
+  (name) => !process.env[name]
+)
+if (missingKeys.length) {
+  console.error(`${missingKeys.join(', ')} required (run with: node --env-file=.env scripts/ai-eval.mjs)`)
   process.exit(2)
 }
 

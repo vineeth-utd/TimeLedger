@@ -1,28 +1,44 @@
+import { getGroqApiKey, getModelName, getOpenAiCompatibleConfig, resolveProvider } from '../providers.js'
 import { SttError } from './errors.js'
 
 // The only provider-specific speech-to-text module. Swapping provider/model stays local to this
 // file: callers pass an audio Blob and get `{ text }` back. Audio is forwarded from memory only.
-const TRANSCRIPTION_URL = 'https://api.groq.com/openai/v1/audio/transcriptions'
-const DEFAULT_MODEL = 'whisper-large-v3-turbo'
+// Both providers expose the OpenAI-compatible `/audio/transcriptions` endpoint (STT_PROVIDER).
+const GROQ_TRANSCRIPTION_URL = 'https://api.groq.com/openai/v1/audio/transcriptions'
 const REQUEST_TIMEOUT_MS = 25_000
 
+// Endpoint, key and model for the selected provider. Throws a configuration error (message only,
+// never values) when the provider or its credentials are not configured.
+function getTranscriptionConfig() {
+  const provider = resolveProvider('STT_PROVIDER')
+  const model = getModelName(provider, 'stt')
+  if (provider === 'openai-compatible') {
+    const { baseURL, apiKey } = getOpenAiCompatibleConfig()
+    return { url: `${baseURL}/audio/transcriptions`, apiKey, model }
+  }
+  return { url: GROQ_TRANSCRIPTION_URL, apiKey: getGroqApiKey(), model }
+}
+
 export async function transcribeAudio({ file, extension, mimeType }) {
-  const apiKey = process.env.GROQ_API_KEY
-  if (!apiKey) {
-    console.error('Speech-to-text error: GROQ_API_KEY is not configured')
+  let config
+  try {
+    config = getTranscriptionConfig()
+  } catch (error) {
+    console.error(`Speech-to-text error: ${error.message}`)
     throw new SttError('TRANSCRIPTION_UNAVAILABLE', 'Transcription is unavailable right now.', 500)
   }
+  const { url, apiKey, model } = config
 
-  // Groq infers the container from the filename extension, so name it from the validated type.
+  // The provider infers the container from the filename extension, so name it from the validated type.
   const form = new FormData()
   form.append('file', new Blob([file], { type: mimeType }), `audio.${extension}`)
-  form.append('model', process.env.STT_MODEL?.trim() || DEFAULT_MODEL)
+  form.append('model', model)
   form.append('temperature', '0')
   form.append('response_format', 'json')
 
   let response
   try {
-    response = await fetch(TRANSCRIPTION_URL, {
+    response = await fetch(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}` },
       body: form,
