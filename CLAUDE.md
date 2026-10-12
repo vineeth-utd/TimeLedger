@@ -194,6 +194,16 @@ When working on the AI Assistant:
 * Recorded audio is transient and must not be persisted by TimeLedger.
 * Keep speech-to-text provider-specific code isolated from the existing assistant orchestration.
 * Initial verification focuses on English, but avoid unnecessary architecture restrictions that would prevent multilingual transcription later.
+* For Phase 11 AI Productivity Agent work, follow the currently approved Phase 11 milestone in `docs/planning.md`.
+* Reuse existing Analytics, summary, target, service, authentication, and user-ownership logic wherever appropriate rather than creating AI-specific copies.
+* Keep authoritative analytics deterministic. TimeLedger should calculate values such as weekly totals, target-vs-actual metrics and week-over-week changes; the LLM should interpret structured results and generate observations/recommendations rather than calculate authoritative analytics itself.
+* Prefer existing Daily Sub Category Summaries and Weekly Targets over exposing raw activities to the Productivity Agent when summary data is sufficient.
+* The Productivity Agent LLM must never access Prisma or the database directly. All report data must come through controlled application/service boundaries and remain scoped to the authenticated user.
+* The initial weekly report compares the previous completed week with the completed week immediately before it and includes both Main Category and Sub Category analytics. Do not expand to broader historical analysis until explicitly approved.
+* The AI Productivity Agent and Weekly Email Reports are separate per-user preferences. Disabling the parent Agent prevents scheduled report generation and email delivery but must not delete historical reports.
+* Persist one scheduled weekly report per user/week with explicit generation/delivery state and design scheduled processing to be idempotent before introducing background execution.
+* Email delivery must reuse the persisted report and must not invoke the LLM again solely to send or resend an email.
+* Implement only the currently approved Phase 11 milestone. Do not pull scheduling, email delivery, later interactive coaching, or other later-milestone functionality into an earlier milestone.
 
 ---
 
