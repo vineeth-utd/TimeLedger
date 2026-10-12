@@ -10,7 +10,11 @@ import { register } from 'node:module'
 register('./ai-eval-loader.mjs', import.meta.url)
 process.env.DATABASE_URL ??= 'postgresql://unused:unused@localhost:5432/unused' // never connected
 
-const { getPreferences, updatePreferences } = await import('@/lib/services/productivityAgentService.js')
+const { getPreferences, updatePreferences, listWeeklyReports, getWeeklyReport, requestWeeklyReportGeneration } = await import(
+  '@/lib/services/productivityAgentService.js'
+)
+const { FIXTURES } = await import('./weekly-report-fixtures.mjs')
+const { buildInsufficientDataContent } = await import('@/lib/ai/report/generateReportContent.js')
 const { WEEKLY_REPORT_STATUSES } = await import('@/lib/analytics/reportStatus.js')
 
 let passed = 0
@@ -184,6 +188,172 @@ await check('migration: RLS enabled with own-row policies on both tables', () =>
   }
   assert.equal((sql.match(/CREATE POLICY/g) ?? []).length, 8)
   assert.equal((sql.match(/auth\.uid\(\) = "user_id"/g) ?? []).length, 10) // select/insert/delete: 1 each, update: 2, per table
+})
+
+// ---- Milestone 4: report history, single-report read, manual generation gating ----------------
+const NOW = new Date('2026-10-14T12:00:00Z') // latest completed week: 2026-10-05..11
+const asDate = (d) => new Date(`${d}T00:00:00.000Z`)
+const PHOENIX = { productivityAgentEnabled: true, weeklyEmailReportsEnabled: false, timezone: 'America/Phoenix' }
+
+function reportDb({ preferences = [], reports = [] } = {}) {
+  const prefs = fakeDb(preferences)
+  const rows = reports.map((r) => ({ ...r }))
+  const calls = []
+  const matches = (row, where) => Object.entries(where).every(([k, v]) => row[k] === v)
+  const weeklyReport = {
+    findMany: async ({ where, orderBy, take, select }) => {
+      calls.push({ op: 'findMany', where, orderBy, take, select })
+      return rows
+        .filter((r) => matches(r, where))
+        .sort((a, b) => b.weekStartDate - a.weekStartDate)
+        .slice(0, take)
+        .map((r) => Object.fromEntries(Object.keys(select).map((k) => [k, r[k]])))
+    },
+    findFirst: async ({ where, select }) => {
+      calls.push({ op: 'findFirst', where, select })
+      const row = rows.find((r) => matches(r, where))
+      return row ? Object.fromEntries(Object.keys(select).map((k) => [k, row[k]])) : null
+    },
+    create: async ({ data }) => {
+      calls.push({ op: 'create' })
+      if (rows.some((r) => r.userId === data.userId && r.weekStartDate.getTime() === data.weekStartDate.getTime())) {
+        throw Object.assign(new Error('unique'), { code: 'P2002' })
+      }
+      const row = { id: 900 + rows.length, facts: null, content: null, generatedAt: null, errorCode: null, ...data }
+      rows.push(row)
+      return { ...row }
+    },
+    findUnique: async ({ where }) => {
+      calls.push({ op: 'findUnique' })
+      const { userId, weekStartDate } = where.userId_weekStartDate
+      const row = rows.find((r) => r.userId === userId && r.weekStartDate.getTime() === weekStartDate.getTime())
+      return row ? { ...row } : null
+    },
+    updateMany: async ({ where, data }) => {
+      calls.push({ op: 'updateMany', where })
+      const row = rows.find((r) => matches(r, where))
+      if (!row) return { count: 0 }
+      for (const [k, v] of Object.entries(data)) row[k] = v && typeof v === 'object' && 'increment' in v ? row[k] + v.increment : v
+      return { count: 1 }
+    },
+  }
+  const empty = { findMany: async () => [] }
+  return { db: { ...prefs.db, weeklyReport, dailySubCategorySummary: empty, weeklyTarget: empty }, rows, calls }
+}
+
+const report = (id, userId, week, extra = {}) => ({
+  id, userId, weekStartDate: asDate(week), status: 'completed', errorCode: null, generatedAt: new Date('2026-10-12T10:00:00Z'),
+  facts: { schemaVersion: 1, facts: {} }, content: { schemaVersion: 1, kind: 'ai_report', overview: 'x', meta: { provider: 'p', model: 'm', usage: null } }, ...extra,
+})
+const quiet = async (fn) => {
+  const original = console.error
+  console.error = () => {}
+  try {
+    return await fn()
+  } finally {
+    console.error = original
+  }
+}
+
+await check('report history: own reports only, newest first, metadata only, bounded', async () => {
+  const { db, calls } = reportDb({
+    preferences: [{ userId: 'u1', ...PHOENIX }],
+    reports: [report(1, 'u1', '2026-09-28'), report(2, 'u1', '2026-10-05'), report(3, 'u2', '2026-10-05')],
+  })
+  const { reports, targetWeekStartDate } = await listWeeklyReports('u1', { db, now: NOW })
+  assert.deepEqual(reports.map((r) => [r.id, r.weekStartDate]), [[2, '2026-10-05'], [1, '2026-09-28']])
+  assert.equal(targetWeekStartDate, '2026-10-05')
+  assert.deepEqual(calls[0].where, { userId: 'u1' })
+  assert.ok(calls[0].take <= 52)
+  for (const r of reports) assert.deepEqual(Object.keys(r).sort(), ['errorCode', 'generatedAt', 'id', 'status', 'weekStartDate'])
+})
+
+await check('report history survives disabling; no timezone means no generation target', async () => {
+  const { db } = reportDb({
+    preferences: [{ userId: 'u1', productivityAgentEnabled: false, weeklyEmailReportsEnabled: false, timezone: null }],
+    reports: [report(1, 'u1', '2026-10-05')],
+  })
+  const result = await listWeeklyReports('u1', { db, now: NOW })
+  assert.equal(result.reports.length, 1)
+  assert.equal(result.targetWeekStartDate, null)
+})
+
+await check('single report: scoped to the user, other ids look missing, metadata stripped', async () => {
+  const { db, calls } = reportDb({ reports: [report(7, 'u1', '2026-10-05'), report(8, 'u2', '2026-10-05')] })
+  const own = await getWeeklyReport('u1', 7, { db })
+  assert.equal(own.weekStartDate, '2026-10-05')
+  assert.equal('meta' in own.content, false)
+  assert.equal('userId' in own, false)
+  assert.deepEqual(calls[0].where, { id: 7, userId: 'u1' })
+  for (const id of [8, 999, 0, -1, 1.5, NaN]) {
+    await assert.rejects(() => getWeeklyReport('u1', id, { db }), (e) => e.code === 'NOT_FOUND' && e.status === 404)
+  }
+})
+
+await check('manual generation is blocked while the Agent is disabled or has no timezone', async () => {
+  const model = { invoke: async () => assert.fail('model must not be called') }
+  for (const [pref, code] of [
+    [{ userId: 'u1', productivityAgentEnabled: false, weeklyEmailReportsEnabled: false, timezone: 'America/Phoenix' }, 'AGENT_DISABLED'],
+    [undefined, 'AGENT_DISABLED'],
+    [{ userId: 'u1', productivityAgentEnabled: false, weeklyEmailReportsEnabled: true, timezone: 'America/Phoenix' }, 'AGENT_DISABLED'],
+    [{ userId: 'u1', productivityAgentEnabled: true, weeklyEmailReportsEnabled: false, timezone: null }, 'VALIDATION_ERROR'],
+  ]) {
+    const { db, calls } = reportDb({ preferences: pref ? [pref] : [] })
+    await assert.rejects(() => requestWeeklyReportGeneration('u1', { db, model, now: NOW }), (e) => e.code === code)
+    assert.equal(calls.length, 0, 'no report row may be claimed')
+  }
+})
+
+await check('manual generation: uses the stored timezone/week, never regenerates completed, retries failed', async () => {
+  const model = { invoke: async () => assert.fail('no activity: model must not be called') }
+  const base = { preferences: [{ userId: 'u1', ...PHOENIX }] }
+
+  const created = reportDb(base)
+  const ok = await requestWeeklyReportGeneration('u1', { db: created.db, model, now: NOW })
+  assert.equal(ok.success, true)
+  assert.equal(ok.weekStartDate, '2026-10-05')
+  assert.equal(created.rows[0].status, 'completed')
+
+  const done = reportDb({ ...base, reports: [report(1, 'u1', '2026-10-05')] })
+  await assert.rejects(() => requestWeeklyReportGeneration('u1', { db: done.db, model, now: NOW }), (e) => e.code === 'REPORT_EXISTS' && e.status === 409)
+  assert.equal(done.rows[0].content.overview, 'x') // untouched
+
+  const failed = reportDb({ ...base, reports: [report(1, 'u1', '2026-10-05', { status: 'failed', errorCode: 'LLM_UNAVAILABLE', facts: null, content: null, generatedAt: null, attemptCount: 1 })] })
+  const retried = await requestWeeklyReportGeneration('u1', { db: failed.db, model, now: NOW })
+  assert.equal(retried.success, true)
+  assert.equal(failed.rows[0].status, 'completed')
+  assert.equal(failed.rows[0].attemptCount, 2)
+
+  const inProgress = reportDb({ ...base, reports: [report(1, 'u1', '2026-10-05', { status: 'generating', facts: null, content: null, generatedAt: null })] })
+  await quiet(() => assert.rejects(() => requestWeeklyReportGeneration('u1', { db: inProgress.db, model, now: NOW }), (e) => e.code === 'REPORT_IN_PROGRESS'))
+})
+
+await check('another user cannot be targeted: generation only ever claims the caller', async () => {
+  const model = { invoke: async () => assert.fail('unused') }
+  const { db, rows } = reportDb({ preferences: [{ userId: 'u1', ...PHOENIX }, { userId: 'u2', ...PHOENIX }], reports: [report(1, 'u2', '2026-10-05')] })
+  const ok = await requestWeeklyReportGeneration('u1', { db, model, now: NOW })
+  assert.equal(ok.success, true)
+  assert.equal(rows.filter((r) => r.userId === 'u1').length, 1)
+  assert.equal(rows.find((r) => r.userId === 'u2').content.overview, 'x')
+})
+
+await check('report view contract: fixtures carry every field the page reads', () => {
+  for (const [name, reportData] of Object.entries(FIXTURES)) {
+    const { totals, mainCategories } = reportData.facts
+    for (const week of ['report', 'prior']) for (const k of ['minutes', 'activities', 'activeDays']) assert.equal(typeof totals[week][k], 'number', `${name} totals.${week}.${k}`)
+    assert.equal(typeof totals.change.minutes, 'number', `${name} totals.change`)
+    for (const m of mainCategories) {
+      assert.equal(typeof m.name, 'string')
+      assert.equal(typeof m.change.minutes, 'number')
+      assert.ok(Array.isArray(m.subCategories))
+      const t = m.target?.report
+      if (t) for (const k of ['targetMinutes', 'actualMinutes', 'achievementPercent', 'status']) assert.ok(t[k] !== undefined, `${name} target.${k}`)
+    }
+    const insufficient = buildInsufficientDataContent(reportData.facts)
+    assert.equal(insufficient.kind, 'insufficient_data')
+    assert.equal(insufficient.schemaVersion, 1)
+    assert.equal(typeof insufficient.overview, 'string')
+  }
 })
 
 console.log(`\n${passed} checks passed`)

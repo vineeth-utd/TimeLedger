@@ -829,7 +829,7 @@ Initial report sections should include, where meaningful:
 
 Report quality should be manually evaluated before scheduled generation is implemented.
 
-**Status:** Implementation complete (offline-verified; live-model quality evaluated on five synthetic fixtures with prompt `weekly-report-v5.1`). **Pending integration verification:** live persistence against a real database after the M2 migration is applied (the migration has intentionally not been applied yet).
+**Status:** Implementation complete (offline-verified; live-model quality evaluated on five synthetic fixtures with prompt `weekly-report-v5.1`). **Live persistence verified** against the real database during the Milestone 4 manual verification (report generated and persisted as `completed`).
 
 Implemented in `src/lib/ai/report/` (prompt + compact input with a deterministic data-coverage signal, schema/validation/normalization/number guard, generation), `src/lib/services/weeklyReportGenerationService.js` (claim -> M1 facts -> model -> persist), per-provider report output caps (`GROQ_REPORT_MAX_OUTPUT_TOKENS` / `OPENAI_COMPATIBLE_REPORT_MAX_OUTPUT_TOKENS`, default 2048) and an OpenAI-compatible-only report reasoning effort (`OPENAI_COMPATIBLE_REPORT_REASONING_EFFORT`, baseline `low`). See `docs/ai.md` section 18C. Verified by `scripts/weekly-report-generation-check.mjs`; the opt-in live evaluation is `scripts/weekly-report-eval.mjs` (dry run, no database writes).
 
@@ -857,7 +857,9 @@ Scope:
 
 Do not introduce a general Settings page solely for this feature.
 
-**Status:** Pending
+**Status:** Complete. Offline-verified, then manually verified in the browser against the real database and model after the M2 migration was applied. One UI defect found there (the Generate action did not appear after enabling the Agent until a refresh, because the generation target week was not reloaded once the timezone was stored) is fixed.
+
+Implemented as `/productivity-agent` (`src/app/productivity-agent`, `src/components/productivity-agent`), `/api/productivity-agent/{preferences,reports,reports/[id]}` and `listWeeklyReports` / `getWeeklyReport` / `requestWeeklyReportGeneration` in `productivityAgentService.js`. Decisions: manual generation targets only the latest completed week and is blocked while the Agent is disabled; failed reports can be retried, completed reports are not regenerated; stale `generating` recovery is deferred to Milestone 5; the Weekly Email Reports toggle is hidden until Milestone 6 (the preference remains supported by the API). See `docs/api.md` and `docs/ui.md`.
 
 ---
 

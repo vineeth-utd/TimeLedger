@@ -224,7 +224,7 @@ AI assistant only. Guarantees a pending confirmation action (delete, category cr
 
 ### Notes
 
-* **Migration history.** The migrations `20260708000000_enable_rls_user_owned_tables` and `20261008120000_add_assistant_action_claims` were applied to the production database directly with SQL, so they are not yet recorded in its `_prisma_migrations` table. Their effects are verified present, and the live schema has no drift from `schema.prisma`. They are reconciled with `prisma migrate resolve --applied` (metadata only, no SQL re-run).
+* **Migration history.** The migrations `20260708000000_enable_rls_user_owned_tables` and `20261008120000_add_assistant_action_claims` were originally applied to the production database directly with SQL. They have since been reconciled with `prisma migrate resolve --applied` (metadata only) and are recorded in `_prisma_migrations`; the live schema has no drift from `schema.prisma`.
 * Conversation state lives in a separate Postgres schema, `ai_checkpoints`, created by `scripts/ai-setup-checkpointer.mjs`; it is not managed by Prisma.
 
 ---
