@@ -884,7 +884,9 @@ Scope:
 - Users with the AI Productivity Agent disabled must not cause scheduled LLM calls.
 - Email delivery must not be required for scheduled report generation.
 
-**Status:** Pending
+**Status:** Complete. Offline-verified via `scripts/weekly-report-scheduler-check.mjs`.
+
+Implemented as `vercel.json` (daily cron at 12:00 UTC conforming to Vercel Hobby constraints), `GET /api/cron/weekly-reports` (constant-time `CRON_SECRET` bearer auth, `maxDuration = 60`), `weeklyReportSchedulerService.js` (`findEligibleScheduledUsers`, `processScheduledWeeklyReports`), and enhanced `claimReport` in `weeklyReportGenerationService.js`. Key decisions: catch-up semantics (the latest completed week remains eligible across any day of the week until completed or retry cap reached); bounded execution (default max batch size 3, 45 s budget); 10-minute stale lease recovery for crashed/abandoned `generating` rows; max 3 scheduled attempts with failed/exhausted reports remaining recoverable via manual user retry in the UI. See `docs/api.md`.
 
 ---
 

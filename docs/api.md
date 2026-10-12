@@ -705,6 +705,12 @@ All endpoints require authentication; identity comes only from the session (no `
 
 `POST` errors: 409 `AGENT_DISABLED` (Agent off), 400 (no stored timezone), 409 `REPORT_EXISTS` (completed reports are never regenerated), 409 `REPORT_IN_PROGRESS`, 429 (provider rate limit), 502 (provider unavailable), 500 (other generation failure; a failed report can be retried with the same call). Only safe codes are returned; the call can take several seconds (`maxDuration` 60).
 
+### Scheduled Weekly Report Generation (Milestone 5)
+
+| Endpoint | Behavior |
+|---|---|
+| `GET /api/cron/weekly-reports` | Authenticated background cron endpoint. Requires `Authorization: Bearer <CRON_SECRET>`. Evaluates all users with `productivityAgentEnabled: true` and a valid timezone. Uses catch-up semantics to generate reports for the latest completed local week. Recovers stale `generating` leases (> 10m). Retries failed reports up to 3 scheduled attempts; failed reports remain recoverable via manual POST. Returns `{ success: true, eligibleCount, processed, completed, failed, skipped, attemptsExceeded, durationMs }`. |
+
 ---
 
 # Validation Rules
