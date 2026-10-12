@@ -6,6 +6,7 @@ import { describePendingAction, isPendingExpired, toPublicPendingAction } from '
 import { claimAction, isActionClaimed } from '@/lib/ai/actionClaims'
 import { buildAssistantGraph } from '@/lib/ai/graph'
 import { getAssistantTools } from '@/lib/ai/tools'
+import { humanizeDurations } from '@/lib/ai/durationText'
 
 const DEFAULT_RECURSION_LIMIT = 12
 const STEP_LIMIT_REPLY =
@@ -106,7 +107,8 @@ function toTurnResult(state) {
   const messages = state.messages
   return {
     status: 'complete',
-    reply: messageText(messages[messages.length - 1]),
+    // Minutes stay authoritative in state and tool results; only the user-facing reply is humanized.
+    reply: humanizeDurations(messageText(messages[messages.length - 1])),
     pendingAction: null,
     choices: collectChoices(messages[messages.length - 1]),
     changes: collectChanges(messages),
