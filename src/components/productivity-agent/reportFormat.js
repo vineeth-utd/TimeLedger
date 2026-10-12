@@ -1,7 +1,12 @@
 import { formatDateOnly } from '@/lib/formatters'
 
 export const formatWeekRange = (weekStartDate) => {
-  const start = new Date(`${weekStartDate}T00:00:00.000Z`)
+  const dateStr = weekStartDate instanceof Date
+    ? weekStartDate.toISOString().slice(0, 10)
+    : typeof weekStartDate === 'string' && weekStartDate.includes('T')
+      ? weekStartDate.slice(0, 10)
+      : String(weekStartDate)
+  const start = new Date(`${dateStr}T00:00:00.000Z`)
   const end = new Date(start)
   end.setUTCDate(end.getUTCDate() + 6)
   const iso = (d) => d.toISOString().slice(0, 10)

@@ -83,6 +83,10 @@ const toReportSummary = (row) => ({
   status: row.status,
   errorCode: row.errorCode,
   generatedAt: row.generatedAt,
+  emailStatus: row.emailStatus ?? null,
+  emailSentAt: row.emailSentAt ?? null,
+  emailErrorCode: row.emailErrorCode ?? null,
+  emailRecipient: row.emailRecipient ?? null,
 })
 
 // Report history (metadata only, newest first) plus the week a manual generation would target
@@ -95,7 +99,17 @@ export async function listWeeklyReports(userId, { db = prisma, now = new Date() 
       where: { userId },
       orderBy: { weekStartDate: 'desc' },
       take: HISTORY_LIMIT,
-      select: { id: true, weekStartDate: true, status: true, errorCode: true, generatedAt: true },
+      select: {
+        id: true,
+        weekStartDate: true,
+        status: true,
+        errorCode: true,
+        generatedAt: true,
+        emailStatus: true,
+        emailSentAt: true,
+        emailErrorCode: true,
+        emailRecipient: true,
+      },
     }),
     getPreferences(userId, { db }),
   ])
@@ -113,7 +127,19 @@ export async function getWeeklyReport(userId, id, { db = prisma } = {}) {
   if (!Number.isInteger(id) || id <= 0) throw notFound()
   const row = await db.weeklyReport.findFirst({
     where: { id, userId },
-    select: { id: true, weekStartDate: true, status: true, errorCode: true, generatedAt: true, facts: true, content: true },
+    select: {
+      id: true,
+      weekStartDate: true,
+      status: true,
+      errorCode: true,
+      generatedAt: true,
+      emailStatus: true,
+      emailSentAt: true,
+      emailErrorCode: true,
+      emailRecipient: true,
+      facts: true,
+      content: true,
+    },
   })
   if (!row) throw notFound()
   const { meta: _meta, ...content } = row.content ?? {}

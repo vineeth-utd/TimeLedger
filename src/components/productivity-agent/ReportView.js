@@ -1,6 +1,7 @@
-import { Activity, Calendar, Clock } from 'lucide-react'
+import { useState } from 'react'
+import { Activity, AlertCircle, Calendar, CheckCircle2, Clock, Mail } from 'lucide-react'
 import SummaryCard from '@/components/SummaryCard'
-import { formatMinutes } from '@/lib/formatters'
+import { formatDateOnly, formatMinutes } from '@/lib/formatters'
 import { TARGET_STATUS_LABELS, formatSigned, formatWeekRange } from '@/components/productivity-agent/reportFormat'
 
 const SUPPORTED_SCHEMA_VERSION = 1
@@ -44,7 +45,11 @@ function ChangeCell({ minutes }) {
 
 // Renders a persisted completed report: deterministic numbers from `facts`, AI text from `content`.
 // Names always come from `facts` (looked up by id), never from the model's text.
-export default function ReportView({ report }) {
+export default function ReportView({ report, onEmailSent }) {
+  const [sendingEmail, setSendingEmail] = useState(false)
+  const [emailError, setEmailError] = useState(null)
+  const [emailSuccess, setEmailSuccess] = useState(null)
+
   const facts = report.facts?.facts
   const content = report.content
   if (!facts?.totals || !Array.isArray(facts.mainCategories) || !content || content.schemaVersion !== SUPPORTED_SCHEMA_VERSION) {
@@ -59,13 +64,69 @@ export default function ReportView({ report }) {
   const hasPrior = totals.prior.minutes > 0
   const referenceName = (mainId, subId) => subById.get(subId)?.name ?? mainById.get(mainId)?.name ?? null
 
+  async function handleSendEmail() {
+    setSendingEmail(true)
+    setEmailError(null)
+    setEmailSuccess(null)
+    try {
+      const res = await fetch(`/api/productivity-agent/reports/${report.id}/email`, { method: 'POST' })
+      const json = await res.json()
+      if (json.success) {
+        setEmailSuccess(`Email sent to ${json.data.recipient}`)
+        if (onEmailSent) onEmailSent(json.data)
+      } else {
+        setEmailError(json.message ?? 'Failed to send email.')
+      }
+    } catch {
+      setEmailError('Network error sending email.')
+    } finally {
+      setSendingEmail(false)
+    }
+  }
+
+  const emailStatus = report.emailStatus
+  const isSent = emailStatus === 'sent'
+  const isFailed = emailStatus === 'failed'
+  const emailButtonLabel = isSent ? 'Resend email' : isFailed ? 'Retry email' : 'Send to email'
+
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">Week of {formatWeekRange(report.weekStartDate)}</h2>
-        <p className="text-xs text-foreground-subtle mt-0.5">
-          Time figures are calculated by TimeLedger; the written interpretation is AI-generated.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Week of {formatWeekRange(report.weekStartDate)}</h2>
+          <p className="text-xs text-foreground-subtle mt-0.5">
+            Time figures are calculated by TimeLedger; the written interpretation is AI-generated.
+          </p>
+        </div>
+        <div className="flex flex-col items-start sm:items-end gap-1.5 shrink-0">
+          <button
+            type="button"
+            disabled={sendingEmail}
+            onClick={handleSendEmail}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border text-foreground hover:bg-surface-muted transition-colors disabled:opacity-50"
+          >
+            <Mail className="h-3.5 w-3.5" />
+            {sendingEmail ? 'Sending…' : emailButtonLabel}
+          </button>
+          {isSent && report.emailRecipient && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="h-3 w-3" />
+              Sent to {report.emailRecipient}
+            </span>
+          )}
+          {isFailed && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-rose-600 dark:text-rose-400">
+              <AlertCircle className="h-3 w-3" />
+              Delivery failed
+            </span>
+          )}
+          {emailSuccess && !isSent && (
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400">{emailSuccess}</span>
+          )}
+          {emailError && (
+            <span className="text-[11px] text-rose-600 dark:text-rose-400">{emailError}</span>
+          )}
+        </div>
       </div>
 
       <p className="text-sm text-foreground-secondary">{content.overview}</p>

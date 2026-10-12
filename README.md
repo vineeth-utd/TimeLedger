@@ -77,6 +77,17 @@ The application is designed with a strong focus on fast activity logging, meanin
 - Audio is transient and never persisted by TimeLedger
 - Verified on desktop Chrome and Android/mobile home-screen usage; Safari/iOS remains unverified
 
+### AI Productivity Agent
+
+- Weekly productivity reviews comparing the previous completed week against the prior week
+- Authoritative deterministic analytics engine computes totals, category changes, rankings, and target progress
+- LLM generates structured insights, observations, recommendations, and data coverage notes
+- Robust output validation with number guard, Unicode normalization, and truncation detection
+- Zero-activity weeks complete gracefully without LLM calls (`insufficient_data`)
+- Scheduled automated generation via Vercel Cron with catch-up semantics and atomic lease claims
+- Optional weekly email report delivery via Resend (HTML & text) without re-invoking the LLM
+- Independent user preferences for Agent and Weekly Email Reports with full manual generation and resend controls
+
 ### Authentication
 
 - Google Sign-In with Supabase Auth

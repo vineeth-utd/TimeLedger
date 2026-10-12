@@ -268,6 +268,11 @@ Persisted AI Productivity Agent weekly reports (one row per user and report week
 * error_code (safe code only, no message or content)
 * facts (JSONB): the Milestone 1 deterministic report data (`schemaVersion` + `facts`) captured at generation time; never recomputed when viewing
 * content (JSONB): the structured AI-generated report (Milestone 3)
+* email_status: `sending`, `sent`, `failed`, or NULL (default NULL)
+* email_sent_at: timestamp when successfully sent
+* email_attempt_count: integer (default 0)
+* email_error_code: safe delivery error code only (mirrors `src/lib/email/emailError.js`), no raw provider error messages
+* email_recipient: safe recipient email address recorded at delivery time
 * created_at
 * updated_at
 
@@ -277,11 +282,14 @@ Persisted AI Productivity Agent weekly reports (one row per user and report week
 * CHECK status IN ('generating', 'completed', 'failed') (mirrors `src/lib/analytics/reportStatus.js`)
 * CHECK week_start_date is a Monday
 * CHECK a `completed` row has facts, content and generated_at
+* CHECK ("email_status" IS NULL OR "email_status" IN ('sending', 'sent', 'failed'))
 * No foreign keys; own-row RLS policies (`auth.uid() = user_id`)
 
 ### Notes
 
-* Retry/regeneration reuses the same row (status back to `generating`, attempt_count + 1). Lease length, retry limits and email-delivery state are defined in later milestones.
+* Retry/regeneration reuses the same row (status back to `generating`, attempt_count + 1).
+* Scheduled report generation lease: 10 minutes (`REPORT_STALE_MINUTES = 10`), maximum 3 scheduled attempts (`MAX_SCHEDULED_ATTEMPTS = 3`). Manual retry by the user remains possible even after scheduled attempts are exhausted.
+* Scheduled email delivery lease: 5 minutes (`EMAIL_STALE_MINUTES = 5`), maximum 3 scheduled delivery attempts (`MAX_SCHEDULED_DELIVERY_ATTEMPTS = 3`). Manual email send/retry/resend by the user remains possible without regenerating the report.
 
 ---
 
