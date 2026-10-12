@@ -192,7 +192,7 @@ await check('text-block content is inspected too', async () => {
 })
 
 await check('a valid reply (U+2011, NBSP, multilingual) passes unchanged; the guard is not applied to tool-call turns', async () => {
-  const reply = `✓ Created Call with Home (7:48${NNBSP}AM‑8:10${NNBSP}AM, 22 min). घर पर कॉल 👨‍👩‍👧`
+  const reply = `✓ Created Call with Home (7:48${NNBSP}AM‑8:10${NNBSP}AM, 22 mins). घर पर कॉल 👨‍👩‍👧`
   const checkpointer = new MemorySaver()
   const result = await runAssistant({
     ctx,

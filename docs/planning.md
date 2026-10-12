@@ -676,3 +676,7 @@ Small enhancement after Phase 10B: `AI_PROVIDER` and `STT_PROVIDER` (`groq` defa
 **Status:** Implemented and verified deterministically (`scripts/provider-check.mjs`). Live OpenAI-compatible chat/tool-call and transcription checks pending.
 
 Model, output-token cap and reasoning settings are per provider (`GROQ_*` / `OPENAI_COMPATIBLE_*`); the shared `AI_MODEL`, `STT_MODEL`, `AI_MAX_OUTPUT_TOKENS` and `AI_REASONING_EFFORT` no longer exist.
+
+## Assistant Duration Wording (Small UX Enhancement)
+
+Assistant replies show durations as hours and minutes (`2 hrs 34 mins`) instead of raw minutes. The model still reports whole minutes; the server deterministically rewrites clear integer durations in the final reply (`src/lib/ai/durationText.js`). Internal values, tool results and API contracts are unchanged. Verified by `scripts/duration-text-check.mjs`.
